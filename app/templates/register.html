@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrazione</title>
+</head>
+<body>
+
+<h1>Registrazione</h1>
+
+{% if errore %}
+<p style="color:red;">{{ errore }}</p>
+{% endif %}
+
+<form method="post">
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button>Registrati</button>
+</form>
+
+<a href="/login">Torna al login</a>
+
+</body>
+</html>

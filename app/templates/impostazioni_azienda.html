@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Impostazioni azienda</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <h1>Impostazioni azienda</h1>
+
+    {% if request.query_params.get("salvato") == "1" %}
+        <div class="alert">
+            Impostazioni salvate correttamente.
+        </div>
+    {% endif %}
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Impostazioni azienda</h1>
+
+    <form method="post">
+        <label>Nome azienda</label>
+        <input type="text" name="nome_azienda" value="{{ azienda.nome_azienda or '' }}">
+
+        <label>Partita IVA</label>
+        <input type="text" name="partita_iva" value="{{ azienda.partita_iva or '' }}">
+
+        <label>Indirizzo</label>
+        <input type="text" name="indirizzo" value="{{ azienda.indirizzo or '' }}">
+
+        <label>Telefono</label>
+        <input type="text" name="telefono" value="{{ azienda.telefono or '' }}">
+
+        <label>Email</label>
+        <input type="text" name="email" value="{{ azienda.email or '' }}">
+
+        <button type="submit">Salva impostazioni</button>
+    </form>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Clienti</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Clienti</h1>
+
+    <a class="btn" href="/clienti/nuovo">➕ Nuovo cliente</a>
+
+    <form action="/clienti" method="get">
+        <label>Cerca:</label>
+        <input type="text" name="cerca" value="{{ cerca or '' }}">
+        <button>Cerca</button>
+    </form>
+
+    {% if clienti %}
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Cognome</th>
+            <th>Telefono</th>
+            <th>Azioni</th>
+        </tr>
+
+        {% for cliente in clienti %}
+        <tr>
+            <td>{{ cliente.id }}</td>
+            <td>{{ cliente.nome }}</td>
+            <td>{{ cliente.cognome }}</td>
+            <td>{{ cliente.telefono }}</td>
+            <td>
+                <a class="btn btn-secondary" href="/clienti/{{ cliente.id }}">Scheda</a>
+                <a class="btn" href="/lavori/nuovo/{{ cliente.id }}">Lavoro</a>
+                <a class="btn btn-secondary" href="/clienti/{{ cliente.id }}/modifica">Modifica</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

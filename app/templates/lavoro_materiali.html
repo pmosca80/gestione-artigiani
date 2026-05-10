@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Materiali del lavoro</title>
+    <link rel="stylesheet" href="/static/style.css?v=5">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Materiali usati nel lavoro</h1>
+
+    <h2>{{ lavoro.titolo }}</h2>
+    <p><strong>Data:</strong> {{ lavoro.data_lavoro }}</p>
+
+    {% if request.query_params.get("errore") == "scorta" %}
+        <div class="alert alert-error">
+            Quantità insufficiente in magazzino.
+        </div>
+    {% endif %}
+
+    <hr>
+
+    <h3>Aggiungi materiale al lavoro</h3>
+
+    <form method="post">
+        <label>Materiale</label>
+        <select name="materiale_id" required>
+            {% for materiale in materiali %}
+                <option value="{{ materiale.id }}">
+                    {{ materiale.nome }} - disponibile: {{ materiale.quantita }} {{ materiale.unita_misura }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Quantità usata</label>
+        <input type="number" step="0.01" name="quantita" required>
+
+        <label>Costo unitario</label>
+        <input type="number" step="0.01" name="costo_unitario" value="0">
+
+        <label>Note</label>
+        <textarea name="note"></textarea>
+
+        <button type="submit">Scarica dal magazzino</button>
+    </form>
+
+    <hr>
+
+    <h3>Materiali già usati</h3>
+
+    {% if materiali_usati %}
+        <table>
+            <tr>
+                <th>Materiale</th>
+                <th>Quantità</th>
+                <th>Costo unitario</th>
+                <th>Totale</th>
+                <th>Note</th>
+                <th>Data</th>
+            </tr>
+
+            {% for usato in materiali_usati %}
+            <tr>
+                <td>
+                    {% if materiali_dict.get(usato.materiale_id) %}
+                        {{ materiali_dict.get(usato.materiale_id).nome }}
+                    {% else %}
+                        Materiale non trovato
+                    {% endif %}
+                </td>
+
+                <td>
+                    {{ usato.quantita }}
+                    {% if materiali_dict.get(usato.materiale_id) %}
+                        {{ materiali_dict.get(usato.materiale_id).unita_misura }}
+                    {% endif %}
+                </td>
+
+                <td>€ {{ "%.2f"|format(usato.costo_unitario or 0) }}</td>
+
+                <td>
+                    € {{ "%.2f"|format((usato.quantita or 0) * (usato.costo_unitario or 0)) }}
+                </td>
+
+                <td>{{ usato.note }}</td>
+                <td>{{ usato.data_creazione }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="card">
+            <h3>Riepilogo economico</h3>
+
+            <p><strong>Totale materiali:</strong>
+                € {{ "%.2f"|format(lavoro.totale_materiali or totale_materiali or 0) }}
+            </p>
+
+            <p><strong>Totale manodopera:</strong>
+                € {{ "%.2f"|format(lavoro.totale_manodopera or 0) }}
+            </p>
+
+            <p><strong>Consuntivo:</strong>
+                € {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}
+            </p>
+
+            <p><strong>Preventivo:</strong>
+                € {{ "%.2f"|format(lavoro.importo_preventivato or 0) }}
+            </p>
+
+            <p><strong>Margine:</strong>
+                € {{ "%.2f"|format(lavoro.margine or 0) }}
+            </p>
+        </div>
+    {% else %}
+        <p>Nessun materiale ancora collegato a questo lavoro.</p>
+    {% endif %}
+
+    <p>
+        <a class="btn btn-secondary" href="/clienti/{{ lavoro.cliente_id }}">Torna al cliente</a>
+        <a class="btn btn-secondary" href="/lavori">Torna ai lavori</a>
+    </p>
+
+</div>
+
+</body>
+</html>

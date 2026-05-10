@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Movimenti materiale</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Movimenti materiale</h1>
+
+    <h2>{{ materiale.nome }}</h2>
+
+    <p>
+        Quantità attuale:
+        <strong>{{ materiale.quantita }} {{ materiale.unita_misura }}</strong>
+    </p>
+
+    <p>
+        <a class="btn" href="/materiali/{{ materiale.id }}/movimento">Nuovo movimento</a>
+        <a class="btn btn-secondary" href="/materiali">Torna al magazzino</a>
+    </p>
+
+    {% if movimenti %}
+    <table>
+        <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Quantità</th>
+            <th>Note</th>
+        </tr>
+
+        {% for movimento in movimenti %}
+        <tr>
+            <td>{{ movimento.data_movimento }}</td>
+            <td>
+                {% if movimento.tipo == "carico" %}
+                    <strong style="color:green;">Carico</strong>
+                {% else %}
+                    <strong style="color:red;">Scarico</strong>
+                {% endif %}
+            </td>
+            <td>{{ movimento.quantita }} {{ materiale.unita_misura }}</td>
+            <td>{{ movimento.note }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>Nessun movimento per questo materiale.</p>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

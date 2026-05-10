@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Modifica cliente</title>
+</head>
+<body>
+    <h1>Modifica cliente</h1>
+
+    <form action="/clienti/{{ cliente.id }}/modifica" method="post">
+        <p>
+            <label for="nome">Nome</label><br>
+            <input type="text" id="nome" name="nome" value="{{ cliente.nome }}" required>
+        </p>
+
+        <p>
+            <label for="cognome">Cognome</label><br>
+            <input type="text" id="cognome" name="cognome" value="{{ cliente.cognome }}" required>
+        </p>
+
+        <p>
+            <label for="telefono">Telefono</label><br>
+            <input type="text" id="telefono" name="telefono" value="{{ cliente.telefono or '' }}">
+        </p>
+
+        <button type="submit">Salva modifiche</button>
+    </form>
+
+    <p><a href="/clienti/{{ cliente.id }}">Torna al dettaglio cliente</a></p>
+</body>
+</html>

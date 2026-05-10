@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Archivio PDF</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Archivio PDF</h1>
+
+    {% if documenti %}
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Numero</th>
+            <th>Lavoro ID</th>
+            <th>File</th>
+            <th>Data</th>
+            <th>Azioni</th>
+        </tr>
+
+        {% for documento in documenti %}
+        <tr>
+            <td>{{ documento.id }}</td>
+            <td>{{ "%04d"|format(documento.numero) }}</td>
+            <td>{{ documento.lavoro_id }}</td>
+            <td>{{ documento.nome_file }}</td>
+            <td>{{ documento.data_creazione }}</td>
+            <td>
+                <a class="btn" href="/documenti/{{ documento.id }}/apri" target="_blank">Apri PDF</a>
+                <a class="btn btn-secondary" href="/clienti">Clienti</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>Nessun PDF archiviato.</p>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

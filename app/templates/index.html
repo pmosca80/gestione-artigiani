@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Gestione Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <link rel="stylesheet" href="/static/style.css?v=20">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Dashboard gestionale</h1>
+    <p class="subtitle">Controllo economico dei lavori e del magazzino</p>
+
+    <h2>Andamento mese corrente</h2>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h3>Lavori del mese</h3>
+            <p class="big-number">{{ stats.lavori_mese_count }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Preventivi del mese</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.preventivi_mese or 0) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Consuntivi del mese</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.consuntivi_mese or 0) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Margine del mese</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.margine_mese or 0) }}</p>
+        </div>
+
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h3>Lavori totali</h3>
+            <p class="big-number">{{ stats.lavori_totali }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Lavori aperti</h3>
+            <p class="big-number">{{ stats.lavori_aperti }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Lavori completati</h3>
+            <p class="big-number">{{ stats.lavori_completati }}</p>
+            <p>{{ stats.percentuale_completati }}% completati</p>
+        </div>
+
+    </div>
+
+    <h2>Situazione economica</h2>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h3>Totale preventivi</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.totale_preventivi or 0) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Totale consuntivi</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.totale_consuntivi or 0) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Margine totale</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.margine_totale or 0) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Costo materiali</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.totale_materiali or 0) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Costo manodopera</h3>
+            <p class="big-number">€ {{ "%.2f"|format(stats.totale_manodopera or 0) }}</p>
+        </div>
+
+    </div>
+    <h2>Analisi lavori</h2>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h3>Lavori migliori per margine</h3>
+
+                {% if stats.lavori_migliori %}
+                <table>
+                    <tr>
+                        <th>Lavoro</th>
+                        <th>Margine</th>
+                    </tr>
+
+                    {% for lavoro in stats.lavori_migliori %}
+                    <tr>
+                        <td>{{ lavoro.titolo }}</td>
+                        <td>
+                            {% if (lavoro.margine or 0) >= 0 %}
+                            <span class="badge badge-green">
+                                € {{ "%.2f"|format(lavoro.margine or 0) }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-red">
+                                € {{ "%.2f"|format(lavoro.margine or 0) }}
+                            </span>
+                        {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>Nessun lavoro disponibile.</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h3>Lavori peggiori per margine</h3>
+
+            {% if stats.lavori_peggiori %}
+                <table>
+                    <tr>
+                        <th>Lavoro</th>
+                        <th>Margine</th>
+                    </tr>
+
+                    {% for lavoro in stats.lavori_peggiori %}
+                    <tr>
+                        <td>{{ lavoro.titolo }}</td>
+                        <td>
+                            {% if (lavoro.margine or 0) >= 0 %}
+                            <span class="badge badge-green">
+                                € {{ "%.2f"|format(lavoro.margine or 0) }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-red">
+                                € {{ "%.2f"|format(lavoro.margine or 0) }}
+                            </span>
+                        {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>Nessun lavoro disponibile.</p>
+            {% endif %}
+        </div>
+
+    </div>
+    <h2>Magazzino</h2>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Scorte basse</h3>
+
+            {% if stats.materiali_scorte_basse %}
+                <table>
+                    <tr>
+                        <th>Materiale</th>
+                        <th>Disponibile</th>
+                        <th>Minimo</th>
+                    </tr>
+
+                    {% for materiale in stats.materiali_scorte_basse %}
+                    <tr>
+                        <td>{{ materiale.nome }}</td>
+                        <td>{{ materiale.quantita }} {{ materiale.unita_misura }}</td>
+                        <td>{{ materiale.scorta_minima }} {{ materiale.unita_misura }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>Tutte le scorte sono sufficienti.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <h2>Ultimi lavori</h2>
+
+    <div class="card">
+        {% if stats.ultimi_lavori %}
+            <table>
+                <tr>
+                    <th>Data</th>
+                    <th>Lavoro</th>
+                    <th>Stato</th>
+                    <th>Preventivo</th>
+                    <th>Consuntivo</th>
+                    <th>Margine</th>
+                    <th>Azioni</th>
+                </tr>
+
+                {% for lavoro in stats.ultimi_lavori %}
+                <tr>
+                    <td>{{ lavoro.data_lavoro }}</td>
+                    <td>{{ lavoro.titolo }}</td>
+                    <td>{{ lavoro.stato }}</td>
+                    <td>€ {{ "%.2f"|format(lavoro.importo_preventivato or 0) }}</td>
+                    <td>€ {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}</td>
+                    <td>
+                            {% if (lavoro.margine or 0) >= 0 %}
+                            <span class="badge badge-green">
+                                € {{ "%.2f"|format(lavoro.margine or 0) }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-red">
+                                € {{ "%.2f"|format(lavoro.margine or 0) }}
+                            </span>
+                        {% endif %}
+                        </td>
+                    <td>
+                        <a class="btn-small" href="/lavori/{{ lavoro.id }}/modifica">Apri</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>Nessun lavoro inserito.</p>
+        {% endif %}
+    </div>
+    <h2>Azioni rapide</h2>
+
+    <div class="quick-actions">
+        <a class="btn" href="/clienti">Gestisci clienti</a>
+        <a class="btn" href="/lavori">Gestisci lavori</a>
+        <a class="btn" href="/materiali">Gestisci magazzino</a>
+        <a class="btn" href="/documenti">Archivio PDF</a>
+    </div>
+
+</div>
+
+</body>
+</html>

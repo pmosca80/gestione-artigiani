@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Magazzino materiali</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+   
+<div class="container">
+
+    <h1>Magazzino materiali</h1>
+
+    <a class="btn" href="/materiali/nuovo">Nuovo materiale</a>
+
+    <form method="get" style="margin-top: 20px;">
+        <label>Cerca materiale</label>
+        <input type="text" name="cerca" value="{{ cerca or '' }}">
+        <button>Cerca</button>
+        <a class="btn btn-secondary" href="/materiali">Reset</a>
+    </form>
+
+    {% if materiali %}
+    <p>
+        <a class="btn btn-secondary" href="/materiali/movimenti/storico">
+        Storico movimenti
+        </a>
+    </p>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Quantità</th>
+            <th>Scorta minima</th>
+            <th>Stato</th>
+            <th>Note</th>
+        </tr>
+
+        {% for materiale in materiali %}
+        <tr>
+            <td>{{ materiale.id }}</td>
+            <td>{{ materiale.nome }}</td>
+            <td>{{ materiale.categoria }}</td>
+            <td>{{ materiale.quantita }} {{ materiale.unita_misura }}</td>
+            <td>{{ materiale.scorta_minima }} {{ materiale.unita_misura }}</td>
+            <td>
+                {% if materiale.quantita <= materiale.scorta_minima %}
+                    <strong style="color:red;">Sotto scorta</strong>
+                {% else %}
+                    <strong style="color:green;">OK</strong>
+                {% endif %}
+            </td>
+            <td>{{ materiale.note }}</td>
+            <td>
+                <a href="/materiali/{{ materiale.id }}/movimento">Movimento</a>
+                <a class="btn btn-secondary" href="/materiali/{{ materiale.id }}/movimenti">Storico</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>Nessun materiale inserito.</p>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

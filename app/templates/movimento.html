@@ -1,0 +1,19 @@
+<h1>Movimento materiale</h1>
+
+<p><strong>{{ materiale.nome }}</strong></p>
+
+<form method="post">
+    <label>Tipo</label>
+    <select name="tipo">
+        <option value="carico">Carico</option>
+        <option value="scarico">Scarico</option>
+    </select>
+
+    <label>Quantità</label>
+    <input type="number" step="0.01" name="quantita">
+
+    <label>Note</label>
+    <textarea name="note"></textarea>
+
+    <button>Salva</button>
+</form>

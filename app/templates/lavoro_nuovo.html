@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuovo lavoro</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+<h1>Nuovo lavoro</h1>
+
+<form method="post">
+    <label>Data</label>
+    <input type="date" name="data_lavoro">
+
+    <label>Titolo</label>
+    <input type="text" name="titolo">
+
+    <label>Descrizione</label>
+    <textarea name="descrizione"></textarea>
+
+    <label>Preventivo</label>
+    <input type="number" name="importo_preventivato">
+
+    <label>Consuntivo</label>
+    <input type="number" name="importo_consuntivo">
+
+    <button>Salva</button>
+</form>
+
+</div>
+</body>
+</html>

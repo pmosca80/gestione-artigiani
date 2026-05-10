@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dettaglio cliente</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/">Dashboard</a>
+    <a href="/clienti">Clienti</a>
+    <a href="/lavori">Lavori</a>
+    <a href="/materiali">Magazzino</a>
+    <a href="/documenti">Archivio PDF</a>
+    <a href="/impostazioni/azienda">Impostazioni</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <h1>Dettaglio cliente</h1>
+
+    <h2>Dati cliente</h2>
+
+    <p><strong>ID:</strong> {{ cliente.id }}</p>
+    <p><strong>Nome:</strong> {{ cliente.nome }}</p>
+    <p><strong>Cognome:</strong> {{ cliente.cognome }}</p>
+    <p><strong>Telefono:</strong> {{ cliente.telefono }}</p>
+
+    <p>
+        <a class="btn btn-secondary" href="/clienti/{{ cliente.id }}/modifica">Modifica cliente</a>
+        <a class="btn" href="/lavori/nuovo/{{ cliente.id }}">Nuovo lavoro</a>
+    </p>
+
+    <hr>
+
+    <h2>Lavori del cliente</h2>
+
+    {% if lavori %}
+    <table>
+        <tr>
+            <th>Data</th>
+            <th>Titolo</th>
+            <th>Stato</th>
+            <th>Preventivo</th>
+            <th>Consuntivo</th>
+            <th>Azioni</th>
+        </tr>
+
+        {% for lavoro in lavori %}
+        <tr>
+            <td>{{ lavoro.data_lavoro }}</td>
+            <td>{{ lavoro.titolo }}</td>
+            <td>{{ lavoro.stato }}</td>
+            <td>{{ lavoro.importo_preventivato or 0 }}</td>
+            <td>{{ lavoro.importo_consuntivo or 0 }}</td>
+            <td>
+                <a class="btn btn-secondary" href="/lavori/{{ lavoro.id }}/modifica">Modifica</a>
+                <a class="btn" href="/lavori/{{ lavoro.id }}/materiali">Materiali</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>Nessun lavoro registrato.</p>
+    {% endif %}
+
+    <p>
+        <a class="btn btn-secondary" href="/clienti">Torna ai clienti</a>
+    </p>
+
+</div>
+
+</body>
+</html>
