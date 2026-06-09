@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app import crud
 
 router = APIRouter(prefix="/documenti", tags=["documenti"])
@@ -15,11 +16,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)
-def archivio_documenti(request: Request, db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
+def archivio_documenti(request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
-    user_id = request.session["user_id"]
     documenti = crud.get_documenti_pdf(db, user_id)
 
     return templates.TemplateResponse(
@@ -30,11 +28,8 @@ def archivio_documenti(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/{documento_id}/apri")
-def apri_documento(documento_id: int, request: Request, db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
+def apri_documento(documento_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
-    user_id = request.session["user_id"]
     documento = crud.get_documento_pdf_by_id(db, user_id, documento_id)
 
     if not documento:

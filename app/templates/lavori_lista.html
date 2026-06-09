@@ -2,81 +2,451 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Lavori</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lavori — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=129">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        /* ── FILTRI ── */
+        .filtri-bar {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .filtro-group { display: flex; flex-direction: column; gap: 5px; }
+        .filtro-group label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+        }
+        .filtro-group input,
+        .filtro-group select {
+            padding: 8px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            color: #374151;
+            outline: none;
+            transition: border-color 0.2s;
+            background: white;
+            min-width: 140px;
+        }
+        .filtro-group input:focus,
+        .filtro-group select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .filtro-group.grow { flex: 1; min-width: 200px; }
+        .filtri-actions { display: flex; gap: 8px; align-items: flex-end; }
+        .btn-cerca {
+            padding: 9px 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-cerca:hover { background: #1d4ed8; }
+        .btn-reset {
+            padding: 9px 14px;
+            background: #f3f4f6;
+            color: #374151;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-reset:hover { background: #e5e7eb; }
+
+        /* ── KPI STRIP ── */
+        .lavori-kpi {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .lkpi {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 20px;
+        }
+        .lkpi-label { font-size: 12px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+        .lkpi-val {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: #111827;
+            margin-top: 4px;
+        }
+        .lkpi-val.green { color: #16a34a; }
+        .lkpi-val.red { color: #dc2626; }
+
+        /* ── TABELLA ── */
+        .lavori-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .lavori-table { width: 100%; border-collapse: collapse; }
+        .lavori-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .lavori-table th {
+            padding: 11px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #9ca3af;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .lavori-table td {
+            padding: 13px 14px;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .lavori-table tbody tr:last-child td { border-bottom: none; }
+        .lavori-table tbody tr:hover td { background: #fafafa; }
+        .lavori-table tbody tr.scaduto td { background: #fff8f8; }
+        .lavori-table tbody tr.scaduto:hover td { background: #fff1f1; }
+
+        .lavoro-titolo { font-weight: 600; color: #111827; }
+        .lavoro-id { font-size: 11px; color: #d1d5db; font-family: 'DM Mono', monospace; }
+
+        .cliente-link { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .cliente-link:hover { text-decoration: underline; }
+
+        /* BADGE */
+        .lb {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+        .lb-blue { background: #dbeafe; color: #1e40af; }
+        .lb-orange { background: #ffedd5; color: #9a3412; }
+        .lb-gray { background: #f3f4f6; color: #374151; }
+
+        .importo { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+        /* AZIONI */
+        .azioni-cell { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-az {
+            padding: 5px 10px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.15s;
+            white-space: nowrap;
+        }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-blue { background: #2563eb; color: white; }
+        .btn-az-green { background: #16a34a; color: white; }
+        .btn-az-red { background: #dc2626; color: white; }
+
+        /* PAGINATION */
+        .pagination-wrap {
+            padding: 16px 20px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .pag-info { font-size: 13px; color: #6b7280; }
+        .pag-links { display: flex; gap: 6px; }
+        .pag-link {
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            background: #f3f4f6;
+            color: #374151;
+            transition: background 0.15s;
+        }
+        .pag-link:hover { background: #e5e7eb; }
+        .pag-link.active { background: #2563eb; color: white; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+
+        @media (max-width: 900px) {
+            .lavori-kpi { grid-template-columns: 1fr; }
+            .lavori-table-wrap { overflow-x: auto; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/documenti">Archivio PDF</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Lista lavori</h1>
+    <!-- HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>🛠️ Lavori</h1>
+            <p>{{ totale }} lavoro/i trovato/i</p>
+        </div>
+    </div>
 
-    <!-- filtro -->
-    <form method="get" style="margin-bottom: 20px;">
-        <label>Stato:</label>
-        <select name="stato">
-            <option value="">Tutti</option>
-            <option value="da_fare" {% if stato == "da_fare" %}selected{% endif %}>Da fare</option>
-            <option value="in_corso" {% if stato == "in_corso" %}selected{% endif %}>In corso</option>
-            <option value="completato" {% if stato == "completato" %}selected{% endif %}>Completato</option>
-            <option value="annullato" {% if stato == "annullato" %}selected{% endif %}>Annullato</option>
-        </select>
+    <!-- FILTRI -->
+    <form method="get">
+        <div class="filtri-bar">
 
-        <button>Cerca</button>
-        <a class="btn btn-secondary" href="/lavori">Reset</a>
+            <div class="filtro-group grow">
+                <label>Ricerca</label>
+                <input type="text" name="ricerca" value="{{ ricerca or '' }}"
+                       placeholder="Cliente, titolo, descrizione...">
+            </div>
+
+            <div class="filtro-group">
+                <label>Ordina per</label>
+                <select name="ordinamento">
+                    <option value="recenti" {% if ordinamento == "recenti" %}selected{% endif %}>Più recenti</option>
+                    <option value="vecchi" {% if ordinamento == "vecchi" %}selected{% endif %}>Più vecchi</option>
+                    <option value="importo" {% if ordinamento == "importo" %}selected{% endif %}>Importo</option>
+                    <option value="residuo" {% if ordinamento == "residuo" %}selected{% endif %}>Residuo</option>
+                    <option value="cliente" {% if ordinamento == "cliente" %}selected{% endif %}>Cliente A-Z</option>
+                </select>
+            </div>
+
+            <div class="filtro-group">
+                <label>Stato lavoro</label>
+                <select name="stato">
+                    <option value="">Tutti</option>
+                    <option value="da_fare" {% if stato == "da_fare" %}selected{% endif %}>Da fare</option>
+                    <option value="in_corso" {% if stato == "in_corso" %}selected{% endif %}>In corso</option>
+                    <option value="completato" {% if stato == "completato" %}selected{% endif %}>Completato</option>
+                    <option value="annullato" {% if stato == "annullato" %}selected{% endif %}>Annullato</option>
+                </select>
+            </div>
+
+            <div class="filtro-group">
+                <label>Pagamento</label>
+                <select name="pagamento">
+                    <option value="">Tutti</option>
+                    <option value="da_pagare" {% if pagamento == "da_pagare" %}selected{% endif %}>Da pagare</option>
+                    <option value="acconto" {% if pagamento == "acconto" %}selected{% endif %}>Acconto</option>
+                    <option value="pagato" {% if pagamento == "pagato" %}selected{% endif %}>Pagato</option>
+                    <option value="da_incassare" {% if pagamento == "da_incassare" %}selected{% endif %}>Da incassare</option>
+                    <option value="scaduti" {% if pagamento == "scaduti" %}selected{% endif %}>Scaduti</option>
+                </select>
+            </div>
+
+            <div class="filtri-actions">
+                <button type="submit" class="btn-cerca">🔍 Cerca</button>
+                <a href="/lavori/" class="btn-reset">Reset</a>
+            </div>
+
+        </div>
     </form>
 
+    {% if cliente_id %}
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 16px; margin-bottom:16px; font-size:13px; color:#1e40af; font-weight:600;">
+        📌 Lavori filtrati per cliente specifico — <a href="/lavori/" style="color:#1e40af;">Rimuovi filtro</a>
+    </div>
+    {% endif %}
+
     {% if lavori %}
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Data</th>
-            <th>Cliente</th>
-            <th>Titolo</th>
-            <th>Stato</th>
-            <th>Azioni</th>
-        </tr>
 
-        {% for lavoro in lavori %}
-        <tr>
-            <td>{{ lavoro.id }}</td>
-            <td>{{ lavoro.data_lavoro }}</td>
+        <!-- KPI -->
+        <div class="lavori-kpi">
+            <div class="lkpi">
+                <div class="lkpi-label">Totale documenti</div>
+                <div class="lkpi-val">€ {{ "%.2f"|format(totali.totale_documenti or 0) }}</div>
+            </div>
+            <div class="lkpi">
+                <div class="lkpi-label">Totale incassato</div>
+                <div class="lkpi-val green">€ {{ "%.2f"|format(totali.totale_pagato or 0) }}</div>
+            </div>
+            <div class="lkpi">
+                <div class="lkpi-label">Totale residui</div>
+                <div class="lkpi-val {% if (totali.totale_residuo or 0) > 0 %}red{% else %}green{% endif %}">
+                    € {{ "%.2f"|format(totali.totale_residuo or 0) }}
+                </div>
+            </div>
+        </div>
 
-            <td>
-                {% if lavoro.cliente %}
-                    <a href="/clienti/{{ lavoro.cliente.id }}">
-                        {{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}
-                    </a>
-                {% else %}
-                    -
-                {% endif %}
-            </td>
+        <!-- TABELLA -->
+        <div class="lavori-table-wrap">
+            <table class="lavori-table">
+                <thead>
+                    <tr>
+                        <th>Lavoro</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Stato</th>
+                        <th>Totale</th>
+                        <th>Pagato</th>
+                        <th>Residuo</th>
+                        <th>Scadenza</th>
+                        <th>Pagamento</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lavoro in lavori %}
+                    <tr class="{% if lavoro.data_scadenza_pagamento and lavoro.data_scadenza_pagamento < oggi and lavoro.stato_pagamento != 'pagato' %}scaduto{% endif %}">
 
-            <td>{{ lavoro.titolo }}</td>
+                        <td>
+                            <div class="lavoro-titolo">{{ lavoro.titolo }}</div>
+                            <div class="lavoro-id">#{{ lavoro.id }}</div>
+                        </td>
 
-            <td>{{ lavoro.stato }}</td>
+                        <td style="white-space:nowrap;">{{ lavoro.data_lavoro }}</td>
 
-            <td>
-                <a class="btn btn-secondary" href="/lavori/{{ lavoro.id }}/modifica">Modifica</a>
-                <a class="btn" href="/lavori/{{ lavoro.id }}/materiali">Materiali</a>
-                <a class="btn" href="/lavori/{{ lavoro.id }}/pdf" target="_blank">PDF</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+                        <td>
+                            {% if lavoro.cliente %}
+                                <a href="/clienti/{{ lavoro.cliente.id }}" class="cliente-link">
+                                    {{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}
+                                </a>
+                            {% else %}—{% endif %}
+                        </td>
+
+                        <td>
+                            {% if lavoro.stato == "completato" %}
+                                <span class="lb lb-green">✓ Completato</span>
+                            {% elif lavoro.stato == "in_corso" %}
+                                <span class="lb lb-orange">⚡ In corso</span>
+                            {% elif lavoro.stato == "annullato" %}
+                                <span class="lb lb-red">✗ Annullato</span>
+                            {% elif lavoro.stato == "preventivo" %}
+                                <span class="lb lb-blue">📑 Preventivo</span>
+                            {% else %}
+                                <span class="lb lb-gray">📝 Da fare</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</td>
+                        <td class="importo">€ {{ "%.2f"|format(lavoro.importo_pagato or 0) }}</td>
+
+                        <td>
+                            {% if (lavoro.residuo_pagamento or 0) <= 0 %}
+                                <span class="lb lb-green">€ 0.00</span>
+                            {% else %}
+                                <span class="lb lb-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td style="white-space:nowrap;">
+                            {% if lavoro.data_scadenza_pagamento %}
+                                {% if lavoro.data_scadenza_pagamento < oggi and lavoro.stato_pagamento != "pagato" %}
+                                    <span class="lb lb-red">⚠️ {{ lavoro.data_scadenza_pagamento }}</span>
+                                {% else %}
+                                    <span style="color:#374151;">{{ lavoro.data_scadenza_pagamento }}</span>
+                                {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+
+                        <td>
+                            {% if lavoro.stato_pagamento == "pagato" %}
+                                <span class="lb lb-green">✓ Pagato</span>
+                            {% elif lavoro.stato_pagamento == "acconto" %}
+                                <span class="lb lb-orange">↗ Acconto</span>
+                            {% else %}
+                                <span class="lb lb-red">✗ Da pagare</span>
+                                {% if lavoro.giorni_ritardo and lavoro.giorni_ritardo > 0 %}
+                                    <div style="margin-top:3px;">
+                                        <span class="lb lb-red" style="font-size:11px;">{{ lavoro.giorni_ritardo }}gg ritardo</span>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="azioni-cell">
+                                <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋</a>
+                                <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-az btn-az-blue">📦</a>
+                                <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az btn-az-green">💳</a>
+                                <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az btn-az-red">PDF</a>
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- PAGINATION -->
+            {% if pagine_totali > 1 %}
+            <div class="pagination-wrap">
+                <span class="pag-info">Pagina {{ pagina }} di {{ pagine_totali }} — {{ totale }} lavori</span>
+                <div class="pag-links">
+                    {% if pagina > 1 %}
+                        <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ pagina - 1 }}" class="pag-link">‹</a>
+                    {% endif %}
+                    {% for p in range(1, pagine_totali + 1) %}
+                        {% if p == pagina %}
+                            <span class="pag-link active">{{ p }}</span>
+                        {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
+                            <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ p }}" class="pag-link">{{ p }}</a>
+                        {% elif p == pagina - 3 or p == pagina + 3 %}
+                            <span style="padding:6px 4px; color:#9ca3af;">…</span>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagina < pagine_totali %}
+                        <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ pagina + 1 }}" class="pag-link">›</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
 
     {% else %}
-        <p>Nessun lavoro presente.</p>
+
+        <div class="lavori-table-wrap">
+            <div class="empty-state">
+                <span class="empty-icon">🛠️</span>
+                <p>Nessun lavoro trovato con i filtri selezionati.</p>
+                <a href="/lavori/" class="btn">Reset filtri</a>
+            </div>
+        </div>
+
     {% endif %}
 
 </div>

@@ -2,48 +2,199 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Nuovo materiale</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuovo materiale — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=141">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .form-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 720px;
+            margin-bottom: 20px;
+        }
+        .form-card h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.span2 { grid-column: span 2; }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+        }
+        .form-group input,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            color: #111827;
+            outline: none;
+            background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+
+        .prezzi-note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #1e40af;
+            margin-bottom: 14px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn-salva {
+            padding: 11px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-salva:hover { background: #1d4ed8; }
+        .btn-az {
+            padding: 11px 18px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.span2 { grid-column: span 1; }
+            .form-card { padding: 18px; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Nuovo materiale</h1>
+    <div class="page-header">
+        <div>
+            <h1>📦 Nuovo materiale</h1>
+            <p>Aggiungi un materiale al magazzino</p>
+        </div>
+        <a href="/materiali/" class="btn-az btn-az-gray">← Torna al magazzino</a>
+    </div>
 
     <form method="post">
-        <label>Nome materiale</label>
-        <input type="text" name="nome" required>
 
-        <label>Categoria</label>
-        <input type="text" name="categoria">
+        <!-- DATI BASE -->
+        <div class="form-card">
+            <h3>📋 Dati materiale</h3>
+            <div class="form-grid">
+                <div class="form-group span2">
+                    <label>Nome materiale</label>
+                    <input type="text" name="nome" required autofocus
+                           placeholder="Es. Tubo rame 22mm, Cavo elettrico 2.5mm...">
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <input type="text" name="categoria"
+                           placeholder="Es. Idraulica, Elettrica, Edilizia...">
+                </div>
+                <div class="form-group">
+                    <label>Unità di misura</label>
+                    <input type="text" name="unita_misura" value="pz"
+                           placeholder="pz, m, kg, litri...">
+                </div>
+                <div class="form-group">
+                    <label>Quantità iniziale</label>
+                    <input type="number" step="0.01" name="quantita" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Scorta minima</label>
+                    <input type="number" step="0.01" name="scorta_minima" value="0">
+                </div>
+                <div class="form-group span2">
+                    <label>Note</label>
+                    <textarea name="note"
+                              placeholder="Fornitori, codici prodotto, note interne..."></textarea>
+                </div>
+            </div>
+        </div>
 
-        <label>Unità di misura</label>
-        <input type="text" name="unita_misura" value="pz">
+        <!-- PREZZI -->
+        <div class="form-card">
+            <h3>💰 Prezzi</h3>
+            <div class="prezzi-note">
+                💡 Il prezzo di acquisto scontato viene usato per calcolare il costo reale nei lavori. Il prezzo vendita è il default proposto quando aggiungi il materiale a un lavoro.
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Prezzo acquisto pieno (€)</label>
+                    <input type="number" step="0.01" name="prezzo_acquisto_pieno" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Prezzo acquisto scontato (€)</label>
+                    <input type="number" step="0.01" name="prezzo_acquisto_scontato" value="0">
+                </div>
+                <div class="form-group span2">
+                    <label>Prezzo vendita al cliente (€)</label>
+                    <input type="number" step="0.01" name="prezzo_vendita_default" value="0">
+                </div>
+            </div>
 
-        <label>Quantità iniziale</label>
-        <input type="number" step="0.01" name="quantita" value="0">
+            <div class="form-actions">
+                <button type="submit" class="btn-salva">💾 Salva materiale</button>
+                <a href="/materiali/" class="btn-az btn-az-gray">Annulla</a>
+            </div>
+        </div>
 
-        <label>Scorta minima</label>
-        <input type="number" step="0.01" name="scorta_minima" value="0">
-
-        <label>Note</label>
-        <textarea name="note"></textarea>
-
-        <button>Salva materiale</button>
     </form>
-
-    <p>
-        <a class="btn btn-secondary" href="/materiali">Torna al magazzino</a>
-    </p>
 
 </div>
 

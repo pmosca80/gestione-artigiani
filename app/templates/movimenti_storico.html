@@ -2,64 +2,131 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Storico movimenti</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storico movimenti — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=145">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .m-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .m-table { width: 100%; border-collapse: collapse; }
+        .m-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .m-table th {
+            padding: 11px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #9ca3af;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .m-table td {
+            padding: 13px 14px;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .m-table tbody tr:last-child td { border-bottom: none; }
+        .m-table tbody tr:hover td { background: #fafafa; }
+
+        .mat-name { font-weight: 600; color: #111827; }
+        .mat-deleted { color: #d1d5db; font-style: italic; }
+        .data-cell { color: #6b7280; font-family: 'DM Mono', monospace; font-size: 12px; }
+        .qta-val { font-family: 'DM Mono', monospace; font-weight: 700; }
+
+        .lb { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+
+        .btn-az { padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; text-decoration: none; transition: opacity 0.15s; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+        .empty-state p { color: #9ca3af; font-size: 14px; margin: 0; }
+
+        @media (max-width: 700px) {
+            .m-table-wrap { overflow-x: auto; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/documenti">Archivio PDF</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Storico movimenti magazzino</h1>
+    <div class="page-header">
+        <div>
+            <h1>📋 Storico movimenti</h1>
+            <p>Tutti i carichi e scarichi del magazzino</p>
+        </div>
+        <a href="/materiali/" class="btn-az btn-az-gray">← Torna al magazzino</a>
+    </div>
 
-    <p>
-        <a class="btn btn-secondary" href="/materiali">Torna al magazzino</a>
-    </p>
-
-    {% if movimenti %}
-    <table>
-        <tr>
-            <th>Data</th>
-            <th>Materiale</th>
-            <th>Tipo</th>
-            <th>Quantità</th>
-            <th>Note</th>
-        </tr>
-
-        {% for movimento in movimenti %}
-        <tr>
-            <td>{{ movimento.data_movimento }}</td>
-            <td>
-                {% if materiali.get(movimento.materiale_id) %}
-                    {{ materiali.get(movimento.materiale_id).nome }}
-                {% else %}
-                    Materiale eliminato
-                {% endif %}
-            </td>
-            <td>
-                {% if movimento.tipo == "carico" %}
-                    <strong style="color:green;">Carico</strong>
-                {% else %}
-                    <strong style="color:red;">Scarico</strong>
-                {% endif %}
-            </td>
-            <td>{{ movimento.quantita }}</td>
-            <td>{{ movimento.note }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% else %}
-        <p>Nessun movimento registrato.</p>
-    {% endif %}
+    <div class="m-table-wrap">
+        {% if movimenti %}
+        <table class="m-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Materiale</th>
+                    <th>Tipo</th>
+                    <th>Quantità</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movimento in movimenti %}
+                <tr>
+                    <td class="data-cell">{{ movimento.data_movimento }}</td>
+                    <td>
+                        {% if materiali.get(movimento.materiale_id) %}
+                            <span class="mat-name">{{ materiali.get(movimento.materiale_id).nome }}</span>
+                        {% else %}
+                            <span class="mat-deleted">Materiale eliminato</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if movimento.tipo == "carico" %}
+                            <span class="lb lb-green">📥 Carico</span>
+                        {% else %}
+                            <span class="lb lb-red">📤 Scarico</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="qta-val">{{ movimento.quantita }}</span></td>
+                    <td style="color:#6b7280; font-size:12px;">{{ movimento.note or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <p>Nessun movimento registrato.</p>
+        </div>
+        {% endif %}
+    </div>
 
 </div>
 

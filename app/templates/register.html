@@ -2,23 +2,177 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Registrazione</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrazione — Gestionale Artigiani</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .register-wrapper {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .register-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .register-logo .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+        .register-logo h1 { color: white; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+        .register-logo p { color: #94a3b8; font-size: 14px; margin-top: 6px; }
+
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        }
+        .register-card h2 { font-size: 20px; color: #111827; margin-bottom: 24px; font-weight: 700; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 9px;
+            font-size: 14px;
+            color: #111827;
+            outline: none;
+            background: #f9fafb;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+            background: white;
+        }
+
+        .codice-note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #1e40af;
+            margin-bottom: 16px;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: opacity 0.2s, transform 0.1s;
+            margin-top: 4px;
+        }
+        .btn-register:hover { opacity: 0.92; transform: translateY(-1px); }
+        .btn-register:active { transform: translateY(0); }
+
+        .register-links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+        .register-links a { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .register-links a:hover { text-decoration: underline; }
+
+        .errore-box {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-note {
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 24px;
+        }
+    </style>
 </head>
 <body>
 
-<h1>Registrazione</h1>
+<div class="register-wrapper">
 
-{% if errore %}
-<p style="color:red;">{{ errore }}</p>
-{% endif %}
+    <div class="register-logo">
+        <span class="icon">🔧</span>
+        <h1>Gestionale Artigiani</h1>
+        <p>Crea il tuo account</p>
+    </div>
 
-<form method="post">
-    <input type="text" name="username" placeholder="Username" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <button>Registrati</button>
-</form>
+    <div class="register-card">
+        <h2>Registrazione</h2>
 
-<a href="/login">Torna al login</a>
+        {% if errore %}
+        <div class="errore-box">⚠️ {{ errore }}</div>
+        {% endif %}
+
+        <form method="post" action="/register">
+
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Scegli uno username" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required minlength="6">
+            </div>
+
+            <div class="codice-note">
+                🔑 Ti serve un codice invito per registrarti. Contatta il tuo fornitore del software.
+            </div>
+
+            <div class="form-group">
+                <label>Codice invito</label>
+                <input type="text" name="codice_invito" placeholder="Inserisci il codice ricevuto" required>
+            </div>
+
+            <button type="submit" class="btn-register">Crea account →</button>
+
+        </form>
+
+        <div class="register-links">
+            <a href="/login">← Torna al login</a>
+        </div>
+
+    </div>
+
+    <p class="footer-note">© 2026 Gestionale Artigiani</p>
+
+</div>
 
 </body>
 </html>

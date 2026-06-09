@@ -6,8 +6,11 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app import crud
 from app.models import Materiale
+
+from app.dependencies import to_float
 
 router = APIRouter(prefix="/materiali", tags=["materiali"])
 
@@ -16,11 +19,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)
-def lista_materiali(request: Request, cerca: str = "", db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
-
-    user_id = request.session["user_id"]
+def lista_materiali(request: Request, cerca: str = "", db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
+    
     materiali = crud.get_materiali(db, user_id, cerca)
 
     return templates.TemplateResponse(
@@ -31,10 +31,7 @@ def lista_materiali(request: Request, cerca: str = "", db: Session = Depends(get
 
 
 @router.get("/nuovo", response_class=HTMLResponse)
-def form_materiale(request: Request):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
-
+def form_materiale(request: Request, user_id: int = Depends(get_current_user)):
     return templates.TemplateResponse(
         request=request,
         name="materiale_nuovo.html",
@@ -50,13 +47,13 @@ def crea_materiale_form(
     unita_misura: str = Form("pz"),
     quantita: str = Form("0"),
     scorta_minima: str = Form("0"),
+    prezzo_acquisto_pieno: str = Form("0"),
+    prezzo_acquisto_scontato: str = Form("0"),
+    prezzo_vendita_default: str = Form("0"),
     note: str = Form(""),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
 ):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
-
-    user_id = request.session["user_id"]
 
     crud.crea_materiale(
         db=db,
@@ -64,19 +61,26 @@ def crea_materiale_form(
         nome=nome,
         categoria=categoria,
         unita_misura=unita_misura,
-        quantita=float(quantita) if quantita else 0,
-        scorta_minima=float(scorta_minima) if scorta_minima else 0,
+        quantita=to_float(quantita),
+        scorta_minima=to_float(scorta_minima),
+        prezzo_acquisto_pieno=to_float(prezzo_acquisto_pieno),
+        prezzo_acquisto_scontato=to_float(prezzo_acquisto_scontato),
+        prezzo_vendita_default=to_float(prezzo_vendita_default),
         note=note
     )
 
-    return RedirectResponse(url="/materiali", status_code=303)
+    return RedirectResponse(url="/materiali/", status_code=303)
 
 @router.get("/{materiale_id}/movimento", response_class=HTMLResponse)
-def form_movimento(materiale_id: int, request: Request, db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
+def form_movimento(materiale_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
-    materiale = db.query(Materiale).filter(Materiale.id == materiale_id).first()
+    materiale = db.query(Materiale).filter(
+        Materiale.id == materiale_id,
+        Materiale.utente_id == user_id
+    ).first()
+
+    if not materiale:
+        return RedirectResponse(url="/materiali/", status_code=303)
 
     return templates.TemplateResponse(
         request=request,
@@ -92,27 +96,24 @@ def salva_movimento(
     tipo: str = Form(...),
     quantita: str = Form(...),
     note: str = Form(""),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
 ):
-    user_id = request.session["user_id"]
 
     crud.aggiungi_movimento(
         db,
         utente_id=user_id,
         materiale_id=materiale_id,
         tipo=tipo,
-        quantita=float(quantita),
+        quantita=to_float(quantita),
         note=note
     )
 
     return RedirectResponse(url="/materiali", status_code=303)
 
 @router.get("/movimenti/storico", response_class=HTMLResponse)
-def storico_movimenti(request: Request, db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
+def storico_movimenti(request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
-    user_id = request.session["user_id"]
     movimenti = crud.get_movimenti_magazzino(db, user_id)
 
     materiali = {
@@ -130,11 +131,7 @@ def storico_movimenti(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/{materiale_id}/movimenti", response_class=HTMLResponse)
-def storico_movimenti_materiale(materiale_id: int, request: Request, db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
-
-    user_id = request.session["user_id"]
+def storico_movimenti_materiale(materiale_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
     materiale = db.query(Materiale).filter(
         Materiale.id == materiale_id,
@@ -146,6 +143,8 @@ def storico_movimenti_materiale(materiale_id: int, request: Request, db: Session
 
     movimenti = crud.get_movimenti_by_materiale(db, user_id, materiale_id)
 
+    carichi = crud.get_tutti_carichi_materiale(db, user_id, materiale_id)
+
     return templates.TemplateResponse(
         request=request,
         name="movimenti_materiale.html",
@@ -154,3 +153,45 @@ def storico_movimenti_materiale(materiale_id: int, request: Request, db: Session
             "movimenti": movimenti
         }
     )
+
+@router.get("/{materiale_id}/carico", response_class=HTMLResponse)
+def form_carico_materiale(materiale_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
+
+    materiale = db.query(Materiale).filter(
+        Materiale.id == materiale_id,
+        Materiale.utente_id == user_id
+    ).first()
+
+    if not materiale:
+        return RedirectResponse(url="/materiali/", status_code=303)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="materiale_carico.html",
+        context={"materiale": materiale}
+    )
+
+
+@router.post("/{materiale_id}/carico")
+def salva_carico_materiale(
+    materiale_id: int,
+    request: Request,
+    quantita: str = Form(...),
+    prezzo_acquisto: str = Form("0"),
+    prezzo_vendita_default: str = Form("0"),
+    note: str = Form(""),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+
+    crud.crea_carico_materiale(
+        db=db,
+        utente_id=user_id,
+        materiale_id=materiale_id,
+        quantita=to_float(quantita),
+        prezzo_acquisto=to_float(prezzo_acquisto),
+        prezzo_vendita_default=to_float(prezzo_vendita_default),
+        note=note
+    )
+
+    return RedirectResponse(url="/materiali/", status_code=303)

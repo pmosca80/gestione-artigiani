@@ -2,95 +2,431 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Modifica lavoro</title>
-    <link rel="stylesheet" href="/static/style.css?v=5">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifica lavoro — {{ lavoro.titolo }}</title>
+    <link rel="stylesheet" href="/static/style.css?v=137">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        /* LAYOUT A DUE COLONNE */
+        .edit-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* CARD */
+        .e-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .e-card h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* FORM */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-grid.full { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.span2 { grid-column: span 2; }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 9px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            color: #111827;
+            outline: none;
+            background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+        .form-group input:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        .btn-salva {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+            margin-top: 4px;
+        }
+        .btn-salva:hover { background: #1d4ed8; }
+
+        /* RIEPILOGO SIDEBAR */
+        .riepilogo-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+        }
+        .riepilogo-card h3 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .rig-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+        }
+        .rig-row:last-child { border-bottom: none; }
+        .rig-label { color: #6b7280; font-weight: 500; }
+        .rig-val { font-family: 'DM Mono', monospace; font-weight: 700; color: #111827; }
+        .rig-val.green { color: #16a34a; }
+        .rig-val.red { color: #dc2626; }
+        .rig-row.highlight { background: #f8fafc; border-radius: 8px; padding: 10px; margin: 4px -4px; }
+
+        .lb { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+        .lb-orange { background: #ffedd5; color: #9a3412; }
+
+        /* FOTO */
+        .foto-upload-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .foto-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }
+        .foto-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+        .foto-group input {
+            padding: 8px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            background: white;
+            outline: none;
+        }
+        .foto-group input:focus { border-color: #2563eb; }
+        .btn-foto {
+            padding: 9px 18px;
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            white-space: nowrap;
+        }
+        .btn-foto:hover { background: #1f2937; }
+
+        .foto-grid-new {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .foto-item-new {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        .foto-item-new img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            display: block;
+        }
+        .foto-item-new-info {
+            padding: 8px 10px;
+            background: white;
+        }
+        .foto-item-new-info strong { font-size: 12px; color: #111827; display: block; }
+        .foto-item-new-info span { font-size: 11px; color: #9ca3af; font-family: 'DM Mono', monospace; }
+
+        .footer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+        .btn-az { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; transition: opacity 0.15s; white-space: nowrap; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-blue { background: #2563eb; color: white; }
+        .btn-az-green { background: #16a34a; color: white; }
+
+        @media (max-width: 900px) {
+            .edit-layout { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.span2 { grid-column: span 1; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/documenti">Archivio PDF</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Modifica lavoro</h1>
+    <!-- HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>✏️ Modifica lavoro</h1>
+            <p>{{ lavoro.titolo }}</p>
+        </div>
+        <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna alla scheda</a>
+    </div>
 
-    <form method="post">
+    <div class="edit-layout">
 
-        <label>Data lavoro</label>
-        <input type="date" name="data_lavoro" value="{{ lavoro.data_lavoro }}" required>
+        <!-- COLONNA SINISTRA: FORM -->
+        <div>
+            <form method="post">
 
-        <label>Titolo</label>
-        <input type="text" name="titolo" value="{{ lavoro.titolo }}" required>
+                <!-- DATI BASE -->
+                <div class="e-card">
+                    <h3>📋 Dati lavoro</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Data lavoro</label>
+                            <input type="date" name="data_lavoro" value="{{ lavoro.data_lavoro }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Stato</label>
+                            <select name="stato">
+                                <option value="preventivo" {% if lavoro.stato == "preventivo" %}selected{% endif %}>📑 Preventivo</option>
+                                <option value="preventivo_inviato" {% if lavoro.stato == "preventivo_inviato" %}selected{% endif %}>📧 Preventivo inviato</option>
+                                <option value="preventivo_accettato" {% if lavoro.stato == "preventivo_accettato" %}selected{% endif %}>✅ Preventivo accettato</option>
+                                <option value="da_fare" {% if lavoro.stato == "da_fare" %}selected{% endif %}>📝 Da fare</option>
+                                <option value="in_corso" {% if lavoro.stato == "in_corso" %}selected{% endif %}>⚡ In corso</option>
+                                <option value="completato" {% if lavoro.stato == "completato" %}selected{% endif %}>✓ Completato</option>
+                                <option value="annullato" {% if lavoro.stato == "annullato" %}selected{% endif %}>✗ Annullato</option>
+                            </select>
+                        </div>
+                        <div class="form-group span2">
+                            <label>Titolo</label>
+                            <input type="text" name="titolo" value="{{ lavoro.titolo }}" required>
+                        </div>
+                        <div class="form-group span2">
+                            <label>Descrizione</label>
+                            <textarea name="descrizione">{{ lavoro.descrizione or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
 
-        <label>Descrizione</label>
-        <textarea name="descrizione">{{ lavoro.descrizione or "" }}</textarea>
+                <!-- PARTE ECONOMICA -->
+                <div class="e-card">
+                    <h3>💰 Parte economica</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Preventivo cliente (€)</label>
+                            <input type="number" step="0.01" name="importo_preventivato"
+                                   value="{{ lavoro.importo_preventivato or 0 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Scadenza pagamento</label>
+                            <input type="date" name="data_scadenza_pagamento"
+                                   value="{{ lavoro.data_scadenza_pagamento or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Ore lavoro</label>
+                            <input type="number" step="0.01" name="ore_lavoro"
+                                   value="{{ lavoro.ore_lavoro or 0 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Costo orario interno (€)</label>
+                            <input type="number" step="0.01" name="costo_orario"
+                                   value="{{ lavoro.costo_orario or 0 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>IVA (%)</label>
+                            <input type="number" step="0.01" name="aliquota_iva"
+                                   value="{{ lavoro.aliquota_iva or 22 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Sconto sul totale (€)</label>
+                            <input type="number" step="0.01" name="sconto"
+                                   value="{{ lavoro.sconto or 0 }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Importo pagato (€)</label>
+                            <input type="number" step="0.01"
+                                   value="{{ lavoro.importo_pagato or 0 }}" disabled>
+                        </div>
+                        <div class="form-group" style="justify-content:flex-end;">
+                            <label>&nbsp;</label>
+                            <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az btn-az-green" style="text-align:center;">💳 Gestisci pagamenti</a>
+                        </div>
+                        <div class="form-group span2">
+                            <label>Note consuntivo</label>
+                            <textarea name="note_consuntivo">{{ lavoro.note_consuntivo or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
 
-        <label>Stato</label>
-        <select name="stato" required>
-            <option value="da_fare" {% if lavoro.stato == "da_fare" %}selected{% endif %}>Da fare</option>
-            <option value="in_corso" {% if lavoro.stato == "in_corso" %}selected{% endif %}>In corso</option>
-            <option value="completato" {% if lavoro.stato == "completato" %}selected{% endif %}>Completato</option>
-        </select>
+                <button type="submit" class="btn-salva">💾 Salva modifiche</button>
 
-        <hr>
+            </form>
+        </div>
 
-        <h3>Parte economica</h3>
+        <!-- COLONNA DESTRA: RIEPILOGO -->
+        <div>
+            <div class="riepilogo-card">
+                <h3>📊 Riepilogo calcolato</h3>
 
-        <label>Importo preventivato (€)</label>
-        <input type="number" step="0.01" name="importo_preventivato"
-               value="{{ lavoro.importo_preventivato or '' }}">
+                <div class="rig-row">
+                    <span class="rig-label">Costo materiali</span>
+                    <span class="rig-val">€ {{ "%.2f"|format(lavoro.totale_materiali or 0) }}</span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">Costo manodopera</span>
+                    <span class="rig-val">€ {{ "%.2f"|format(lavoro.totale_manodopera or 0) }}</span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">Imponibile</span>
+                    <span class="rig-val">€ {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}</span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">IVA</span>
+                    <span class="rig-val">€ {{ "%.2f"|format(lavoro.totale_iva or 0) }}</span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">Sconto</span>
+                    <span class="rig-val">€ {{ "%.2f"|format(lavoro.sconto or 0) }}</span>
+                </div>
+                <div class="rig-row highlight">
+                    <span class="rig-label"><strong>Totale documento</strong></span>
+                    <span class="rig-val green">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">Pagato</span>
+                    <span class="rig-val green">€ {{ "%.2f"|format(lavoro.importo_pagato or 0) }}</span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">Residuo</span>
+                    <span class="rig-val {% if (lavoro.residuo_pagamento or 0) > 0 %}red{% else %}green{% endif %}">
+                        € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}
+                    </span>
+                </div>
+                <div class="rig-row">
+                    <span class="rig-label">Stato pagamento</span>
+                    <span>
+                        {% if lavoro.stato_pagamento == "pagato" %}<span class="lb lb-green">✓ Pagato</span>
+                        {% elif lavoro.stato_pagamento == "acconto" %}<span class="lb lb-orange">↗ Acconto</span>
+                        {% else %}<span class="lb lb-red">✗ Da pagare</span>{% endif %}
+                    </span>
+                </div>
+                <div class="rig-row highlight">
+                    <span class="rig-label"><strong>Margine reale</strong></span>
+                    <span class="rig-val {% if (lavoro.margine or 0) >= 0 %}green{% else %}red{% endif %}">
+                        € {{ "%.2f"|format(lavoro.margine or 0) }}
+                        {% if (lavoro.margine or 0) >= 0 %}
+                            <span class="lb lb-green" style="margin-left:4px; font-size:11px;">Utile</span>
+                        {% else %}
+                            <span class="lb lb-red" style="margin-left:4px; font-size:11px;">Perdita</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
 
-        <label>Ore lavoro</label>
-        <input type="number" step="0.01" name="ore_lavoro"
-               value="{{ lavoro.ore_lavoro or 0 }}">
+    </div>
 
-        <label>Costo orario (€)</label>
-        <input type="number" step="0.01" name="costo_orario"
-               value="{{ lavoro.costo_orario or 0 }}">
+    <!-- SEZIONE FOTO -->
+    <div class="e-card" style="margin-top:8px;">
+        <h3>📷 Foto lavoro</h3>
 
-        <label>Note consuntivo</label>
-        <textarea name="note_consuntivo">{{ lavoro.note_consuntivo or "" }}</textarea>
+        <form method="post" action="/lavori/{{ lavoro.id }}/foto" enctype="multipart/form-data">
+            <div class="foto-upload-form">
+                <div class="foto-group">
+                    <label>Carica foto</label>
+                    <input type="file" name="foto" accept="image/*" required>
+                </div>
+                <div class="foto-group">
+                    <label>Descrizione</label>
+                    <input type="text" name="descrizione" placeholder="Es. prima dell'intervento, dopo...">
+                </div>
+                <button type="submit" class="btn-foto">📷 Carica</button>
+            </div>
+        </form>
 
-        <hr>
+        {% if foto_lavoro %}
+        <div class="foto-grid-new">
+            {% for foto in foto_lavoro %}
+            <div class="foto-item-new">
+                <img src="/{{ foto.percorso_file.replace('\\', '/') }}"
+                     alt="{{ foto.descrizione or foto.nome_file }}">
+                <div class="foto-item-new-info">
+                    <strong>{{ foto.descrizione or 'Foto lavoro' }}</strong>
+                    <span>{{ foto.data_creazione }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:#9ca3af; font-size:13px; margin:0;">Nessuna foto caricata.</p>
+        {% endif %}
+    </div>
 
-        <h3>Riepilogo calcolato</h3>
-
-        <p><strong>Totale materiali:</strong>
-            € {{ "%.2f"|format(lavoro.totale_materiali or 0) }}
-        </p>
-
-        <p><strong>Totale manodopera:</strong>
-            € {{ "%.2f"|format(lavoro.totale_manodopera or 0) }}
-        </p>
-
-        <p><strong>Consuntivo:</strong>
-            € {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}
-        </p>
-
-        <p><strong>Preventivo:</strong>
-            € {{ "%.2f"|format(lavoro.importo_preventivato or 0) }}
-        </p>
-
-        <p><strong>Margine:</strong>
-            € {{ "%.2f"|format(lavoro.margine or 0) }}
-        </p>
-
-        <button type="submit">Salva modifiche</button>
-
-    </form>
-
-    <p>
-        <a class="btn btn-secondary" href="/clienti/{{ lavoro.cliente_id }}">Torna al cliente</a>
-        <a class="btn btn-secondary" href="/lavori/{{ lavoro.id }}/materiali">Materiali lavoro</a>
-        <a class="btn btn-secondary" href="/lavori">Torna ai lavori</a>
-    </p>
+    <!-- FOOTER -->
+    <div class="footer-actions">
+        <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Scheda lavoro</a>
+        <a href="/clienti/{{ lavoro.cliente_id }}" class="btn-az btn-az-gray">👤 Cliente</a>
+        <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-az btn-az-gray">📦 Materiali</a>
+        <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az btn-az-blue">💳 Pagamenti</a>
+        <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#dc2626;color:white;">📄 PDF</a>
+        <a href="/lavori/" class="btn-az btn-az-gray">📋 Tutti i lavori</a>
+    </div>
 
 </div>
 

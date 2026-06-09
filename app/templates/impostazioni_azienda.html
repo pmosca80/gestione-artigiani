@@ -2,49 +2,240 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Impostazioni azienda</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impostazioni azienda — Gestionale Artigiani</title>
     <link rel="stylesheet" href="/static/style.css">
-    <h1>Impostazioni azienda</h1>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
 
-    {% if request.query_params.get("salvato") == "1" %}
-        <div class="alert">
-            Impostazioni salvate correttamente.
-        </div>
-    {% endif %}
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .alert-success {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 720px;
+        }
+
+        .form-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin: 24px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .form-section-title:first-child { margin-top: 0; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-grid.full { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.span2 { grid-column: span 2; }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .form-group input {
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            color: #111827;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #f9fafb;
+        }
+        .form-group input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+
+        /* LOGO UPLOAD */
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .logo-preview {
+            width: 120px;
+            height: 70px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #f8fafc;
+            flex-shrink: 0;
+        }
+        .logo-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .logo-preview-empty {
+            font-size: 24px;
+            color: #d1d5db;
+        }
+        .logo-upload-info { flex: 1; }
+        .logo-upload-info label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .logo-upload-info input[type="file"] {
+            font-size: 13px;
+            color: #374151;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .logo-upload-info small {
+            display: block;
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn-salva {
+            padding: 11px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-salva:hover { background: #1d4ed8; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.span2 { grid-column: span 1; }
+            .form-card { padding: 20px; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Impostazioni azienda</h1>
+    <div class="page-header">
+        <h1>⚙️ Impostazioni azienda</h1>
+        <p>Dati che appaiono sui PDF generati</p>
+    </div>
 
-    <form method="post">
-        <label>Nome azienda</label>
-        <input type="text" name="nome_azienda" value="{{ azienda.nome_azienda or '' }}">
+    {% if request.query_params.get("salvato") == "1" %}
+    <div class="alert-success">
+        ✅ Impostazioni salvate correttamente.
+    </div>
+    {% endif %}
 
-        <label>Partita IVA</label>
-        <input type="text" name="partita_iva" value="{{ azienda.partita_iva or '' }}">
+    <div class="form-card">
+        <form method="post" enctype="multipart/form-data">
 
-        <label>Indirizzo</label>
-        <input type="text" name="indirizzo" value="{{ azienda.indirizzo or '' }}">
+            <div class="form-section-title">Dati azienda</div>
+            <div class="form-grid">
+                <div class="form-group span2">
+                    <label>Nome azienda</label>
+                    <input type="text" name="nome_azienda"
+                           value="{{ azienda.nome_azienda or '' }}"
+                           placeholder="Es. Idraulica Rossi di Mario Rossi">
+                </div>
+                <div class="form-group">
+                    <label>Partita IVA</label>
+                    <input type="text" name="partita_iva"
+                           value="{{ azienda.partita_iva or '' }}"
+                           placeholder="Es. 01234567890">
+                </div>
+                <div class="form-group">
+                    <label>Telefono</label>
+                    <input type="text" name="telefono"
+                           value="{{ azienda.telefono or '' }}"
+                           placeholder="Es. 333 1234567">
+                </div>
+                <div class="form-group span2">
+                    <label>Indirizzo</label>
+                    <input type="text" name="indirizzo"
+                           value="{{ azienda.indirizzo or '' }}"
+                           placeholder="Via, numero civico, città">
+                </div>
+                <div class="form-group span2">
+                    <label>Email</label>
+                    <input type="email" name="email"
+                           value="{{ azienda.email or '' }}"
+                           placeholder="email@esempio.it">
+                </div>
+            </div>
 
-        <label>Telefono</label>
-        <input type="text" name="telefono" value="{{ azienda.telefono or '' }}">
+            <div class="form-section-title">Logo aziendale</div>
+            <div class="logo-section">
+                <div class="logo-preview">
+                    {% if azienda and azienda.logo_path %}
+                        <img src="/{{ azienda.logo_path }}" alt="Logo azienda">
+                    {% else %}
+                        <span class="logo-preview-empty">🏢</span>
+                    {% endif %}
+                </div>
+                <div class="logo-upload-info">
+                    <label>Carica logo (PNG o JPG)</label>
+                    <input type="file" name="logo" accept=".png,.jpg,.jpeg">
+                    <small>
+                        {% if azienda and azienda.logo_path %}
+                            Logo attuale visibile a sinistra. Carica un nuovo file per sostituirlo.
+                        {% else %}
+                            Dimensione consigliata: almeno 300×150 px. Sfondo bianco o trasparente.
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
 
-        <label>Email</label>
-        <input type="text" name="email" value="{{ azienda.email or '' }}">
+            <div class="form-actions">
+                <button type="submit" class="btn-salva">💾 Salva impostazioni</button>
+            </div>
 
-        <button type="submit">Salva impostazioni</button>
-    </form>
+        </form>
+    </div>
 
 </div>
 

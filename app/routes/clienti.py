@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app import crud
 
 router = APIRouter(prefix="/clienti", tags=["clienti"])
@@ -13,28 +14,40 @@ router = APIRouter(prefix="/clienti", tags=["clienti"])
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-
 @router.get("/", response_class=HTMLResponse)
-def lista_clienti(request: Request, cerca: str = "", db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
-
-    user_id = request.session["user_id"]
-    clienti = crud.get_clienti(db, cerca, user_id)
+def lista_clienti(
+    request: Request,
+    cerca: str = "",
+    pagina: int = 1,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    risultato = crud.get_clienti(db, cerca, user_id, pagina=pagina)
 
     return templates.TemplateResponse(
         request=request,
         name="clienti_lista.html",
-        context={"clienti": clienti, "cerca": cerca}
+        context={
+            "clienti": risultato["items"],
+            "pagina": risultato["pagina"],
+            "pagine_totali": risultato["pagine_totali"],
+            "totale": risultato["totale"],
+            "cerca": cerca,
+        }
     )
 
 
 @router.get("/nuovo", response_class=HTMLResponse)
-def form_cliente(request: Request):
+def form_cliente(
+    request: Request,
+    user_id: int = Depends(get_current_user),
+):
     return templates.TemplateResponse(
         request=request,
         name="cliente_nuovo.html",
-        context={}
+        context={
+            "request": request
+        }
     )
 
 
@@ -44,23 +57,22 @@ def crea_cliente_form(
     nome: str = Form(...),
     cognome: str = Form(...),
     telefono: str = Form(""),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
 ):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
-
-    user_id = request.session["user_id"]
     crud.crea_cliente(db, nome, cognome, telefono, user_id)
 
     return RedirectResponse(url="/clienti", status_code=303)
 
 
 @router.get("/{cliente_id}", response_class=HTMLResponse)
-def dettaglio_cliente(cliente_id: int, request: Request, db: Session = Depends(get_db)):
-    if "user_id" not in request.session:
-        return RedirectResponse(url="/login", status_code=303)
+def dettaglio_cliente(
+    cliente_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
 
-    user_id = request.session["user_id"]
     cliente = crud.get_cliente_by_id(db, cliente_id, user_id)
 
     if not cliente:
@@ -68,16 +80,47 @@ def dettaglio_cliente(cliente_id: int, request: Request, db: Session = Depends(g
 
     lavori = crud.get_lavori_by_cliente(db, cliente_id, user_id)
 
+    riepilogo = crud.get_riepilogo_cliente(
+        db,
+        cliente_id,
+        user_id
+    )
+
+    documenti_pdf = crud.get_documenti_pdf_by_cliente(
+        db,
+        user_id,
+        cliente_id
+    )
+
+    pagamenti_cliente = crud.get_pagamenti_by_cliente(
+        db,
+        user_id,
+        cliente_id
+    )
+
     return templates.TemplateResponse(
         request=request,
         name="cliente_dettaglio.html",
-        context={"cliente": cliente, "lavori": lavori}
+        context={
+            "cliente": cliente,
+            "lavori": lavori,
+            "riepilogo": riepilogo,
+            "documenti_pdf": documenti_pdf,
+            "pagamenti_cliente": pagamenti_cliente
+        }
     )
 
 
+
 @router.get("/{cliente_id}/modifica", response_class=HTMLResponse)
-def form_modifica_cliente(cliente_id: int, request: Request, db: Session = Depends(get_db)):
-    cliente = crud.get_cliente_by_id(db, cliente_id)
+def form_modifica_cliente(
+    cliente_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    cliente = crud.get_cliente_by_id(db, cliente_id, user_id)
+
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
 
@@ -90,13 +133,16 @@ def form_modifica_cliente(cliente_id: int, request: Request, db: Session = Depen
 
 @router.post("/{cliente_id}/modifica")
 def modifica_cliente(
+    request: Request,
     cliente_id: int,
     nome: str = Form(...),
     cognome: str = Form(...),
     telefono: str = Form(""),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
 ):
-    cliente = crud.aggiorna_cliente(db, cliente_id, nome, cognome, telefono)
+    cliente = crud.aggiorna_cliente(db, cliente_id, nome, cognome, telefono, user_id)
+
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
 
@@ -104,13 +150,20 @@ def modifica_cliente(
 
 
 @router.post("/{cliente_id}/elimina")
-def elimina_cliente(cliente_id: int, db: Session = Depends(get_db)):
-    risultato = crud.elimina_cliente(db, cliente_id)
+def elimina_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    risultato = crud.elimina_cliente(db, cliente_id, user_id)
 
     if risultato is None:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
 
     if risultato == "bloccato":
-        return RedirectResponse(url=f"/clienti/{cliente_id}?errore=ha_lavori", status_code=303)
+        return RedirectResponse(
+            url=f"/clienti/{cliente_id}?errore=ha_lavori",
+            status_code=303
+        )
 
     return RedirectResponse(url="/clienti", status_code=303)

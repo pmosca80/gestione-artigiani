@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account — Gestionale Artigiani</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 460px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 32px;
+        }
+        .logo .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+        .logo h1 { color: white; font-size: 24px; font-weight: 700; }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 36px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        }
+
+        .status-icon {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .card p strong { color: #111827; }
+
+        .divider {
+            height: 1px;
+            background: #f1f5f9;
+            margin: 24px 0;
+        }
+
+        .contact-box {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.6;
+        }
+        .contact-box strong { color: #111827; display: block; margin-bottom: 4px; }
+
+        .btn-logout {
+            display: inline-block;
+            padding: 12px 28px;
+            background: #111827;
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+        .btn-logout:hover { opacity: 0.85; }
+
+        .footer-note {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <div class="logo">
+        <span class="icon">🔧</span>
+        <h1>Gestionale Artigiani</h1>
+    </div>
+
+    <div class="card">
+
+        {% if disattivato %}
+            <span class="status-icon">🔒</span>
+            <h2>Account disattivato</h2>
+            <p>Il tuo account è stato disattivato dall'amministratore.</p>
+            <p>Se ritieni si tratti di un errore, contatta il supporto.</p>
+        {% else %}
+            <span class="status-icon">⏰</span>
+            <h2>Periodo di prova scaduto</h2>
+            <p>Il tuo periodo di prova gratuito di <strong>30 giorni</strong> è terminato.</p>
+            <p>Per continuare ad utilizzare il gestionale, contatta il supporto per attivare il tuo account.</p>
+        {% endif %}
+
+        <div class="divider"></div>
+
+        <div class="contact-box">
+            <strong>Come procedere</strong>
+            Contatta il tuo fornitore del software per richiedere l'attivazione. Una volta attivato, potrai accedere normalmente con le tue credenziali.
+        </div>
+
+        <a href="/logout" class="btn-logout">🚪 Esci dall'account</a>
+
+    </div>
+
+    <p class="footer-note">© 2026 Gestionale Artigiani</p>
+
+</div>
+
+</body>
+</html>

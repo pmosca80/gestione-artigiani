@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ lavoro.titolo }} — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=135">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        /* HERO */
+        .lavoro-hero {
+            background: linear-gradient(135deg, #0f172a, #1e3a5f);
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+        }
+        .lavoro-hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .lavoro-hero h1 { color: white; font-size: 24px; font-weight: 700; margin: 0; }
+        .lavoro-hero p { color: #94a3b8; font-size: 13px; margin: 6px 0 0; }
+        .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-hero {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: opacity 0.15s;
+            cursor: pointer;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .btn-hero:hover { opacity: 0.88; }
+        .btn-hero-white { background: white; color: #111827; }
+        .btn-hero-outline { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-hero-green { background: #16a34a; color: white; }
+        .btn-hero-red { background: #dc2626; color: white; }
+
+        /* STATUS BANNER */
+        .status-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+        .status-banner.bad { background: rgba(220,38,38,0.15); color: #fca5a5; }
+        .status-banner.warning { background: rgba(249,115,22,0.15); color: #fdba74; }
+        .status-banner.good { background: rgba(22,163,74,0.15); color: #86efac; }
+        .status-banner.neutral { background: rgba(148,163,184,0.15); color: #cbd5e1; }
+
+        /* INFO GRID */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+        }
+        .info-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; display: block; margin-bottom: 5px; }
+        .info-val { font-size: 14px; font-weight: 600; color: #111827; }
+
+        /* KPI */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .kpi-tile {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 18px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-tile::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 12px 12px 0 0;
+        }
+        .kpi-tile.green::before { background: #16a34a; }
+        .kpi-tile.red::before { background: #dc2626; }
+        .kpi-tile.blue::before { background: #2563eb; }
+        .kpi-tile.orange::before { background: #f97316; }
+        .kpi-tile.purple::before { background: #7c3aed; }
+        .kpi-tile.gray::before { background: #6b7280; }
+        .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 6px; }
+        .kpi-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
+        .kpi-val.green { color: #16a34a; }
+        .kpi-val.red { color: #dc2626; }
+        .prog-track { height: 6px; background: #f1f5f9; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+        .prog-fill { height: 100%; border-radius: 999px; background: #16a34a; }
+
+        /* SEZIONI */
+        .l-section { margin-bottom: 24px; }
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* CARD */
+        .l-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .l-card h3 { font-size: 14px; font-weight: 700; color: #374151; margin: 0 0 16px; }
+
+        /* AZIONI RAPIDE */
+        .azioni-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .azione-tile {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+        .azione-tile:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.1); transform: translateY(-2px); }
+        .azione-icon { font-size: 20px; width: 36px; height: 36px; background: #eff6ff; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .azione-tile h4 { font-size: 13px; font-weight: 700; color: #111827; margin: 0 0 2px; }
+        .azione-tile p { font-size: 11px; color: #6b7280; margin: 0; }
+
+        /* TABELLE */
+        .l-table-wrap { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+        .l-table { width: 100%; border-collapse: collapse; }
+        .l-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .l-table th { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; text-align: left; }
+        .l-table td { padding: 12px 14px; border-bottom: 1px solid #f8fafc; font-size: 13px; color: #374151; vertical-align: middle; }
+        .l-table tbody tr:last-child td { border-bottom: none; }
+        .l-table tbody tr:hover td { background: #fafafa; }
+        .empty-row td { text-align: center; padding: 24px; color: #9ca3af; font-size: 13px; }
+
+        .lb { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+        .lb-blue { background: #dbeafe; color: #1e40af; }
+        .lb-orange { background: #ffedd5; color: #9a3412; }
+        .lb-gray { background: #f3f4f6; color: #374151; }
+
+        .importo { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+        .btn-az { padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; text-decoration: none; transition: opacity 0.15s; white-space: nowrap; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-red { background: #dc2626; color: white; }
+        .azioni-cell { display: flex; gap: 5px; }
+
+        /* TIMELINE */
+        .timeline { display: flex; flex-direction: column; gap: 0; }
+        .tl-item {
+            display: flex;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f8fafc;
+            position: relative;
+        }
+        .tl-item:last-child { border-bottom: none; }
+        .tl-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #eff6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .tl-content strong { font-size: 13px; font-weight: 700; color: #111827; display: block; }
+        .tl-content span { font-size: 12px; color: #6b7280; font-family: 'DM Mono', monospace; }
+
+        /* FOTO */
+        .foto-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        .foto-item img {
+            width: 100%;
+            border-radius: 10px;
+            object-fit: cover;
+            aspect-ratio: 4/3;
+        }
+        .foto-item p { font-size: 12px; color: #6b7280; margin: 6px 0 0; }
+
+        /* UPLOAD ALLEGATO */
+        .upload-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+        .upload-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }
+        .upload-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+        .upload-group input {
+            padding: 8px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            background: white;
+            outline: none;
+        }
+        .upload-group input:focus { border-color: #2563eb; }
+        .btn-upload {
+            padding: 9px 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            white-space: nowrap;
+        }
+        .btn-upload:hover { background: #1d4ed8; }
+
+        /* NOTE */
+        .note-box {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.6;
+        }
+        .note-box.empty { color: #9ca3af; font-style: italic; }
+
+        .footer-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        @media (max-width: 900px) {
+            .lavoro-hero { padding: 20px; }
+            .l-table-wrap { overflow-x: auto; }
+            .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <!-- HERO -->
+    <div class="lavoro-hero">
+        <div class="lavoro-hero-top">
+            <div>
+                <h1>🛠️ {{ lavoro.titolo }}</h1>
+                <p>
+                    {% if lavoro.cliente %}
+                        👤 {{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }} ·
+                    {% endif %}
+                    {{ lavoro.data_lavoro }}
+                </p>
+            </div>
+            <div class="hero-actions">
+                {% if lavoro.cliente %}
+                    <a href="/clienti/{{ lavoro.cliente.id }}" class="btn-hero btn-hero-outline">👤 Cliente</a>
+                {% endif %}
+                <a href="/lavori/{{ lavoro.id }}/modifica" class="btn-hero btn-hero-outline">✏️ Modifica</a>
+                <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-hero btn-hero-outline">📦 Materiali</a>
+                <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
+                <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
+                {% if lavoro.stato == "preventivo" %}
+                    <form action="/lavori/{{ lavoro.id }}/invia-preventivo" method="post" style="display:inline;">
+                        <button class="btn-hero btn-hero-outline">📧 Segna inviato</button>
+                    </form>
+                {% endif %}
+                {% if lavoro.stato == "preventivo_inviato" %}
+                    <form action="/lavori/{{ lavoro.id }}/accetta-preventivo" method="post" style="display:inline;">
+                        <button class="btn-hero btn-hero-green">✅ Accettato</button>
+                    </form>
+                {% endif %}
+                {% if lavoro.stato == "preventivo_accettato" %}
+                    <form action="/lavori/{{ lavoro.id }}/converti" method="post" style="display:inline;"
+                          onsubmit="return confirm('Convertire il preventivo in lavoro operativo?')">
+                        <button class="btn-hero btn-hero-green">🔄 Converti in lavoro</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- STATUS -->
+        {% if (lavoro.residuo_pagamento or 0) > 0 and lavoro.data_scadenza_pagamento and lavoro.data_scadenza_pagamento < today %}
+            <div class="status-banner bad">🔴 Pagamento scaduto — residuo € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</div>
+        {% elif (lavoro.margine or 0) < 0 %}
+            <div class="status-banner bad">🔴 Lavoro in perdita</div>
+        {% elif (lavoro.residuo_pagamento or 0) > 0 %}
+            <div class="status-banner warning">🟡 Da incassare — € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }} residuo</div>
+        {% else %}
+            <div class="status-banner good">🟢 Lavoro chiuso correttamente</div>
+        {% endif %}
+    </div>
+
+    <!-- INFO -->
+    <div class="info-grid">
+        <div>
+            <span class="info-label">Stato lavoro</span>
+            <span class="info-val">
+                {% if lavoro.stato == "completato" %}<span class="lb lb-green">✓ Completato</span>
+                {% elif lavoro.stato == "in_corso" %}<span class="lb lb-orange">⚡ In corso</span>
+                {% elif lavoro.stato == "da_fare" %}<span class="lb lb-gray">📝 Da fare</span>
+                {% elif lavoro.stato == "preventivo" %}<span class="lb lb-blue">📑 Preventivo</span>
+                {% elif lavoro.stato == "preventivo_inviato" %}<span class="lb lb-orange">📧 Inviato</span>
+                {% elif lavoro.stato == "preventivo_accettato" %}<span class="lb lb-green">✅ Accettato</span>
+                {% elif lavoro.stato == "annullato" %}<span class="lb lb-red">✗ Annullato</span>
+                {% else %}<span class="lb lb-gray">{{ lavoro.stato }}</span>{% endif %}
+            </span>
+        </div>
+        <div>
+            <span class="info-label">Pagamento</span>
+            <span class="info-val">
+                {% if lavoro.stato_pagamento == "pagato" %}<span class="lb lb-green">✓ Pagato</span>
+                {% elif lavoro.stato_pagamento == "acconto" %}<span class="lb lb-orange">↗ Acconto</span>
+                {% else %}<span class="lb lb-red">✗ Da pagare</span>{% endif %}
+            </span>
+        </div>
+        <div>
+            <span class="info-label">Data lavoro</span>
+            <span class="info-val">{{ lavoro.data_lavoro }}</span>
+        </div>
+        <div>
+            <span class="info-label">Scadenza pagamento</span>
+            <span class="info-val">{{ lavoro.data_scadenza_pagamento or '—' }}</span>
+        </div>
+        {% if lavoro.numero_preventivo %}
+        <div>
+            <span class="info-label">N° preventivo</span>
+            <span class="info-val">{{ lavoro.numero_preventivo }}</span>
+        </div>
+        {% endif %}
+        {% if lavoro.data_accettazione_preventivo %}
+        <div>
+            <span class="info-label">Accettato il</span>
+            <span class="info-val">{{ lavoro.data_accettazione_preventivo }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- KPI ECONOMICI -->
+    <div class="l-section">
+        <div class="section-title">Riepilogo economico</div>
+        <div class="kpi-strip">
+            <div class="kpi-tile blue">
+                <div class="kpi-label">Preventivo</div>
+                <div class="kpi-val importo">€ {{ "%.2f"|format(lavoro.importo_preventivato or 0) }}</div>
+            </div>
+            <div class="kpi-tile green">
+                <div class="kpi-label">Totale documento</div>
+                <div class="kpi-val green importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</div>
+            </div>
+            <div class="kpi-tile green">
+                <div class="kpi-label">Pagato</div>
+                <div class="kpi-val green importo">€ {{ "%.2f"|format(lavoro.importo_pagato or 0) }}</div>
+            </div>
+            <div class="kpi-tile red">
+                <div class="kpi-label">Residuo</div>
+                <div class="kpi-val {% if (lavoro.residuo_pagamento or 0) > 0 %}red{% else %}green{% endif %} importo">
+                    € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}
+                </div>
+            </div>
+            <div class="kpi-tile purple">
+                <div class="kpi-label">Margine</div>
+                <div class="kpi-val {% if (lavoro.margine or 0) >= 0 %}green{% else %}red{% endif %} importo">
+                    € {{ "%.2f"|format(lavoro.margine or 0) }}
+                </div>
+            </div>
+            <div class="kpi-tile gray">
+                <div class="kpi-label">% Incassata</div>
+                <div class="kpi-val">{{ percentuale_incassata or 0 }}%</div>
+                <div class="prog-track">
+                    <div class="prog-fill" style="width:{{ percentuale_incassata or 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI COSTI -->
+    <div class="l-section">
+        <div class="section-title">Redditività</div>
+        <div class="kpi-strip">
+            <div class="kpi-tile red">
+                <div class="kpi-label">Costo materiali</div>
+                <div class="kpi-val red importo">€ {{ "%.2f"|format(costo_materiali or 0) }}</div>
+            </div>
+            <div class="kpi-tile red">
+                <div class="kpi-label">Costo manodopera</div>
+                <div class="kpi-val red importo">€ {{ "%.2f"|format(costo_manodopera or 0) }}</div>
+            </div>
+            <div class="kpi-tile red">
+                <div class="kpi-label">Costo totale</div>
+                <div class="kpi-val red importo">€ {{ "%.2f"|format(costo_totale or 0) }}</div>
+            </div>
+            <div class="kpi-tile green">
+                <div class="kpi-label">Utile lordo</div>
+                <div class="kpi-val {% if (utile_lordo or 0) >= 0 %}green{% else %}red{% endif %} importo">
+                    € {{ "%.2f"|format(utile_lordo or 0) }}
+                </div>
+            </div>
+            <div class="kpi-tile purple">
+                <div class="kpi-label">Margine %</div>
+                <div class="kpi-val {% if (margine_percentuale or 0) >= 0 %}green{% else %}red{% endif %}">
+                    {{ margine_percentuale or 0 }}%
+                </div>
+            </div>
+            <div class="kpi-tile gray">
+                <div class="kpi-label">Materiali usati</div>
+                <div class="kpi-val">{{ materiali_usati|length }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AZIONI RAPIDE -->
+    <div class="l-section">
+        <div class="section-title">Azioni rapide</div>
+        <div class="azioni-grid">
+            <a href="/lavori/{{ lavoro.id }}/modifica" class="azione-tile">
+                <div class="azione-icon">✏️</div>
+                <div><h4>Modifica</h4><p>Dati e costi</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/materiali" class="azione-tile">
+                <div class="azione-icon">📦</div>
+                <div><h4>Materiali</h4><p>Aggiungi o modifica</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/pagamenti" class="azione-tile">
+                <div class="azione-icon">💳</div>
+                <div><h4>Pagamenti</h4><p>Acconti e saldi</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="azione-tile">
+                <div class="azione-icon">📄</div>
+                <div><h4>Genera PDF</h4><p>Preventivo o consuntivo</p></div>
+            </a>
+        </div>
+    </div>
+
+    <!-- DESCRIZIONE -->
+    <div class="l-section">
+        <div class="section-title">Descrizione e note</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="l-card">
+                <h3>📝 Descrizione</h3>
+                <div class="note-box {% if not lavoro.descrizione %}empty{% endif %}">
+                    {{ lavoro.descrizione or 'Nessuna descrizione inserita.' }}
+                </div>
+            </div>
+            <div class="l-card">
+                <h3>📋 Note consuntivo</h3>
+                <div class="note-box {% if not lavoro.note_consuntivo %}empty{% endif %}">
+                    {{ lavoro.note_consuntivo or 'Nessuna nota inserita.' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MATERIALI USATI -->
+    <div class="l-section">
+        <div class="section-title">📦 Materiali usati</div>
+        <div class="l-table-wrap">
+            <table class="l-table">
+                <thead>
+                    <tr><th>Materiale</th><th>Quantità</th><th>Costo unitario</th><th>Prezzo cliente</th><th>Note</th></tr>
+                </thead>
+                <tbody>
+                    {% if materiali_usati %}
+                        {% for riga in materiali_usati %}
+                        <tr>
+                            <td>
+                                {% set materiale = materiali_dict.get(riga.materiale_id) %}
+                                <strong>{% if materiale %}{{ materiale.nome }}{% else %}—{% endif %}</strong>
+                            </td>
+                            <td class="importo">{{ riga.quantita }}</td>
+                            <td class="importo">€ {{ "%.2f"|format(riga.costo_unitario or 0) }}</td>
+                            <td class="importo">€ {{ "%.2f"|format(riga.prezzo_unitario_cliente or 0) }}</td>
+                            <td style="color:#6b7280;">{{ riga.note or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="5">Nessun materiale associato.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAGAMENTI -->
+    <div class="l-section">
+        <div class="section-title">💳 Pagamenti registrati</div>
+        <div class="l-table-wrap">
+            <table class="l-table">
+                <thead>
+                    <tr><th>Data</th><th>Importo</th><th>Metodo</th><th>Note</th></tr>
+                </thead>
+                <tbody>
+                    {% if pagamenti %}
+                        {% for p in pagamenti %}
+                        <tr>
+                            <td style="color:#6b7280; font-family:'DM Mono',monospace; font-size:12px;">{{ p.data_pagamento }}</td>
+                            <td><span class="lb lb-green importo">€ {{ "%.2f"|format(p.importo or 0) }}</span></td>
+                            <td>{{ p.metodo or '—' }}</td>
+                            <td style="color:#6b7280;">{{ p.note or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="4">Nessun pagamento registrato.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DOCUMENTI PDF -->
+    <div class="l-section">
+        <div class="section-title">📄 Documenti PDF generati</div>
+        <div class="l-table-wrap">
+            <table class="l-table">
+                <thead>
+                    <tr><th>Numero</th><th>File</th><th>Data</th><th>Azioni</th></tr>
+                </thead>
+                <tbody>
+                    {% if documenti_pdf %}
+                        {% for doc in documenti_pdf %}
+                        <tr>
+                            <td><span class="lb lb-gray"># {{ doc.numero }}</span></td>
+                            <td><strong>{{ doc.nome_file }}</strong></td>
+                            <td style="color:#6b7280; font-size:12px; font-family:'DM Mono',monospace;">{{ doc.data_creazione }}</td>
+                            <td><a href="/{{ doc.percorso_file }}" target="_blank" class="btn-az btn-az-gray">↗ Apri</a></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="4">Nessun PDF generato.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ALLEGATI -->
+    <div class="l-section">
+        <div class="section-title">📎 Allegati</div>
+        <div class="l-card">
+            <form action="/lavori/{{ lavoro.id }}/allegati" method="post" enctype="multipart/form-data">
+                <div class="upload-form">
+                    <div class="upload-group">
+                        <label>File allegato</label>
+                        <input type="file" name="allegato" required>
+                    </div>
+                    <div class="upload-group">
+                        <label>Descrizione</label>
+                        <input type="text" name="descrizione" placeholder="Es. preventivo firmato, fattura...">
+                    </div>
+                    <button type="submit" class="btn-upload">📎 Carica</button>
+                </div>
+            </form>
+
+            {% if allegati_lavoro %}
+            <div class="l-table-wrap" style="border-radius:8px;">
+                <table class="l-table">
+                    <thead>
+                        <tr><th>File</th><th>Tipo</th><th>Descrizione</th><th>Data</th><th>Azioni</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for allegato in allegati_lavoro %}
+                        <tr>
+                            <td><strong>{{ allegato.nome_file }}</strong></td>
+                            <td>{{ allegato.tipo_file or '—' }}</td>
+                            <td style="color:#6b7280;">{{ allegato.descrizione or '—' }}</td>
+                            <td style="color:#6b7280; font-size:12px; font-family:'DM Mono',monospace;">{{ allegato.data_creazione }}</td>
+                            <td>
+                                <div class="azioni-cell">
+                                    <a href="/{{ allegato.percorso_file }}" target="_blank" class="btn-az btn-az-gray">↗ Apri</a>
+                                    <form action="/lavori/allegati/{{ allegato.id }}/elimina" method="post" style="display:inline;"
+                                          onsubmit="return confirm('Eliminare allegato?')">
+                                        <button class="btn-az btn-az-red">🗑</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color:#9ca3af; font-size:13px; margin:0;">Nessun allegato caricato.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- FOTO -->
+    <div class="l-section">
+        <div class="section-title">📷 Foto lavoro</div>
+        {% if foto_lavoro %}
+        <div class="foto-grid">
+            {% for foto in foto_lavoro %}
+            <div class="foto-item">
+                <img src="/{{ foto.percorso_file }}" alt="Foto lavoro">
+                {% if foto.descrizione %}<p>{{ foto.descrizione }}</p>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="l-card"><p style="color:#9ca3af; font-size:13px; margin:0;">Nessuna foto caricata.</p></div>
+        {% endif %}
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="l-section">
+        <div class="section-title">🕐 Cronologia</div>
+        <div class="l-card">
+            <div class="timeline">
+                <div class="tl-item">
+                    <div class="tl-dot">🛠️</div>
+                    <div class="tl-content">
+                        <strong>Lavoro creato</strong>
+                        <span>{{ lavoro.data_lavoro }}</span>
+                    </div>
+                </div>
+                {% for p in pagamenti %}
+                <div class="tl-item">
+                    <div class="tl-dot">💳</div>
+                    <div class="tl-content">
+                        <strong>Pagamento — € {{ "%.2f"|format(p.importo or 0) }}</strong>
+                        <span>{{ p.data_pagamento }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% for foto in foto_lavoro %}
+                <div class="tl-item">
+                    <div class="tl-dot">📷</div>
+                    <div class="tl-content">
+                        <strong>Foto caricata</strong>
+                        <span>{{ foto.data_creazione }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer-actions">
+        {% if lavoro.cliente %}
+            <a href="/clienti/{{ lavoro.cliente.id }}" class="btn-az btn-az-gray">← Cliente</a>
+        {% endif %}
+        <a href="/lavori/" class="btn-az btn-az-gray">← Lavori</a>
+        <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az" style="background:#16a34a; color:white;">💳 Pagamenti</a>
+        <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#dc2626; color:white;">📄 PDF</a>
+    </div>
+
+</div>
+
+</body>
+</html>

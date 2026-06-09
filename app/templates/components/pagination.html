@@ -1,0 +1,25 @@
+{% if pagine_totali > 1 %}
+<div style="margin: 20px 0; display: flex; gap: 8px; align-items: center;">
+
+    {% if pagina > 1 %}
+        <a href="?{{ query_string }}&pagina={{ pagina - 1 }}">&laquo; Precedente</a>
+    {% endif %}
+
+    {% for p in range(1, pagine_totali + 1) %}
+        {% if p == pagina %}
+            <strong>{{ p }}</strong>
+        {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
+            <a href="?{{ query_string }}&pagina={{ p }}">{{ p }}</a>
+        {% elif p == pagina - 3 or p == pagina + 3 %}
+            <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if pagina < pagine_totali %}
+        <a href="?{{ query_string }}&pagina={{ pagina + 1 }}">Successiva &raquo;</a>
+    {% endif %}
+
+    <span style="margin-left: 16px; color: gray;">{{ totale }} risultati</span>
+
+</div>
+{% endif %}

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benvenuto — Gestionale Artigiani</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e3a5f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .welcome-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .welcome-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+        .welcome-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        .welcome-header p {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e5e7eb;
+        }
+        .step-dot.active {
+            background: #2563eb;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .form-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin: 20px 0 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .form-section-title:first-child { margin-top: 0; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.span2 { grid-column: span 2; }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .form-group input {
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            color: #111827;
+            outline: none;
+            background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+
+        .required-note {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 16px;
+            text-align: center;
+        }
+        .required-note span { color: #ef4444; }
+
+        .btn-continua {
+            width: 100%;
+            padding: 13px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            margin-top: 24px;
+            transition: background 0.15s;
+        }
+        .btn-continua:hover { background: #1d4ed8; }
+
+        .skip-link {
+            display: block;
+            text-align: center;
+            margin-top: 14px;
+            font-size: 13px;
+            color: #9ca3af;
+            text-decoration: none;
+        }
+        .skip-link:hover { color: #6b7280; }
+
+        @media (max-width: 520px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.span2 { grid-column: span 1; }
+            .card { padding: 28px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <div class="welcome-header">
+        <div class="welcome-icon">👋</div>
+        <h1>Benvenuto nel gestionale!</h1>
+        <p>Prima di iniziare, inserisci i dati della tua azienda.<br>
+        Appariranno sui PDF e nei documenti generati.</p>
+    </div>
+
+    <div class="step-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+    </div>
+
+    <form method="post" action="/onboarding">
+
+        <div class="form-section-title">Dati azienda</div>
+        <div class="form-grid">
+            <div class="form-group span2">
+                <label>Nome azienda <span style="color:#ef4444">*</span></label>
+                <input type="text" name="nome_azienda"
+                       placeholder="Es. Idraulica Rossi di Mario Rossi"
+                       required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Partita IVA</label>
+                <input type="text" name="partita_iva"
+                       placeholder="Es. 01234567890">
+            </div>
+            <div class="form-group">
+                <label>Telefono</label>
+                <input type="text" name="telefono"
+                       placeholder="Es. 333 1234567">
+            </div>
+            <div class="form-group span2">
+                <label>Indirizzo</label>
+                <input type="text" name="indirizzo"
+                       placeholder="Via, numero civico, città">
+            </div>
+            <div class="form-group span2">
+                <label>Email notifiche <span style="color:#ef4444">*</span></label>
+                <input type="email" name="email"
+                       placeholder="La tua email per ricevere i promemoria"
+                       required>
+            </div>
+        </div>
+
+        <p class="required-note"><span>*</span> Campi obbligatori</p>

@@ -2,53 +2,155 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Archivio PDF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archivio PDF — Gestionale Artigiani</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .doc-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .doc-table { width: 100%; border-collapse: collapse; }
+        .doc-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .doc-table th {
+            padding: 11px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #9ca3af;
+            text-align: left;
+        }
+        .doc-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .doc-table tbody tr:last-child td { border-bottom: none; }
+        .doc-table tbody tr:hover td { background: #fafafa; }
+
+        .doc-numero {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            color: #111827;
+        }
+        .doc-icon {
+            width: 32px;
+            height: 32px;
+            background: #fee2e2;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .doc-nome { font-weight: 500; color: #374151; font-size: 13px; }
+        .doc-id { font-size: 11px; color: #d1d5db; font-family: 'DM Mono', monospace; }
+        .data-cell { color: #6b7280; font-size: 12px; font-family: 'DM Mono', monospace; }
+
+        .azioni-cell { display: flex; gap: 6px; }
+        .btn-az {
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.15s;
+            white-space: nowrap;
+        }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-red { background: #dc2626; color: white; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+        .empty-state p { color: #9ca3af; font-size: 14px; margin: 0 0 20px; }
+
+        @media (max-width: 700px) {
+            .doc-table-wrap { overflow-x: auto; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/documenti">Archivio PDF</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Archivio PDF</h1>
+    <div class="page-header">
+        <h1>📄 Archivio PDF</h1>
+        <p>Tutti i documenti generati — preventivi e consuntivi</p>
+    </div>
 
-    {% if documenti %}
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Numero</th>
-            <th>Lavoro ID</th>
-            <th>File</th>
-            <th>Data</th>
-            <th>Azioni</th>
-        </tr>
-
-        {% for documento in documenti %}
-        <tr>
-            <td>{{ documento.id }}</td>
-            <td>{{ "%04d"|format(documento.numero) }}</td>
-            <td>{{ documento.lavoro_id }}</td>
-            <td>{{ documento.nome_file }}</td>
-            <td>{{ documento.data_creazione }}</td>
-            <td>
-                <a class="btn" href="/documenti/{{ documento.id }}/apri" target="_blank">Apri PDF</a>
-                <a class="btn btn-secondary" href="/clienti">Clienti</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% else %}
-        <p>Nessun PDF archiviato.</p>
-    {% endif %}
+    <div class="doc-table-wrap">
+        {% if documenti %}
+        <table class="doc-table">
+            <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th>File</th>
+                    <th>Lavoro</th>
+                    <th>Data</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for documento in documenti %}
+                <tr>
+                    <td>
+                        <div class="doc-numero">
+                            <span class="doc-icon">📄</span>
+                            {{ "%04d"|format(documento.numero) }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="doc-nome">{{ documento.nome_file }}</div>
+                    </td>
+                    <td>
+                        <span class="doc-id"># {{ documento.lavoro_id }}</span>
+                    </td>
+                    <td class="data-cell">{{ documento.data_creazione }}</td>
+                    <td>
+                        <div class="azioni-cell">
+                            <a href="/documenti/{{ documento.id }}/apri"
+                               target="_blank"
+                               class="btn-az btn-az-red">↗ Apri PDF</a>
+                            <a href="/lavori/{{ documento.lavoro_id }}"
+                               class="btn-az btn-az-gray">📋 Lavoro</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon">📄</span>
+            <p>Nessun PDF archiviato.</p>
+            <a href="/lavori/" class="btn">Vai ai lavori</a>
+        </div>
+        {% endif %}
+    </div>
 
 </div>
 

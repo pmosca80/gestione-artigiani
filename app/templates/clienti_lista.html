@@ -2,57 +2,352 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Clienti</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clienti — Gestionale Artigiani</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+        }
+        .page-header p {
+            color: #6b7280;
+            font-size: 13px;
+            margin: 4px 0 0;
+        }
+
+        .search-bar {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 9px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .search-bar input[type="text"]:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .search-bar label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .search-bar input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #2563eb;
+        }
+        .btn-search {
+            padding: 9px 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-search:hover { background: #1d4ed8; }
+        .btn-reset {
+            padding: 9px 14px;
+            background: #f3f4f6;
+            color: #374151;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-reset:hover { background: #e5e7eb; }
+
+        .clienti-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .clienti-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .clienti-table thead {
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .clienti-table th {
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #9ca3af;
+            text-align: left;
+        }
+        .clienti-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 14px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .clienti-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .clienti-table tbody tr:hover td {
+            background: #fafafa;
+        }
+
+        .cliente-name {
+            font-weight: 600;
+            color: #111827;
+        }
+        .cliente-id {
+            font-size: 12px;
+            color: #d1d5db;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .residuo-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+        }
+        .residuo-ok { background: #dcfce7; color: #166534; }
+        .residuo-warn { background: #fef3c7; color: #92400e; }
+        .residuo-danger { background: #fee2e2; color: #991b1b; }
+
+        .risk-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #fee2e2;
+            color: #991b1b;
+            margin-top: 4px;
+        }
+
+        .azioni-cell {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn-azione {
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.15s;
+            white-space: nowrap;
+        }
+        .btn-azione:hover { opacity: 0.82; }
+        .btn-scheda { background: #f3f4f6; color: #374151; }
+        .btn-lavoro { background: #2563eb; color: white; }
+        .btn-modifica { background: #f3f4f6; color: #374151; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        .empty-state .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+        .empty-state p { font-size: 15px; margin: 0 0 20px; }
+
+        .risultati-info {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+        .risultati-info strong { color: #374151; }
+
+        .pagination-wrap {
+            padding: 16px 20px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .pag-info { font-size: 13px; color: #6b7280; }
+        .pag-links { display: flex; gap: 6px; }
+        .pag-link {
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            background: #f3f4f6;
+            color: #374151;
+            transition: background 0.15s;
+        }
+        .pag-link:hover { background: #e5e7eb; }
+        .pag-link.active { background: #2563eb; color: white; }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/documenti">Archivio PDF</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Clienti</h1>
+    <!-- HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>👥 Clienti</h1>
+            <p>Gestione anagrafica e residui</p>
+        </div>
+        <a class="btn" href="/clienti/nuovo">➕ Nuovo cliente</a>
+    </div>
 
-    <a class="btn" href="/clienti/nuovo">➕ Nuovo cliente</a>
-
-    <form action="/clienti" method="get">
-        <label>Cerca:</label>
-        <input type="text" name="cerca" value="{{ cerca or '' }}">
-        <button>Cerca</button>
+    <!-- BARRA RICERCA -->
+    <form action="/clienti/" method="get">
+        <div class="search-bar">
+            <input type="text" name="cerca" value="{{ cerca or '' }}"
+                   placeholder="🔍 Cerca per nome, cognome o telefono...">
+            <label>
+                <input type="checkbox" name="solo_residuo" value="1">
+                Solo con residuo
+            </label>
+            <button type="submit" class="btn-search">Cerca</button>
+            <a href="/clienti/" class="btn-reset">Reset</a>
+        </div>
     </form>
 
+    <!-- RISULTATI -->
     {% if clienti %}
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Cognome</th>
-            <th>Telefono</th>
-            <th>Azioni</th>
-        </tr>
 
-        {% for cliente in clienti %}
-        <tr>
-            <td>{{ cliente.id }}</td>
-            <td>{{ cliente.nome }}</td>
-            <td>{{ cliente.cognome }}</td>
-            <td>{{ cliente.telefono }}</td>
-            <td>
-                <a class="btn btn-secondary" href="/clienti/{{ cliente.id }}">Scheda</a>
-                <a class="btn" href="/lavori/nuovo/{{ cliente.id }}">Lavoro</a>
-                <a class="btn btn-secondary" href="/clienti/{{ cliente.id }}/modifica">Modifica</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+        <p class="risultati-info">
+            <strong>{{ totale }}</strong> cliente/i trovato/i
+        </p>
+
+        <div class="clienti-table-wrap">
+            <table class="clienti-table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Telefono</th>
+                        <th>Email</th>
+                        <th>Residuo</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clienti %}
+                    <tr>
+                        <td>
+                            <div class="cliente-name">
+                                {% if cliente.ragione_sociale %}
+                                    🏢 {{ cliente.ragione_sociale }}
+                                {% else %}
+                                    {{ cliente.nome or '' }} {{ cliente.cognome or '' }}
+                                {% endif %}
+                            </div>
+                            <div class="cliente-id">#{{ cliente.id }}</div>
+                        </td>
+                        <td>{{ cliente.telefono or '—' }}</td>
+                        <td>{{ cliente.email or '—' }}</td>
+                        <td>
+                            {% set res = cliente.totale_residuo or 0 %}
+                            {% if res > 1000 %}
+                                <div>
+                                    <span class="residuo-badge residuo-danger">€ {{ "%.2f"|format(res) }}</span>
+                                    <div><span class="risk-pill">⚠️ A rischio</span></div>
+                                </div>
+                            {% elif res > 0 %}
+                                <span class="residuo-badge residuo-warn">€ {{ "%.2f"|format(res) }}</span>
+                            {% else %}
+                                <span class="residuo-badge residuo-ok">✓ Saldato</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="azioni-cell">
+                                <a href="/clienti/{{ cliente.id }}" class="btn-azione btn-scheda">📋 Scheda</a>
+                                <a href="/lavori/nuovo/{{ cliente.id }}" class="btn-azione btn-lavoro">+ Lavoro</a>
+                                <a href="/clienti/{{ cliente.id }}/modifica" class="btn-azione btn-modifica">✏️</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- PAGINATION -->
+            {% if pagine_totali > 1 %}
+            <div class="pagination-wrap">
+                <span class="pag-info">Pagina {{ pagina }} di {{ pagine_totali }}</span>
+                <div class="pag-links">
+                    {% if pagina > 1 %}
+                        <a href="?cerca={{ cerca }}&pagina={{ pagina - 1 }}" class="pag-link">‹ Prec</a>
+                    {% endif %}
+                    {% for p in range(1, pagine_totali + 1) %}
+                        {% if p == pagina %}
+                            <span class="pag-link active">{{ p }}</span>
+                        {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
+                            <a href="?cerca={{ cerca }}&pagina={{ p }}" class="pag-link">{{ p }}</a>
+                        {% elif p == pagina - 3 or p == pagina + 3 %}
+                            <span style="padding: 6px 4px; color:#9ca3af;">…</span>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagina < pagine_totali %}
+                        <a href="?cerca={{ cerca }}&pagina={{ pagina + 1 }}" class="pag-link">Succ ›</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+    {% else %}
+        <div class="clienti-table-wrap">
+            <div class="empty-state">
+                <span class="empty-icon">👥</span>
+                <p>Nessun cliente trovato</p>
+                <a href="/clienti/nuovo" class="btn">➕ Aggiungi il primo cliente</a>
+            </div>
+        </div>
     {% endif %}
 
 </div>

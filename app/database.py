@@ -13,6 +13,10 @@ DATABASE_URL = os.getenv(
     "sqlite:///./artigiani.db"
 )
 
+# Railway fornisce postgres:// ma SQLAlchemy richiede postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 connect_args = {}
 
 if DATABASE_URL.startswith("sqlite"):

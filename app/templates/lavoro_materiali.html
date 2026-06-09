@@ -2,135 +2,346 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Materiali del lavoro</title>
-    <link rel="stylesheet" href="/static/style.css?v=5">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materiali — {{ lavoro.titolo }}</title>
+    <link rel="stylesheet" href="/static/style.css?v=136">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        /* ALERT */
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* FORM AGGIUNGI */
+        .add-form-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .add-form-card h3 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 18px; }
+        .add-form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 14px;
+            align-items: end;
+        }
+        .add-form-group { display: flex; flex-direction: column; gap: 5px; }
+        .add-form-group label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+        }
+        .add-form-group select,
+        .add-form-group input,
+        .add-form-group textarea {
+            padding: 9px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            color: #111827;
+            outline: none;
+            background: #f9fafb;
+            transition: border-color 0.2s;
+        }
+        .add-form-group select:focus,
+        .add-form-group input:focus,
+        .add-form-group textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+        .add-form-group textarea { resize: vertical; min-height: 60px; }
+        .btn-aggiungi {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+            white-space: nowrap;
+            align-self: end;
+        }
+        .btn-aggiungi:hover { background: #1d4ed8; }
+
+        /* KPI */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .kpi-tile {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 18px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-tile::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 12px 12px 0 0;
+        }
+        .kpi-tile.green::before { background: #16a34a; }
+        .kpi-tile.red::before { background: #dc2626; }
+        .kpi-tile.blue::before { background: #2563eb; }
+        .kpi-tile.purple::before { background: #7c3aed; }
+        .kpi-tile.gray::before { background: #6b7280; }
+        .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 6px; }
+        .kpi-val { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
+        .kpi-val.green { color: #16a34a; }
+        .kpi-val.red { color: #dc2626; }
+
+        /* SEZIONE */
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* TABELLA */
+        .m-table-wrap { background: white; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
+        .m-table { width: 100%; border-collapse: collapse; }
+        .m-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .m-table th { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; text-align: left; white-space: nowrap; }
+        .m-table td { padding: 12px 14px; border-bottom: 1px solid #f8fafc; font-size: 13px; color: #374151; vertical-align: middle; }
+        .m-table tbody tr:last-child td { border-bottom: none; }
+        .m-table tbody tr:hover td { background: #fafafa; }
+        .empty-row td { text-align: center; padding: 30px; color: #9ca3af; font-size: 13px; }
+
+        .mat-name { font-weight: 600; color: #111827; }
+        .importo { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+        .lb { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+
+        .btn-az { padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; text-decoration: none; transition: opacity 0.15s; white-space: nowrap; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-red { background: #dc2626; color: white; }
+        .azioni-cell { display: flex; gap: 5px; }
+
+        .footer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+        @media (max-width: 900px) {
+            .add-form-grid { grid-template-columns: 1fr 1fr; }
+            .m-table-wrap { overflow-x: auto; }
+            .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 500px) {
+            .add-form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="navbar">
-    <a href="/">Dashboard</a>
-    <a href="/clienti">Clienti</a>
-    <a href="/lavori">Lavori</a>
-    <a href="/materiali">Magazzino</a>
-    <a href="/documenti">Archivio PDF</a>
-    <a href="/impostazioni/azienda">Impostazioni</a>
-    <a href="/logout">Logout</a>
-</div>
+{% include "components/navbar.html" %}
 
 <div class="container">
 
-    <h1>Materiali usati nel lavoro</h1>
-
-    <h2>{{ lavoro.titolo }}</h2>
-    <p><strong>Data:</strong> {{ lavoro.data_lavoro }}</p>
-
-    {% if request.query_params.get("errore") == "scorta" %}
-        <div class="alert alert-error">
-            Quantità insufficiente in magazzino.
+    <!-- HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>📦 Materiali lavoro</h1>
+            <p>{{ lavoro.titolo }} · {{ lavoro.data_lavoro }}</p>
         </div>
+        <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
+    </div>
+
+    <!-- ALERT SCORTA -->
+    {% if request.query_params.get("errore") == "scorta" %}
+    <div class="alert-error">⚠️ Quantità insufficiente in magazzino.</div>
     {% endif %}
 
-    <hr>
-
-    <h3>Aggiungi materiale al lavoro</h3>
-
-    <form method="post">
-        <label>Materiale</label>
-        <select name="materiale_id" required>
-            {% for materiale in materiali %}
-                <option value="{{ materiale.id }}">
-                    {{ materiale.nome }} - disponibile: {{ materiale.quantita }} {{ materiale.unita_misura }}
-                </option>
-            {% endfor %}
-        </select>
-
-        <label>Quantità usata</label>
-        <input type="number" step="0.01" name="quantita" required>
-
-        <label>Costo unitario</label>
-        <input type="number" step="0.01" name="costo_unitario" value="0">
-
-        <label>Note</label>
-        <textarea name="note"></textarea>
-
-        <button type="submit">Scarica dal magazzino</button>
-    </form>
-
-    <hr>
-
-    <h3>Materiali già usati</h3>
+    <!-- FORM AGGIUNGI -->
+    <div class="add-form-card">
+        <h3>➕ Aggiungi materiale al lavoro</h3>
+        <form method="post">
+            <div class="add-form-grid">
+                <div class="add-form-group">
+                    <label>Materiale</label>
+                    <select name="materiale_id" required>
+                        {% for materiale in materiali %}
+                        <option value="{{ materiale.id }}">
+                            {{ materiale.nome }} — disp. {{ materiale.quantita }} {{ materiale.unita_misura }} — € {{ "%.2f"|format(materiale.prezzo_vendita_default or 0) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="add-form-group">
+                    <label>Quantità</label>
+                    <input type="number" step="0.01" name="quantita" placeholder="0.00" required>
+                </div>
+                <div class="add-form-group">
+                    <label>Prezzo cliente</label>
+                    <input type="number" step="0.01" name="prezzo_unitario_cliente" value="0">
+                </div>
+                <div class="add-form-group">
+                    <label>Note</label>
+                    <input type="text" name="note" placeholder="Opzionale">
+                </div>
+                <button type="submit" class="btn-aggiungi">📦 Scarica da magazzino</button>
+            </div>
+        </form>
+    </div>
 
     {% if materiali_usati %}
-        <table>
-            <tr>
-                <th>Materiale</th>
-                <th>Quantità</th>
-                <th>Costo unitario</th>
-                <th>Totale</th>
-                <th>Note</th>
-                <th>Data</th>
-            </tr>
 
-            {% for usato in materiali_usati %}
-            <tr>
-                <td>
-                    {% if materiali_dict.get(usato.materiale_id) %}
-                        {{ materiali_dict.get(usato.materiale_id).nome }}
-                    {% else %}
-                        Materiale non trovato
-                    {% endif %}
-                </td>
-
-                <td>
-                    {{ usato.quantita }}
-                    {% if materiali_dict.get(usato.materiale_id) %}
-                        {{ materiali_dict.get(usato.materiale_id).unita_misura }}
-                    {% endif %}
-                </td>
-
-                <td>€ {{ "%.2f"|format(usato.costo_unitario or 0) }}</td>
-
-                <td>
-                    € {{ "%.2f"|format((usato.quantita or 0) * (usato.costo_unitario or 0)) }}
-                </td>
-
-                <td>{{ usato.note }}</td>
-                <td>{{ usato.data_creazione }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        <div class="card">
-            <h3>Riepilogo economico</h3>
-
-            <p><strong>Totale materiali:</strong>
-                € {{ "%.2f"|format(lavoro.totale_materiali or totale_materiali or 0) }}
-            </p>
-
-            <p><strong>Totale manodopera:</strong>
-                € {{ "%.2f"|format(lavoro.totale_manodopera or 0) }}
-            </p>
-
-            <p><strong>Consuntivo:</strong>
-                € {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}
-            </p>
-
-            <p><strong>Preventivo:</strong>
-                € {{ "%.2f"|format(lavoro.importo_preventivato or 0) }}
-            </p>
-
-            <p><strong>Margine:</strong>
-                € {{ "%.2f"|format(lavoro.margine or 0) }}
-            </p>
+    <!-- KPI RIEPILOGO -->
+    <div class="section-title">Riepilogo economico materiali</div>
+    <div class="kpi-strip">
+        <div class="kpi-tile red">
+            <div class="kpi-label">Costo reale</div>
+            <div class="kpi-val red importo">€ {{ "%.2f"|format(totale_materiali.totale_costo or 0) }}</div>
         </div>
+        <div class="kpi-tile blue">
+            <div class="kpi-label">Addebitato cliente</div>
+            <div class="kpi-val importo">€ {{ "%.2f"|format(totale_materiali.totale_cliente or 0) }}</div>
+        </div>
+        <div class="kpi-tile {% if (totale_materiali.utile_materiali or 0) >= 0 %}green{% else %}red{% endif %}">
+            <div class="kpi-label">Utile materiali</div>
+            <div class="kpi-val {% if (totale_materiali.utile_materiali or 0) >= 0 %}green{% else %}red{% endif %} importo">
+                € {{ "%.2f"|format(totale_materiali.utile_materiali or 0) }}
+            </div>
+        </div>
+        <div class="kpi-tile gray">
+            <div class="kpi-label">Manodopera</div>
+            <div class="kpi-val importo">€ {{ "%.2f"|format(lavoro.totale_manodopera or 0) }}</div>
+        </div>
+        <div class="kpi-tile blue">
+            <div class="kpi-label">Consuntivo</div>
+            <div class="kpi-val importo">€ {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}</div>
+        </div>
+        <div class="kpi-tile purple">
+            <div class="kpi-label">Margine lavoro</div>
+            <div class="kpi-val {% if (lavoro.margine or 0) >= 0 %}green{% else %}red{% endif %} importo">
+                € {{ "%.2f"|format(lavoro.margine or 0) }}
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELLA MATERIALI -->
+    <div class="section-title">Materiali usati</div>
+    <div class="m-table-wrap">
+        <table class="m-table">
+            <thead>
+                <tr>
+                    <th>Materiale</th>
+                    <th>Qtà</th>
+                    <th>Costo unit.</th>
+                    <th>Tot. costo</th>
+                    <th>Prezzo cliente</th>
+                    <th>Tot. cliente</th>
+                    <th>Utile</th>
+                    <th>Note</th>
+                    <th>Data</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usato in materiali_usati %}
+                {% set totale_costo = (usato.quantita or 0) * (usato.costo_unitario or 0) %}
+                {% set totale_cliente = (usato.quantita or 0) * (usato.prezzo_unitario_cliente or 0) %}
+                {% set utile_riga = totale_cliente - totale_costo %}
+                <tr>
+                    <td>
+                        <span class="mat-name">
+                            {% if materiali_dict.get(usato.materiale_id) %}
+                                {{ materiali_dict.get(usato.materiale_id).nome }}
+                            {% else %}—{% endif %}
+                        </span>
+                    </td>
+                    <td class="importo">
+                        {{ usato.quantita }}
+                        {% if materiali_dict.get(usato.materiale_id) %}
+                            {{ materiali_dict.get(usato.materiale_id).unita_misura }}
+                        {% endif %}
+                    </td>
+                    <td class="importo">€ {{ "%.2f"|format(usato.costo_unitario or 0) }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(totale_costo) }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(usato.prezzo_unitario_cliente or 0) }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(totale_cliente) }}</td>
+                    <td>
+                        {% if utile_riga >= 0 %}
+                            <span class="lb lb-green importo">€ {{ "%.2f"|format(utile_riga) }}</span>
+                        {% else %}
+                            <span class="lb lb-red importo">€ {{ "%.2f"|format(utile_riga) }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#6b7280;">{{ usato.note or '—' }}</td>
+                    <td style="color:#6b7280; font-size:12px; font-family:'DM Mono',monospace;">{{ usato.data_creazione }}</td>
+                    <td>
+                        <div class="azioni-cell">
+                            <a href="/lavori/materiali-usati/{{ usato.id }}/modifica" class="btn-az btn-az-gray">✏️</a>
+                            <a href="/materiali/{{ usato.materiale_id }}/movimenti" class="btn-az btn-az-gray">📋</a>
+                            <form method="post" action="/lavori/materiali-usati/{{ usato.id }}/elimina"
+                                  onsubmit="return confirm('Eliminare il materiale dal lavoro?')" style="display:inline;">
+                                <button class="btn-az btn-az-red">🗑</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     {% else %}
-        <p>Nessun materiale ancora collegato a questo lavoro.</p>
+    <div class="m-table-wrap">
+        <div class="empty-row" style="text-align:center; padding:40px; color:#9ca3af;">
+            <div style="font-size:32px; margin-bottom:10px;">📦</div>
+            <p style="margin:0;">Nessun materiale ancora collegato a questo lavoro.</p>
+        </div>
+    </div>
     {% endif %}
 
-    <p>
-        <a class="btn btn-secondary" href="/clienti/{{ lavoro.cliente_id }}">Torna al cliente</a>
-        <a class="btn btn-secondary" href="/lavori">Torna ai lavori</a>
-    </p>
+    <!-- FOOTER -->
+    <div class="footer-actions">
+        <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
+        <a href="/clienti/{{ lavoro.cliente_id }}" class="btn-az btn-az-gray">👤 Cliente</a>
+        <a href="/lavori/" class="btn-az btn-az-gray">📋 Tutti i lavori</a>
+    </div>
 
 </div>
 

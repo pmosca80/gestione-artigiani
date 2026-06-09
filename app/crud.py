@@ -1,15 +1,34 @@
 from app.models import DocumentoPDF
-
+import math
+from datetime import datetime, timedelta
 from app.models import ImpostazioniAzienda
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from app.models import Cliente, Lavoro, Materiale, MovimentoMagazzino, MaterialeUsatoLavoro, ImpostazioniAzienda, DocumentoPDF
+from sqlalchemy import or_, func
+from app.models import (
+    Cliente,
+    Lavoro,
+    Materiale,
+    MovimentoMagazzino,
+    MaterialeUsatoLavoro,
+    ImpostazioniAzienda,
+    DocumentoPDF,
+    CaricoMateriale,
+    FotoLavoro,
+    PagamentoLavoro,
+    AllegatoLavoro
+)
 from app.models import MovimentoMagazzino
 
 
-def get_clienti(db: Session, cerca: str = "", utente_id: int | None = None):
+def get_clienti(
+    db: Session,
+    cerca: str = "",
+    utente_id: int | None = None,
+    pagina: int = 1,
+    per_pagina: int = 20,
+):
     query = db.query(Cliente)
 
     if utente_id is not None:
@@ -25,8 +44,32 @@ def get_clienti(db: Session, cerca: str = "", utente_id: int | None = None):
             )
         )
 
-    return query.order_by(Cliente.id.desc()).all()
+    totale = query.count()
 
+    offset = (pagina - 1) * per_pagina
+    clienti = query.offset(offset).limit(per_pagina).all()
+
+    for cliente in clienti:
+        totale_residuo = (
+            db.query(func.sum(Lavoro.residuo_pagamento))
+            .filter(
+                Lavoro.cliente_id == cliente.id,
+                Lavoro.utente_id == utente_id,
+                Lavoro.residuo_pagamento > 0
+            )
+            .scalar()
+        ) or 0
+        cliente.totale_residuo = totale_residuo
+
+    clienti.sort(key=lambda c: c.totale_residuo or 0, reverse=True)
+
+    return {
+        "items": clienti,
+        "totale": totale,
+        "pagina": pagina,
+        "per_pagina": per_pagina,
+        "pagine_totali": math.ceil(totale / per_pagina) if totale > 0 else 1,
+    }
 
 def crea_cliente(db: Session, nome: str, cognome: str, telefono: str, utente_id: int):
     nuovo_cliente = Cliente(
@@ -52,8 +95,11 @@ def get_cliente_by_id(db: Session, cliente_id: int, utente_id: int | None = None
     return query.first()
 
 
-def aggiorna_cliente(db: Session, cliente_id: int, nome: str, cognome: str, telefono: str):
-    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+def aggiorna_cliente(db: Session, cliente_id: int, nome: str, cognome: str, telefono: str, utente_id: int):
+    cliente = db.query(Cliente).filter(
+        Cliente.id == cliente_id,
+        Cliente.utente_id == utente_id
+    ).first()
     if cliente:
         cliente.nome = nome
         cliente.cognome = cognome
@@ -63,8 +109,12 @@ def aggiorna_cliente(db: Session, cliente_id: int, nome: str, cognome: str, tele
     return cliente
 
 
-def elimina_cliente(db: Session, cliente_id: int):
-    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+def elimina_cliente(db: Session, cliente_id: int, utente_id: int):
+    cliente = db.query(Cliente).filter(
+        Cliente.id == cliente_id,
+        Cliente.utente_id == utente_id
+    ).first()
+
     if not cliente:
         return None
 
@@ -77,16 +127,99 @@ def elimina_cliente(db: Session, cliente_id: int):
     return cliente
 
 
-def get_lavori(db: Session, stato: str = "", utente_id: int | None = None):
+def get_lavori(
+    db: Session,
+    stato: str = "",
+    utente_id: int | None = None,
+    pagamento: str = "",
+    scaduti: str = "",
+    ricerca: str = "",
+    ordinamento: str = "recenti",
+    cliente_id: int | None = None,
+    pagina: int = 1,
+    per_pagina: int = 20,
+):
     query = db.query(Lavoro)
 
     if utente_id is not None:
         query = query.filter(Lavoro.utente_id == utente_id)
 
+    if cliente_id is not None:
+        query = query.filter(Lavoro.cliente_id == cliente_id)
+
     if stato:
         query = query.filter(Lavoro.stato == stato)
 
-    return query.order_by(Lavoro.id.desc()).all()
+    oggi = datetime.now().strftime("%Y-%m-%d")
+
+    if pagamento == "da_incassare":
+        query = query.filter(Lavoro.residuo_pagamento > 0)
+    elif pagamento == "scaduti":
+        query = query.filter(
+            Lavoro.residuo_pagamento > 0,
+            Lavoro.data_scadenza_pagamento != None,
+            Lavoro.data_scadenza_pagamento < oggi
+        )
+    elif pagamento:
+        query = query.filter(Lavoro.stato_pagamento == pagamento)
+
+    if scaduti == "1":
+        query = query.filter(
+            Lavoro.data_scadenza_pagamento < oggi,
+            Lavoro.stato_pagamento != "pagato"
+        )
+
+    join_fatto = False
+
+    if ricerca:
+        query = query.join(Cliente)
+        join_fatto = True
+        query = query.filter(
+            or_(
+                Cliente.nome.ilike(f"%{ricerca}%"),
+                Cliente.cognome.ilike(f"%{ricerca}%"),
+                Lavoro.titolo.ilike(f"%{ricerca}%"),
+                Lavoro.descrizione.ilike(f"%{ricerca}%")
+            )
+        )
+
+    if ordinamento == "vecchi":
+        query = query.order_by(Lavoro.id.asc())
+    elif ordinamento == "importo":
+        query = query.order_by(Lavoro.totale_documento.desc())
+    elif ordinamento == "residuo":
+        query = query.order_by(Lavoro.residuo_pagamento.desc())
+    elif ordinamento == "cliente":
+        if not join_fatto:
+            query = query.join(Cliente)
+        query = query.order_by(Cliente.cognome.asc())
+    else:
+        query = query.order_by(Lavoro.id.desc())
+
+    totale = query.count()
+
+    offset = (pagina - 1) * per_pagina
+    lavori = query.offset(offset).limit(per_pagina).all()
+
+    oggi_data = datetime.now()
+    for lavoro in lavori:
+        lavoro.giorni_ritardo = 0
+        if lavoro.data_scadenza_pagamento and lavoro.stato_pagamento != "pagato":
+            try:
+                scadenza = datetime.strptime(lavoro.data_scadenza_pagamento, "%Y-%m-%d")
+                differenza = (oggi_data - scadenza).days
+                if differenza > 0:
+                    lavoro.giorni_ritardo = differenza
+            except:
+                pass
+
+    return {
+        "items": lavori,
+        "totale": totale,
+        "pagina": pagina,
+        "per_pagina": per_pagina,
+        "pagine_totali": math.ceil(totale / per_pagina) if totale > 0 else 1,
+    }
 
 def get_lavori_by_cliente(db: Session, cliente_id: int, utente_id: int | None = None):
     query = db.query(Lavoro).filter(Lavoro.cliente_id == cliente_id)
@@ -107,38 +240,51 @@ def get_lavoro_by_id(db: Session, lavoro_id: int, utente_id: int | None = None):
 
 
 def crea_lavoro(
-    db: Session,
-    cliente_id: int,
-    data_lavoro: str,
-    titolo: str,
-    descrizione: str,
-    importo_preventivato: float | None,
-    importo_consuntivo: float | None,
-    note_consuntivo: str,
-    utente_id: int
+    db,
+    cliente_id,
+    data_lavoro,
+    titolo,
+    descrizione,
+    stato,
+    importo_preventivato,
+    importo_consuntivo,
+    aliquota_iva,
+    sconto,
+    note_consuntivo,
+    utente_id
 ):
+
+    numero_preventivo = None
+
+    if stato in ["preventivo", "preventivo_inviato", "preventivo_accettato"]:
+        numero_preventivo = genera_numero_preventivo(db, utente_id)
+
     nuovo_lavoro = Lavoro(
-        utente_id=utente_id,
         cliente_id=cliente_id,
+        utente_id=utente_id,
         data_lavoro=data_lavoro,
         titolo=titolo,
+        numero_preventivo=numero_preventivo,
         descrizione=descrizione,
-        stato="da_fare",
-        priorita="normale",
+        stato=stato,
         importo_preventivato=importo_preventivato,
         importo_consuntivo=importo_consuntivo,
+        aliquota_iva=aliquota_iva,
+        sconto=sconto,
         note_consuntivo=note_consuntivo,
         data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
+
     db.add(nuovo_lavoro)
     db.commit()
     db.refresh(nuovo_lavoro)
-    return nuovo_lavoro
 
+    return nuovo_lavoro
 
 def aggiorna_lavoro(
     db: Session,
     lavoro_id: int,
+    utente_id: int,
     data_lavoro: str,
     titolo: str,
     descrizione: str,
@@ -147,9 +293,16 @@ def aggiorna_lavoro(
     importo_consuntivo: float | None,
     ore_lavoro: float = 0,
     costo_orario: float = 0,
+    aliquota_iva: float = 22,
+    sconto: float = 0,
+    importo_pagato: float = 0,
+    data_scadenza_pagamento: str = "",
     note_consuntivo: str = ""
 ):
-    lavoro = db.query(Lavoro).filter(Lavoro.id == lavoro_id).first()
+    lavoro = db.query(Lavoro).filter(
+        Lavoro.id == lavoro_id,
+        Lavoro.utente_id == utente_id
+    ).first()
 
     if lavoro:
         lavoro.data_lavoro = data_lavoro
@@ -165,20 +318,42 @@ def aggiorna_lavoro(
 
         lavoro.note_consuntivo = note_consuntivo
 
+        lavoro.aliquota_iva = aliquota_iva
+        lavoro.sconto = sconto
+
+        lavoro.importo_pagato = importo_pagato
+
+        lavoro.data_scadenza_pagamento = data_scadenza_pagamento
+
         # calcoli automatici
         lavoro.totale_manodopera = ore_lavoro * costo_orario
 
         totale_materiali = lavoro.totale_materiali or 0
 
-        lavoro.importo_consuntivo = (
-            totale_materiali + lavoro.totale_manodopera
-        )
+        imponibile = totale_materiali + lavoro.totale_manodopera
+
+        iva = imponibile * ((aliquota_iva or 0) / 100)
+
+        totale_documento = imponibile + iva - (sconto or 0)
+
+        lavoro.importo_consuntivo = imponibile
+        lavoro.totale_iva = iva
+        lavoro.totale_documento = totale_documento
 
         preventivo = lavoro.importo_preventivato or 0
 
-        lavoro.margine = (
-            preventivo - lavoro.importo_consuntivo
-        )
+        costo_reale = totale_materiali + lavoro.totale_manodopera
+
+        lavoro.margine = totale_documento - costo_reale
+
+        lavoro.residuo_pagamento = lavoro.totale_documento - importo_pagato
+
+        if importo_pagato <= 0:
+            lavoro.stato_pagamento = "da_pagare"
+        elif importo_pagato < lavoro.totale_documento:
+            lavoro.stato_pagamento = "acconto"
+        else:
+            lavoro.stato_pagamento = "pagato"
 
         db.commit()
         db.refresh(lavoro)
@@ -187,7 +362,10 @@ def aggiorna_lavoro(
 
 
 def elimina_lavoro(db: Session, lavoro_id: int):
-    lavoro = db.query(Lavoro).filter(Lavoro.id == lavoro_id).first()
+    lavoro = db.query(Lavoro).filter(
+        Lavoro.id == lavoro_id,
+        Lavoro.utente_id == utente_id
+    ).first()
     if lavoro:
         db.delete(lavoro)
         db.commit()
@@ -237,6 +415,9 @@ def crea_materiale(
     unita_misura: str,
     quantita: float,
     scorta_minima: float,
+    prezzo_acquisto_pieno: float,
+    prezzo_acquisto_scontato: float,
+    prezzo_vendita_default: float,
     note: str
 ):
     nuovo = Materiale(
@@ -246,6 +427,11 @@ def crea_materiale(
         unita_misura=unita_misura,
         quantita=quantita,
         scorta_minima=scorta_minima,
+
+        prezzo_acquisto_pieno=prezzo_acquisto_pieno,
+        prezzo_acquisto_scontato=prezzo_acquisto_scontato,
+        prezzo_vendita_default=prezzo_vendita_default,
+
         note=note,
         data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
@@ -253,8 +439,92 @@ def crea_materiale(
     db.add(nuovo)
     db.commit()
     db.refresh(nuovo)
+    
+    carico = CaricoMateriale(
+        utente_id=utente_id,
+        materiale_id=nuovo.id,
+        quantita_iniziale=quantita,
+        quantita_residua=quantita,
+        prezzo_acquisto=prezzo_acquisto_scontato or prezzo_acquisto_pieno or 0,
+        prezzo_vendita_default=prezzo_vendita_default or 0,
+        note="Carico iniziale",
+        data_carico=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    db.add(carico)
+    db.commit()
 
     return nuovo
+
+def crea_carico_materiale(
+    db: Session,
+    utente_id: int,
+    materiale_id: int,
+    quantita: float,
+    prezzo_acquisto: float,
+    prezzo_vendita_default: float,
+    note: str = ""
+):
+    materiale = (
+        db.query(Materiale)
+        .filter(
+            Materiale.id == materiale_id,
+            Materiale.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if not materiale:
+        return None
+
+    carico = CaricoMateriale(
+        utente_id=utente_id,
+        materiale_id=materiale_id,
+
+        quantita_iniziale=quantita,
+        quantita_residua=quantita,
+
+        prezzo_acquisto=prezzo_acquisto,
+        prezzo_vendita_default=prezzo_vendita_default,
+
+        note=note,
+        data_carico=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    materiale.quantita += quantita
+
+    movimento = MovimentoMagazzino(
+        utente_id=utente_id,
+        materiale_id=materiale_id,
+        tipo="carico",
+        quantita=quantita,
+        note=f"Carico magazzino - € {prezzo_acquisto}",
+        data_movimento=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    db.add(carico)
+    db.add(movimento)
+
+    db.commit()
+    db.refresh(carico)
+
+    return carico
+
+def get_carichi_materiale(
+    db: Session,
+    utente_id: int,
+    materiale_id: int
+):
+    return (
+        db.query(CaricoMateriale)
+        .filter(
+            CaricoMateriale.utente_id == utente_id,
+            CaricoMateriale.materiale_id == materiale_id,
+            CaricoMateriale.quantita_residua > 0
+        )
+        .order_by(CaricoMateriale.id.asc())
+        .all()
+    )
 
 def aggiungi_movimento(
     db: Session,
@@ -325,7 +595,8 @@ def aggiungi_materiale_a_lavoro(
     materiale_id: int,
     quantita: float,
     costo_unitario: float,
-    note: str
+    prezzo_unitario_cliente: float = 0,
+    note: str = ""
 ):
     materiale = (
         db.query(Materiale)
@@ -341,18 +612,36 @@ def aggiungi_materiale_a_lavoro(
 
     if not materiale or not lavoro:
         return None
+    
+    carico = (
+        db.query(CaricoMateriale)
+        .filter(
+            CaricoMateriale.utente_id == utente_id,
+            CaricoMateriale.materiale_id == materiale_id,
+            CaricoMateriale.quantita_residua > 0
+        )
+        .order_by(CaricoMateriale.id.asc())
+        .first()
+    )
 
-    if materiale.quantita < quantita:
+    if not carico:
         return "scorta_insufficiente"
 
+    if carico.quantita_residua < quantita:
+        return "scorta_insufficiente"
+
+    carico.quantita_residua -= quantita
+    costo_unitario = carico.prezzo_acquisto or 0
     materiale.quantita -= quantita
 
     usato = MaterialeUsatoLavoro(
         utente_id=utente_id,
         lavoro_id=lavoro_id,
         materiale_id=materiale_id,
+        carico_id=carico.id,
         quantita=quantita,
         costo_unitario=costo_unitario,
+        prezzo_unitario_cliente=prezzo_unitario_cliente,
         note=note,
         data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
@@ -372,32 +661,6 @@ def aggiungi_materiale_a_lavoro(
     db.refresh(usato)
 
     return usato
-def get_dashboard_pro(db: Session, utente_id: int):
-    clienti_totali = db.query(Cliente).filter(Cliente.utente_id == utente_id).count()
-
-    lavori = db.query(Lavoro).filter(Lavoro.utente_id == utente_id).all()
-    materiali = db.query(Materiale).filter(Materiale.utente_id == utente_id).all()
-
-    return {
-        "clienti_totali": clienti_totali,
-        "lavori_totali": len(lavori),
-        "lavori_da_fare": sum(1 for l in lavori if l.stato == "da_fare"),
-        "lavori_in_corso": sum(1 for l in lavori if l.stato == "in_corso"),
-        "lavori_completati": sum(1 for l in lavori if l.stato == "completato"),
-        "lavori_annullati": sum(1 for l in lavori if l.stato == "annullato"),
-        "totale_preventivato": sum(l.importo_preventivato or 0 for l in lavori),
-        "totale_consuntivo": sum(l.importo_consuntivo or 0 for l in lavori),
-        "differenza": sum(l.importo_consuntivo or 0 for l in lavori) - sum(l.importo_preventivato or 0 for l in lavori),
-        "materiali_totali": len(materiali),
-        "materiali_sotto_scorta": [
-            m for m in materiali
-            if (m.quantita or 0) <= (m.scorta_minima or 0)
-        ],
-        "numero_materiali_sotto_scorta": len([
-            m for m in materiali
-            if (m.quantita or 0) <= (m.scorta_minima or 0)
-        ]),
-    }
 
 def get_impostazioni_azienda(db: Session, utente_id: int):
     impostazioni = (
@@ -422,6 +685,36 @@ def get_impostazioni_azienda(db: Session, utente_id: int):
 
     return impostazioni
 
+def salva_impostazioni_azienda(
+    db: Session,
+    utente_id: int,
+    nome_azienda: str,
+    partita_iva: str,
+    indirizzo: str,
+    telefono: str,
+    email: str,
+    logo_path: str = None
+):
+    azienda = db.query(ImpostazioniAzienda).filter(
+        ImpostazioniAzienda.utente_id == utente_id
+    ).first()
+
+    if not azienda:
+        azienda = ImpostazioniAzienda(utente_id=utente_id)
+        db.add(azienda)
+
+    azienda.nome_azienda = nome_azienda
+    azienda.partita_iva = partita_iva
+    azienda.indirizzo = indirizzo
+    azienda.telefono = telefono
+    azienda.email = email
+
+    if logo_path:
+        azienda.logo_path = logo_path
+
+    db.commit()
+    db.refresh(azienda)
+    return azienda
 
 def genera_numero_pdf(db: Session, utente_id: int):
     impostazioni = get_impostazioni_azienda(db, utente_id)
@@ -487,57 +780,74 @@ def get_documento_pdf_by_id(db: Session, utente_id: int, documento_id: int):
 def calcola_totale_materiali_lavoro(db: Session, utente_id: int, lavoro_id: int):
     materiali_usati = get_materiali_usati_lavoro(db, utente_id, lavoro_id)
 
-    totale = 0
+    totale_costo = 0
+    totale_cliente = 0
 
     for riga in materiali_usati:
-        totale += (riga.quantita or 0) * (riga.costo_unitario or 0)
+        quantita = riga.quantita or 0
+        costo = riga.costo_unitario or 0
+        prezzo_cliente = riga.prezzo_unitario_cliente or 0
 
-    return totale
+        totale_costo += quantita * costo
+        totale_cliente += quantita * prezzo_cliente
+
+    return {
+        "totale_costo": totale_costo,
+        "totale_cliente": totale_cliente,
+        "utile_materiali": totale_cliente - totale_costo
+    }
 
 def get_dashboard_pro(db: Session, utente_id: int):
+
+    oggi = datetime.now().strftime("%Y-%m-%d")
+
     lavori = db.query(Lavoro).filter(
         Lavoro.utente_id == utente_id
     ).all()
 
+    lavori_scaduti = [
+        l for l in lavori
+        if l.data_scadenza_pagamento
+        and l.data_scadenza_pagamento < oggi
+        and l.stato_pagamento != "pagato"
+    ]
+
+    totale_scaduto = sum(
+        l.residuo_pagamento or 0
+        for l in lavori_scaduti
+    )
+
     lavori_totali = len(lavori)
-    lavori_aperti = 0
-    lavori_completati = 0
 
-    totale_preventivi = 0
-    totale_consuntivi = 0
-    totale_materiali = 0
-    totale_manodopera = 0
-    margine_totale = 0
+    lavori_da_fare = sum(1 for l in lavori if l.stato == "da_fare")
+    lavori_in_corso = sum(1 for l in lavori if l.stato == "in_corso")
+    lavori_completati = sum(1 for l in lavori if l.stato == "completato")
+    lavori_annullati = sum(1 for l in lavori if l.stato == "annullato")
 
-    for lavoro in lavori:
-        if lavoro.stato == "completato":
-            lavori_completati += 1
-        else:
-            lavori_aperti += 1
+    lavori_aperti = lavori_da_fare + lavori_in_corso
 
-        totale_preventivi += lavoro.importo_preventivato or 0
-        totale_consuntivi += lavoro.importo_consuntivo or 0
-        totale_materiali += lavoro.totale_materiali or 0
-        totale_manodopera += lavoro.totale_manodopera or 0
-        margine_totale += lavoro.margine or 0
+    totale_preventivi = sum(l.importo_preventivato or 0 for l in lavori)
+    totale_consuntivi = sum(l.importo_consuntivo or 0 for l in lavori)
+    totale_documenti = sum(l.totale_documento or 0 for l in lavori)
+
+    totale_materiali = sum(l.totale_materiali or 0 for l in lavori)
+    totale_manodopera = sum(l.totale_manodopera or 0 for l in lavori)
+    margine_totale = sum(l.margine or 0 for l in lavori)
+
+    costi_reali_totali = totale_materiali + totale_manodopera
 
     percentuale_completati = 0
     if lavori_totali > 0:
         percentuale_completati = round((lavori_completati / lavori_totali) * 100, 1)
-
-        lavori_ordinati = sorted(
-        lavori,
-        key=lambda l: l.margine or 0,
-        reverse=True
-    )
 
     lavori_ordinati = sorted(
         lavori,
         key=lambda l: l.margine or 0,
         reverse=True
     )
-    
+
     lavori_migliori = lavori_ordinati[:5]
+
     lavori_peggiori = sorted(
         lavori,
         key=lambda l: l.margine or 0
@@ -557,8 +867,73 @@ def get_dashboard_pro(db: Session, utente_id: int):
 
     lavori_mese_count = len(lavori_mese)
 
+    clienti = db.query(Cliente).filter(
+        Cliente.utente_id == utente_id
+    ).all()
+
+    top_clienti = []
+
+    for cliente in clienti:
+
+        totale_cliente = sum(
+            l.totale_documento or 0
+            for l in lavori
+            if l.cliente_id == cliente.id
+        )
+
+        top_clienti.append({
+            "cliente": cliente,
+            "totale": totale_cliente
+        })
+
+    top_clienti.sort(
+        key=lambda x: x["totale"],
+        reverse=True
+    )
+
+    top_clienti = top_clienti[:5]
+
+    top_clienti_residuo = []
+
+    for cliente in clienti:
+
+        residuo_cliente = sum(
+            l.residuo_pagamento or 0
+            for l in lavori
+            if l.cliente_id == cliente.id
+        )
+
+        if residuo_cliente > 0:
+            top_clienti_residuo.append({
+                "cliente": cliente,
+                "residuo": residuo_cliente
+            })
+
+    top_clienti_residuo.sort(
+        key=lambda x: x["residuo"],
+        reverse=True
+    )
+
+    top_clienti_residuo = top_clienti_residuo[:5]
+
+    clienti_totali = len(clienti)
+
+    clienti_con_residuo = 0
+
+    for cliente in clienti:
+        residuo_cliente = sum(
+            l.residuo_pagamento or 0
+            for l in lavori
+            if l.cliente_id == cliente.id
+        )
+
+        if residuo_cliente > 0:
+            clienti_con_residuo += 1
+
     preventivi_mese = sum(l.importo_preventivato or 0 for l in lavori_mese)
     consuntivi_mese = sum(l.importo_consuntivo or 0 for l in lavori_mese)
+    totale_documenti_mese = sum(l.totale_documento or 0 for l in lavori_mese)
+    costi_mese = sum((l.totale_materiali or 0) + (l.totale_manodopera or 0) for l in lavori_mese)
     margine_mese = sum(l.margine or 0 for l in lavori_mese)
 
     ultimi_lavori = sorted(
@@ -567,23 +942,1187 @@ def get_dashboard_pro(db: Session, utente_id: int):
         reverse=True
     )[:5]
 
+    totale_incassato = sum(l.importo_pagato or 0 for l in lavori)
+    totale_da_incassare = sum(l.residuo_pagamento or 0 for l in lavori)
+
+    lavori_pagati = sum(1 for l in lavori if l.stato_pagamento == "pagato")
+    lavori_acconto = sum(1 for l in lavori if l.stato_pagamento == "acconto")
+    lavori_da_pagare = sum(1 for l in lavori if l.stato_pagamento == "da_pagare")
+    
+    oggi = datetime.now().strftime("%Y-%m-%d")
+
+    lavori_scaduti = [
+        lavoro for lavoro in lavori
+        if (
+            lavoro.data_scadenza_pagamento
+            and lavoro.data_scadenza_pagamento < oggi
+            and lavoro.stato_pagamento != "pagato"
+        )
+    ]
+
+    totale_scaduti = len(lavori_scaduti)
+
+    totale_insoluti = sum(
+        (l.residuo_pagamento or 0)
+        for l in lavori_scaduti
+    )
+    
+    totale_da_incassare_dashboard = (
+        db.query(func.sum(Lavoro.residuo_pagamento))
+        .filter(
+            Lavoro.utente_id == utente_id,
+            Lavoro.residuo_pagamento > 0
+        )
+        .scalar()
+    ) or 0
+
+    lavori_urgenti = [
+        l for l in lavori
+        if (l.residuo_pagamento or 0) > 0
+    ]
+
+    lavori_urgenti.sort(
+        key=lambda l: (
+            l.data_scadenza_pagamento or "9999-12-31",
+            -(l.residuo_pagamento or 0)
+        )
+    )
+
+    lavori_urgenti = lavori_urgenti[:5]
+
+    materiali_totali = db.query(Materiale).filter(
+        Materiale.utente_id == utente_id
+    ).count()
+
+    valore_magazzino = sum(
+        (m.quantita or 0) * (m.prezzo_acquisto_scontato or m.prezzo_acquisto_pieno or 0)
+        for m in db.query(Materiale).filter(Materiale.utente_id == utente_id).all()
+    )
+
+    documenti_pdf = db.query(DocumentoPDF).filter(
+        DocumentoPDF.utente_id == utente_id
+    ).all()
+
+    numero_documenti_pdf = len(documenti_pdf)
+    
+    ultimi_pagamenti = (
+        db.query(PagamentoLavoro)
+        .filter(PagamentoLavoro.utente_id == utente_id)
+        .order_by(PagamentoLavoro.id.desc())
+        .limit(5)
+        .all()
+    )
+
+    ultimi_movimenti_magazzino = (
+        db.query(MovimentoMagazzino)
+        .filter(MovimentoMagazzino.utente_id == utente_id)
+        .order_by(MovimentoMagazzino.id.desc())
+        .limit(5)
+        .all()
+    )
+
+    materiali_usati = (
+        db.query(MaterialeUsatoLavoro)
+        .filter(MaterialeUsatoLavoro.utente_id == utente_id)
+        .all()
+    )
+
+    riepilogo_materiali_usati = {}
+
+    for riga in materiali_usati:
+        materiale = db.query(Materiale).filter(Materiale.id == riga.materiale_id).first()
+
+        if materiale:
+            nome = materiale.nome
+
+            if nome not in riepilogo_materiali_usati:
+                riepilogo_materiali_usati[nome] = {
+                    "nome": nome,
+                    "quantita": 0,
+                    "valore": 0
+                }
+
+            riepilogo_materiali_usati[nome]["quantita"] += riga.quantita or 0
+            riepilogo_materiali_usati[nome]["valore"] += (riga.quantita or 0) * (riga.costo_unitario or 0)
+
+    materiali_piu_usati = sorted(
+        riepilogo_materiali_usati.values(),
+        key=lambda x: x["quantita"],
+        reverse=True
+    )[:5]
+
+    clienti_da_sollecitare = []
+
+    for cliente in clienti:
+        lavori_cliente_scaduti = [
+            l for l in lavori
+            if l.cliente_id == cliente.id
+            and (l.residuo_pagamento or 0) > 0
+            and l.data_scadenza_pagamento
+            and l.data_scadenza_pagamento < oggi
+        ]
+
+        totale_residuo_scaduto = sum(
+            l.residuo_pagamento or 0
+            for l in lavori_cliente_scaduti
+        )
+
+        if totale_residuo_scaduto > 0:
+            clienti_da_sollecitare.append({
+                "cliente": cliente,
+                "totale": totale_residuo_scaduto,
+                "numero_lavori": len(lavori_cliente_scaduti)
+            })
+
+    clienti_da_sollecitare.sort(
+        key=lambda x: x["totale"],
+        reverse=True
+    )
+
+    clienti_da_sollecitare = clienti_da_sollecitare[:5]
+
+    valore_medio_lavoro = 0
+    margine_medio_lavoro = 0
+
+    if lavori_totali > 0:
+        valore_medio_lavoro = totale_documenti / lavori_totali
+        margine_medio_lavoro = margine_totale / lavori_totali
+
+    impostazioni = get_impostazioni_azienda(db, utente_id)
+    obiettivo_mensile = impostazioni.obiettivo_mensile or 5000
+
+    percentuale_obiettivo_mese = 0
+    if obiettivo_mensile > 0:
+        percentuale_obiettivo_mese = min(
+            round((totale_documenti_mese / obiettivo_mensile) * 100, 1),
+            100
+        )
+
+    mesi = {}
+
+    for lavoro in lavori:
+        if lavoro.data_creazione:
+            mese = lavoro.data_creazione[:7]  # es. 2026-05
+
+            if mese not in mesi:
+                mesi[mese] = {
+                    "fatturato": 0,
+                    "costi": 0,
+                    "margine": 0
+                }
+
+            mesi[mese]["fatturato"] += lavoro.totale_documento or 0
+            mesi[mese]["costi"] += (lavoro.totale_materiali or 0) + (lavoro.totale_manodopera or 0)
+            mesi[mese]["margine"] += lavoro.margine or 0
+
+    mesi_ordinati = sorted(mesi.keys())[-6:]
+
+    grafico_mesi_labels = mesi_ordinati
+    grafico_mesi_fatturato = [mesi[m]["fatturato"] for m in mesi_ordinati]
+    grafico_mesi_costi = [mesi[m]["costi"] for m in mesi_ordinati]
+    grafico_mesi_margine = [mesi[m]["margine"] for m in mesi_ordinati]
+
+    scadenzario = [
+        lavoro for lavoro in lavori
+        if lavoro.data_scadenza_pagamento
+        and (lavoro.residuo_pagamento or 0) > 0
+        and lavoro.stato_pagamento != "pagato"
+    ]
+
+    scadenzario.sort(
+        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+    )
+
+    scadenzario = scadenzario[:10]
+
     return {
         "lavori_totali": lavori_totali,
+        "lavori_da_fare": lavori_da_fare,
+        "lavori_in_corso": lavori_in_corso,
         "lavori_aperti": lavori_aperti,
         "lavori_completati": lavori_completati,
+        "lavori_annullati": lavori_annullati,
         "percentuale_completati": percentuale_completati,
 
         "totale_preventivi": totale_preventivi,
         "totale_consuntivi": totale_consuntivi,
+        "totale_documenti": totale_documenti,
         "totale_materiali": totale_materiali,
         "totale_manodopera": totale_manodopera,
+        "costi_reali_totali": costi_reali_totali,
         "margine_totale": margine_totale,
+
         "lavori_migliori": lavori_migliori,
         "lavori_peggiori": lavori_peggiori,
         "materiali_scorte_basse": materiali_scorte_basse,
+
         "lavori_mese_count": lavori_mese_count,
+        "clienti_totali": clienti_totali,
+        "clienti_con_residuo": clienti_con_residuo,
+        "top_clienti": top_clienti,
+        "top_clienti_residuo": top_clienti_residuo,
+        "lavori_urgenti": lavori_urgenti,
         "preventivi_mese": preventivi_mese,
         "consuntivi_mese": consuntivi_mese,
+        "totale_documenti_mese": totale_documenti_mese,
+        "costi_mese": costi_mese,
         "margine_mese": margine_mese,
+
         "ultimi_lavori": ultimi_lavori,
+        "totale_incassato": totale_incassato,
+        "totale_da_incassare": totale_da_incassare,
+        "lavori_pagati": lavori_pagati,
+        "lavori_acconto": lavori_acconto,
+        "lavori_da_pagare": lavori_da_pagare,
+        "lavori_scaduti": lavori_scaduti,
+        "totale_scaduti": totale_insoluti,
+        "totale_scaduto": totale_insoluti,
+        "totale_insoluti": totale_insoluti,
+        "materiali_totali": materiali_totali,
+        "valore_magazzino": valore_magazzino,
+        "numero_documenti_pdf": numero_documenti_pdf,
+        "ultimi_pagamenti": ultimi_pagamenti,
+        "ultimi_movimenti_magazzino": ultimi_movimenti_magazzino,
+        "materiali_piu_usati": materiali_piu_usati,
+        "clienti_da_sollecitare": clienti_da_sollecitare,
+        "valore_medio_lavoro": valore_medio_lavoro,
+        "margine_medio_lavoro": margine_medio_lavoro,
+        "obiettivo_mensile": obiettivo_mensile,
+        "percentuale_obiettivo_mese": percentuale_obiettivo_mese,
+        "grafico_mesi_labels": grafico_mesi_labels,
+        "grafico_mesi_fatturato": grafico_mesi_fatturato,
+        "grafico_mesi_costi": grafico_mesi_costi,
+        "grafico_mesi_margine": grafico_mesi_margine,
+        "scadenzario": scadenzario,
     }
+
+def get_tutti_carichi_disponibili(db: Session, utente_id: int):
+    return (
+        db.query(CaricoMateriale)
+        .filter(
+            CaricoMateriale.utente_id == utente_id,
+            CaricoMateriale.quantita_residua > 0
+        )
+        .order_by(CaricoMateriale.id.asc())
+        .all()
+    )
+
+def get_tutti_carichi_materiale(db: Session, utente_id: int, materiale_id: int):
+    return (
+        db.query(CaricoMateriale)
+        .filter(
+            CaricoMateriale.utente_id == utente_id,
+            CaricoMateriale.materiale_id == materiale_id
+        )
+        .order_by(CaricoMateriale.id.desc())
+        .all()
+    )
+
+def salva_foto_lavoro(
+    db: Session,
+    utente_id: int,
+    lavoro_id: int,
+    nome_file: str,
+    percorso_file: str,
+    descrizione: str = ""
+):
+    foto = FotoLavoro(
+        utente_id=utente_id,
+        lavoro_id=lavoro_id,
+        nome_file=nome_file,
+        percorso_file=percorso_file,
+        descrizione=descrizione,
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    db.add(foto)
+    db.commit()
+    db.refresh(foto)
+
+    return foto
+
+
+def get_foto_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(FotoLavoro)
+        .filter(
+            FotoLavoro.utente_id == utente_id,
+            FotoLavoro.lavoro_id == lavoro_id
+        )
+        .order_by(FotoLavoro.id.desc())
+        .all()
+    )
+
+def get_pagamenti_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(PagamentoLavoro)
+        .filter(
+            PagamentoLavoro.utente_id == utente_id,
+            PagamentoLavoro.lavoro_id == lavoro_id
+        )
+        .order_by(PagamentoLavoro.data_pagamento.desc())
+        .all()
+    )
+
+
+def aggiungi_pagamento_lavoro(
+    db: Session,
+    utente_id: int,
+    lavoro_id: int,
+    data_pagamento: str,
+    importo: float,
+    metodo: str,
+    note: str
+):
+    lavoro = (
+        db.query(Lavoro)
+        .filter(
+            Lavoro.id == lavoro_id,
+            Lavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if not lavoro:
+        return None
+
+    ultimo_numero = (
+        db.query(PagamentoLavoro)
+        .filter(PagamentoLavoro.utente_id == utente_id)
+        .order_by(PagamentoLavoro.numero_ricevuta.desc())
+        .first()
+    )
+
+    if ultimo_numero and ultimo_numero.numero_ricevuta:
+        nuovo_numero = ultimo_numero.numero_ricevuta + 1
+    else:
+        nuovo_numero = 1
+
+    pagamento = PagamentoLavoro(
+        utente_id=utente_id,
+        lavoro_id=lavoro_id,
+        numero_ricevuta=nuovo_numero,
+        data_pagamento=data_pagamento,
+        importo=importo,
+        metodo=metodo,
+        note=note,
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    db.add(pagamento)
+    db.commit()
+
+    aggiorna_totale_pagamenti_lavoro(db, utente_id, lavoro_id)
+
+    db.refresh(pagamento)
+    return pagamento
+
+
+def aggiorna_totale_pagamenti_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    lavoro = (
+        db.query(Lavoro)
+        .filter(
+            Lavoro.id == lavoro_id,
+            Lavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if not lavoro:
+        return None
+
+    pagamenti = get_pagamenti_lavoro(db, utente_id, lavoro_id)
+
+    totale_pagato = sum(p.importo or 0 for p in pagamenti)
+    totale_documento = lavoro.totale_documento or 0
+
+    lavoro.importo_pagato = totale_pagato
+    lavoro.residuo_pagamento = totale_documento - totale_pagato
+
+    if totale_pagato <= 0:
+        lavoro.stato_pagamento = "da_pagare"
+    elif totale_pagato < totale_documento:
+        lavoro.stato_pagamento = "acconto"
+    else:
+        lavoro.stato_pagamento = "pagato"
+
+    db.commit()
+    db.refresh(lavoro)
+
+    return lavoro
+
+def elimina_pagamento_lavoro(
+    db: Session,
+    utente_id: int,
+    pagamento_id: int
+):
+    pagamento = (
+        db.query(PagamentoLavoro)
+        .filter(
+            PagamentoLavoro.id == pagamento_id,
+            PagamentoLavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if not pagamento:
+        return None
+
+    lavoro_id = pagamento.lavoro_id
+
+    db.delete(pagamento)
+    db.commit()
+
+    aggiorna_totale_pagamenti_lavoro(
+        db,
+        utente_id,
+        lavoro_id
+    )
+
+    return lavoro_id
+
+def get_pagamento_lavoro_by_id(
+    db: Session,
+    utente_id: int,
+    pagamento_id: int
+):
+    return (
+        db.query(PagamentoLavoro)
+        .filter(
+            PagamentoLavoro.id == pagamento_id,
+            PagamentoLavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+def get_totali_lavori(lavori):
+    totale_documenti = sum(l.totale_documento or 0 for l in lavori)
+    totale_pagato = sum(l.importo_pagato or 0 for l in lavori)
+    totale_residuo = sum(l.residuo_pagamento or 0 for l in lavori)
+
+    return {
+        "totale_documenti": totale_documenti,
+        "totale_pagato": totale_pagato,
+        "totale_residuo": totale_residuo
+    }
+
+def elimina_materiale_usato_lavoro(
+    db: Session,
+    utente_id: int,
+    usato_id: int
+):
+    usato = (
+        db.query(MaterialeUsatoLavoro)
+        .filter(
+            MaterialeUsatoLavoro.id == usato_id,
+            MaterialeUsatoLavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if not usato:
+        return None
+
+    lavoro_id = usato.lavoro_id
+    materiale_id = usato.materiale_id
+    quantita = usato.quantita or 0
+    carico_id = usato.carico_id
+
+    materiale = db.query(Materiale).filter(
+        Materiale.id == materiale_id,
+        Materiale.utente_id == utente_id
+    ).first()
+
+    if materiale:
+        materiale.quantita += quantita
+
+    if carico_id:
+        carico = db.query(CaricoMateriale).filter(
+            CaricoMateriale.id == carico_id,
+            CaricoMateriale.utente_id == utente_id
+        ).first()
+
+        if carico:
+            carico.quantita_residua += quantita
+
+    movimento = MovimentoMagazzino(
+        utente_id=utente_id,
+        materiale_id=materiale_id,
+        tipo="carico",
+        quantita=quantita,
+        note=f"Ripristino per eliminazione materiale usato nel lavoro ID {lavoro_id}",
+        data_movimento=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    db.add(movimento)
+    db.delete(usato)
+    db.commit()
+
+    return lavoro_id
+
+def modifica_materiale_usato_lavoro(
+    db: Session,
+    utente_id: int,
+    usato_id: int,
+    quantita: float,
+    prezzo_unitario_cliente: float,
+    note: str
+):
+    usato = (
+        db.query(MaterialeUsatoLavoro)
+        .filter(
+            MaterialeUsatoLavoro.id == usato_id,
+            MaterialeUsatoLavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if not usato:
+        return None
+
+    lavoro_id = usato.lavoro_id
+    differenza = quantita - (usato.quantita or 0)
+
+    materiale = (
+        db.query(Materiale)
+        .filter(
+            Materiale.id == usato.materiale_id,
+            Materiale.utente_id == utente_id
+        )
+        .first()
+    )
+
+    if differenza > 0:
+        if not materiale or materiale.quantita < differenza:
+            return None
+
+        materiale.quantita -= differenza
+
+        movimento = MovimentoMagazzino(
+            utente_id=utente_id,
+            materiale_id=usato.materiale_id,
+            tipo="scarico",
+            quantita=differenza,
+            note=f"Scarico aggiuntivo per modifica materiale usato nel lavoro ID {lavoro_id}",
+            data_movimento=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        db.add(movimento)
+
+        if usato.carico_id:
+            carico = (
+                db.query(CaricoMateriale)
+                .filter(
+                    CaricoMateriale.id == usato.carico_id,
+                    CaricoMateriale.utente_id == utente_id
+                )
+                .first()
+            )
+
+            if carico:
+                if carico.quantita_residua < differenza:
+                    return None
+
+                carico.quantita_residua -= differenza
+
+    elif differenza < 0:
+        ritorno = abs(differenza)
+
+        movimento = MovimentoMagazzino(
+            utente_id=utente_id,
+            materiale_id=usato.materiale_id,
+            tipo="carico",
+            quantita=ritorno,
+            note=f"Ripristino per modifica materiale usato nel lavoro ID {lavoro_id}",
+            data_movimento=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        db.add(movimento)
+
+        if materiale:
+            materiale.quantita += ritorno
+
+        if usato.carico_id:
+            carico = (
+                db.query(CaricoMateriale)
+                .filter(
+                    CaricoMateriale.id == usato.carico_id,
+                    CaricoMateriale.utente_id == utente_id
+                )
+                .first()
+            )
+
+            if carico:
+                carico.quantita_residua += ritorno
+
+    usato.quantita = quantita
+    usato.prezzo_unitario_cliente = prezzo_unitario_cliente
+    usato.note = note
+
+    db.commit()
+
+    return lavoro_id
+
+def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
+    lavori = (
+        db.query(Lavoro)
+        .filter(
+            Lavoro.cliente_id == cliente_id,
+            Lavoro.utente_id == utente_id
+        )
+        .all()
+    )
+
+    oggi = datetime.now().strftime("%Y-%m-%d")
+
+    totale_lavori = len(lavori)
+    totale_documenti = sum(l.totale_documento or 0 for l in lavori)
+    totale_pagato = sum(l.importo_pagato or 0 for l in lavori)
+    totale_residuo = sum(l.residuo_pagamento or 0 for l in lavori)
+
+    lavori_scaduti = [
+        l for l in lavori
+        if l.data_scadenza_pagamento
+        and l.data_scadenza_pagamento < oggi
+        and (l.residuo_pagamento or 0) > 0
+    ]
+
+    totale_scaduto = sum(l.residuo_pagamento or 0 for l in lavori_scaduti)
+
+    percentuale_incasso = 0
+
+    if totale_documenti > 0:
+        percentuale_incasso = round(
+            (totale_pagato / totale_documenti) * 100,
+            1
+        )
+
+    return {
+        "totale_lavori": totale_lavori,
+        "totale_documenti": totale_documenti,
+        "totale_pagato": totale_pagato,
+        "totale_residuo": totale_residuo,
+        "lavori_scaduti": lavori_scaduti,
+        "totale_scaduto": totale_scaduto,
+        "percentuale_incasso": percentuale_incasso,
+    }
+
+def get_documenti_pdf_by_cliente(db: Session, utente_id: int, cliente_id: int):
+    return (
+        db.query(DocumentoPDF)
+        .join(Lavoro, DocumentoPDF.lavoro_id == Lavoro.id)
+        .filter(
+            DocumentoPDF.utente_id == utente_id,
+            Lavoro.cliente_id == cliente_id
+        )
+        .order_by(DocumentoPDF.id.desc())
+        .all()
+    )
+
+def get_pagamenti_by_cliente(db: Session, utente_id: int, cliente_id: int):
+    return (
+        db.query(PagamentoLavoro)
+        .join(Lavoro, PagamentoLavoro.lavoro_id == Lavoro.id)
+        .filter(
+            PagamentoLavoro.utente_id == utente_id,
+            Lavoro.cliente_id == cliente_id
+        )
+        .order_by(PagamentoLavoro.data_pagamento.desc())
+        .all()
+    )
+
+def salva_allegato_lavoro(
+    db: Session,
+    utente_id: int,
+    lavoro_id: int,
+    nome_file: str,
+    percorso_file: str,
+    tipo_file: str = "",
+    descrizione: str = ""
+):
+    allegato = AllegatoLavoro(
+        utente_id=utente_id,
+        lavoro_id=lavoro_id,
+        nome_file=nome_file,
+        percorso_file=percorso_file,
+        tipo_file=tipo_file,
+        descrizione=descrizione,
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    db.add(allegato)
+    db.commit()
+    db.refresh(allegato)
+
+    return allegato
+
+
+def get_allegati_lavoro(
+    db: Session,
+    utente_id: int,
+    lavoro_id: int
+):
+    return (
+        db.query(AllegatoLavoro)
+        .filter(
+            AllegatoLavoro.utente_id == utente_id,
+            AllegatoLavoro.lavoro_id == lavoro_id
+        )
+        .order_by(AllegatoLavoro.id.desc())
+        .all()
+    )
+def get_allegato_by_id(
+    db: Session,
+    allegato_id: int,
+    utente_id: int
+):
+    return (
+        db.query(AllegatoLavoro)
+        .filter(
+            AllegatoLavoro.id == allegato_id,
+            AllegatoLavoro.utente_id == utente_id
+        )
+        .first()
+    )
+
+
+def elimina_allegato(
+    db: Session,
+    allegato_id: int,
+    utente_id: int
+):
+    allegato = get_allegato_by_id(
+        db,
+        allegato_id,
+        utente_id
+    )
+
+    if not allegato:
+        return None
+
+    db.delete(allegato)
+    db.commit()
+
+    return True
+
+def get_tutti_allegati(
+    db: Session,
+    utente_id: int
+):
+    return (
+        db.query(AllegatoLavoro)
+        .filter(AllegatoLavoro.utente_id == utente_id)
+        .order_by(AllegatoLavoro.id.desc())
+        .all()
+    )
+def get_agenda_scadenzario(db: Session, utente_id: int):
+    oggi = datetime.now().strftime("%Y-%m-%d")
+
+    data_oggi = datetime.now()
+    data_7_giorni = data_oggi + timedelta(days=7)
+    limite_7_giorni = data_7_giorni.strftime("%Y-%m-%d")
+
+    lavori = (
+        db.query(Lavoro)
+        .filter(Lavoro.utente_id == utente_id)
+        .all()
+    )
+
+    lavori_oggi = [
+        l for l in lavori
+        if l.data_lavoro == oggi
+    ]
+
+    lavori_aperti = [
+        l for l in lavori
+        if l.stato in ["da_fare", "in_corso"]
+    ]
+
+    pagamenti_scaduti = [
+        l for l in lavori
+        if l.data_scadenza_pagamento
+        and l.data_scadenza_pagamento < oggi
+        and (l.residuo_pagamento or 0) > 0
+    ]
+
+    prossime_scadenze = [
+        l for l in lavori
+        if l.data_scadenza_pagamento
+        and l.data_scadenza_pagamento >= oggi
+        and (l.residuo_pagamento or 0) > 0
+    ]
+
+    prossimi_7_giorni = [
+        l for l in lavori
+        if l.data_scadenza_pagamento
+        and oggi <= l.data_scadenza_pagamento <= limite_7_giorni
+        and (l.residuo_pagamento or 0) > 0
+    ]
+
+    lavori_priorita_alta = [
+        l for l in lavori
+        if l.stato in ["da_fare", "in_corso"]
+        and l.priorita == "alta"
+    ]
+
+    prossime_scadenze.sort(
+        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+    )
+
+    prossimi_7_giorni.sort(
+        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+    )
+
+    pagamenti_scaduti.sort(
+        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+    )
+
+    lavori_aperti.sort(
+        key=lambda l: (
+            l.data_lavoro or "9999-12-31",
+            l.priorita or "normale"
+        )
+    )
+
+    lavori_priorita_alta.sort(
+        key=lambda l: l.data_lavoro or "9999-12-31"
+    )
+
+    totale_scaduti = sum(
+        l.residuo_pagamento or 0
+        for l in pagamenti_scaduti
+    )
+
+    totale_prossime_scadenze = sum(
+        l.residuo_pagamento or 0
+        for l in prossime_scadenze
+    )
+
+    totale_7_giorni = sum(
+        l.residuo_pagamento or 0
+        for l in prossimi_7_giorni
+    )
+
+    return {
+        "oggi": oggi,
+        "lavori_oggi": lavori_oggi,
+        "lavori_aperti": lavori_aperti,
+        "pagamenti_scaduti": pagamenti_scaduti,
+        "prossime_scadenze": prossime_scadenze[:10],
+        "prossimi_7_giorni": prossimi_7_giorni,
+        "lavori_priorita_alta": lavori_priorita_alta,
+    }
+def get_analisi_economica(db: Session, utente_id: int):
+
+    lavori = (
+        db.query(Lavoro)
+        .filter(Lavoro.utente_id == utente_id)
+        .all()
+    )
+
+    totale_documenti = sum(
+        l.totale_documento or 0
+        for l in lavori
+    )
+
+    totale_incassato = sum(
+        l.importo_pagato or 0
+        for l in lavori
+    )
+
+    totale_residuo = sum(
+        l.residuo_pagamento or 0
+        for l in lavori
+    )
+
+    totale_margine = sum(
+        l.margine or 0
+        for l in lavori
+    )
+
+    lavori_perdita = [
+        l for l in lavori
+        if (l.margine or 0) < 0
+    ]
+
+    percentuale_incasso = 0
+    percentuale_margine = 0
+
+    if totale_documenti > 0:
+        percentuale_incasso = round(
+            (totale_incassato / totale_documenti) * 100,
+            1
+        )
+
+        percentuale_margine = round(
+            (totale_margine / totale_documenti) * 100,
+            1
+        )
+
+    top_lavori_redditizi = sorted(
+        lavori,
+        key=lambda l: l.margine or 0,
+        reverse=True
+    )[:10]
+
+    lavori_da_incassare = [
+        l for l in lavori
+        if (l.residuo_pagamento or 0) > 0
+    ]
+
+    lavori_da_incassare.sort(
+        key=lambda l: l.residuo_pagamento or 0,
+        reverse=True
+    )
+
+    return {
+        "totale_documenti": totale_documenti,
+        "totale_incassato": totale_incassato,
+        "totale_residuo": totale_residuo,
+        "totale_margine": totale_margine,
+        "lavori_perdita": lavori_perdita,
+        "percentuale_incasso": percentuale_incasso,
+        "percentuale_margine": percentuale_margine,
+        "top_lavori_redditizi": top_lavori_redditizi,
+        "lavori_da_incassare": lavori_da_incassare[:10],
+    }
+def get_notifiche_dashboard(
+    db: Session,
+    utente_id: int
+):
+    oggi = datetime.now().strftime("%Y-%m-%d")
+
+    lavori = (
+        db.query(Lavoro)
+        .filter(Lavoro.utente_id == utente_id)
+        .all()
+    )
+
+    materiali = (
+        db.query(Materiale)
+        .filter(Materiale.utente_id == utente_id)
+        .all()
+    )
+
+    pagamenti_scaduti = sum(
+        1 for l in lavori
+        if l.data_scadenza_pagamento
+        and l.data_scadenza_pagamento < oggi
+        and (l.residuo_pagamento or 0) > 0
+    )
+
+    lavori_oggi = sum(
+        1 for l in lavori
+        if l.data_lavoro == oggi
+    )
+
+    scorte_basse = sum(
+        1 for m in materiali
+        if (m.quantita or 0) <= (m.scorta_minima or 0)
+    )
+
+    lavori_aperti = sum(
+        1 for l in lavori
+        if l.stato in ["da_fare", "in_corso"]
+    )
+
+    return {
+        "pagamenti_scaduti": pagamenti_scaduti,
+        "lavori_oggi": lavori_oggi,
+        "scorte_basse": scorte_basse,
+        "lavori_aperti": lavori_aperti,
+    }
+def genera_numero_preventivo(db: Session, utente_id: int):
+    impostazioni = get_impostazioni_azienda(db, utente_id)
+
+    anno = datetime.now().year
+
+    impostazioni.ultimo_numero_preventivo += 1
+
+    numero = impostazioni.ultimo_numero_preventivo
+
+    db.commit()
+    db.refresh(impostazioni)
+
+    return f"PREV-{anno}-{numero:04d}"
+def get_dashboard_preventivi(db: Session, utente_id: int):
+    lavori = (
+        db.query(Lavoro)
+        .filter(
+            Lavoro.utente_id == utente_id,
+            Lavoro.stato.in_([
+                "preventivo",
+                "preventivo_inviato",
+                "preventivo_accettato"
+            ])
+        )
+        .all()
+    )
+
+    preventivi_creati = [
+        l for l in lavori
+        if l.stato == "preventivo"
+    ]
+
+    preventivi_inviati = [
+        l for l in lavori
+        if l.stato == "preventivo_inviato"
+    ]
+
+    preventivi_accettati = [
+        l for l in lavori
+        if l.stato == "preventivo_accettato"
+    ]
+
+    totale_preventivi = sum(
+        l.importo_preventivato or 0
+        for l in lavori
+    )
+
+    totale_accettati = sum(
+        l.importo_preventivato or 0
+        for l in preventivi_accettati
+    )
+
+    conversione_economica = 0
+
+    if totale_preventivi > 0:
+        conversione_economica = round(
+            (totale_accettati / totale_preventivi) * 100,
+            1
+        )
+
+    tasso_conversione = 0
+
+    if len(lavori) > 0:
+        tasso_conversione = round(
+            (len(preventivi_accettati) / len(lavori)) * 100,
+            1
+        )
+
+    ordine_stati = {
+        "preventivo": 1,
+        "preventivo_inviato": 2,
+        "preventivo_accettato": 3,
+    }
+
+    lavori.sort(
+        key=lambda l: (
+            ordine_stati.get(l.stato, 99),
+            -(l.id or 0)
+        )
+    )
+
+    preventivi_da_inviare = len([
+        l for l in lavori
+        if l.stato == "preventivo"
+    ])
+
+    preventivi_in_attesa = len([
+        l for l in lavori
+        if l.stato == "preventivo_inviato"
+    ])
+
+    preventivi_7_giorni = 0
+    preventivi_15_giorni = 0
+    preventivi_30_giorni = 0
+
+    oggi = datetime.now()
+
+    for lavoro in preventivi_inviati:
+
+        if not lavoro.data_invio_preventivo:
+            continue
+
+        try:
+
+            data_invio = datetime.strptime(
+                lavoro.data_invio_preventivo,
+                "%Y-%m-%d"
+            )
+
+            giorni = (oggi - data_invio).days
+
+            if giorni >= 7:
+                preventivi_7_giorni += 1
+
+            if giorni >= 15:
+                preventivi_15_giorni += 1
+
+            if giorni >= 30:
+                preventivi_30_giorni += 1
+
+        except:
+            pass
+
+    return {
+        "preventivi_totali": len(lavori),
+        "preventivi_creati": len(preventivi_creati),
+        "preventivi_inviati": len(preventivi_inviati),
+        "preventivi_accettati": len(preventivi_accettati),
+        "totale_preventivi": totale_preventivi,
+        "totale_accettati": totale_accettati,
+        "preventivi_da_inviare": preventivi_da_inviare,
+        "preventivi_in_attesa": preventivi_in_attesa,
+        "conversione_economica": conversione_economica,
+        "tasso_conversione": tasso_conversione,
+        "preventivi_7_giorni": preventivi_7_giorni,
+        "preventivi_15_giorni": preventivi_15_giorni,
+        "preventivi_30_giorni": preventivi_30_giorni,
+        "preventivi": lavori,
+    }
+
+def get_classifica_clienti(db: Session, utente_id: int):
+
+    clienti = (
+        db.query(Cliente)
+        .filter(
+            Cliente.utente_id == utente_id
+        )
+        .all()
+    )
+
+    risultati = []
+
+    for cliente in clienti:
+
+        totale = sum(
+            (l.totale_documento or 0)
+            for l in cliente.lavori
+        )
+
+        numero_lavori = len(cliente.lavori)
+
+        risultati.append({
+            "cliente": cliente,
+            "totale": totale,
+            "numero_lavori": numero_lavori
+        })
+
+    risultati.sort(
+        key=lambda x: x["totale"],
+        reverse=True
+    )
+
+    return risultati[:10]
+
+def get_lavori_piu_redditizi(
+    db: Session,
+    utente_id: int
+):
+
+    lavori = (
+        db.query(Lavoro)
+        .filter(
+            Lavoro.utente_id == utente_id,
+            Lavoro.stato == "completato"
+        )
+        .all()
+    )
+
+    lavori.sort(
+        key=lambda l: l.margine or 0,
+        reverse=True
+    )
+
+    return lavori[:10]

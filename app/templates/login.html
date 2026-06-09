@@ -2,28 +2,206 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accedi — Gestionale Artigiani</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-logo .icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .login-logo h1 {
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .login-logo p {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        }
+
+        .login-card h2 {
+            font-size: 20px;
+            color: #111827;
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #111827;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+            background: white;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .login-links {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .login-links a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-links a:hover {
+            text-decoration: underline;
+        }
+
+        .errore-box {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-note {
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 24px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
 
-    {% if errore %}
-        <p style="color:red;">{{ errore }}</p>
-    {% endif %}
+<div class="login-wrapper">
 
-    <form method="post" action="/login">
-        <p>
-            <label>Username</label><br>
-            <input type="text" name="username" required>
-        </p>
+    <div class="login-logo">
+        <span class="icon">🔧</span>
+        <h1>Gestionale Artigiani</h1>
+        <p>Gestisci clienti, lavori e pagamenti</p>
+    </div>
 
-        <p>
-            <label>Password</label><br>
-            <input type="password" name="password" required>
-        </p>
+    <div class="login-card">
+        <h2>Accedi al tuo account</h2>
 
-        <button type="submit">Login</button>
-    </form>
-    <a href="/register">Registrati</a>
+        {% if errore %}
+        <div class="errore-box">
+            ⚠️ {{ errore }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/login">
+
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Il tuo username" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-login">Accedi →</button>
+
+        </form>
+
+        <div class="login-links">
+            <a href="/register">Crea account</a>
+            <a href="/reset-password">Password dimenticata?</a>
+        </div>
+
+    </div>
+
+    <p class="footer-note">© 2026 Gestionale Artigiani</p>
+
+</div>
+
 </body>
 </html>

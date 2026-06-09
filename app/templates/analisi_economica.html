@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisi economica — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=131">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        /* KPI */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .kpi-tile {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px 22px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-tile::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 14px 14px 0 0;
+        }
+        .kpi-tile.green::before { background: #16a34a; }
+        .kpi-tile.red::before { background: #dc2626; }
+        .kpi-tile.blue::before { background: #2563eb; }
+        .kpi-tile.purple::before { background: #7c3aed; }
+        .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 8px; }
+        .kpi-val { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
+        .kpi-val.green { color: #16a34a; }
+        .kpi-val.red { color: #dc2626; }
+        .kpi-sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+        /* INDICATORI */
+        .indicatori-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .ind-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 22px;
+        }
+        .ind-card h3 { font-size: 14px; font-weight: 700; color: #374151; margin: 0 0 16px; }
+        .ind-val { font-size: 32px; font-weight: 700; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+        .ind-val.green { color: #16a34a; }
+        .ind-val.red { color: #dc2626; }
+        .ind-val.blue { color: #2563eb; }
+        .prog-track { height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+        .prog-fill { height: 100%; border-radius: 999px; transition: width 0.6s; }
+        .prog-fill.green { background: #16a34a; }
+        .prog-fill.purple { background: #7c3aed; }
+
+        /* SEZIONE */
+        .analisi-section { margin-bottom: 28px; }
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* TABELLA */
+        .a-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .a-table { width: 100%; border-collapse: collapse; }
+        .a-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .a-table th {
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            text-align: left;
+        }
+        .a-table td {
+            padding: 13px 14px;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .a-table tbody tr:last-child td { border-bottom: none; }
+        .a-table tbody tr:hover td { background: #fafafa; }
+
+        .lavoro-name { font-weight: 600; color: #111827; }
+        .cliente-link { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .cliente-link:hover { text-decoration: underline; }
+        .importo { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+        .lb { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+
+        .btn-az { padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; text-decoration: none; transition: opacity 0.15s; white-space: nowrap; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-green { background: #16a34a; color: white; }
+        .azioni-cell { display: flex; gap: 5px; }
+
+        .empty-row td { text-align: center; padding: 30px; color: #9ca3af; font-size: 13px; }
+
+        /* RANK */
+        .rank-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b7280;
+        }
+        .rank-num.gold { background: #fef3c7; color: #92400e; }
+        .rank-num.silver { background: #f3f4f6; color: #374151; }
+        .rank-num.bronze { background: #ffedd5; color: #9a3412; }
+
+        @media (max-width: 900px) {
+            .a-table-wrap { overflow-x: auto; }
+            .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <h1>📊 Analisi economica</h1>
+        <p>Controllo generale di fatturato, incassi, residui e margini</p>
+    </div>
+
+    <!-- KPI PRINCIPALI -->
+    <div class="kpi-strip">
+        <div class="kpi-tile green">
+            <div class="kpi-label">Totale documenti</div>
+            <div class="kpi-val green">€ {{ "%.2f"|format(analisi.totale_documenti or 0) }}</div>
+            <div class="kpi-sub">Fatturato complessivo</div>
+        </div>
+        <div class="kpi-tile blue">
+            <div class="kpi-label">Totale incassato</div>
+            <div class="kpi-val green">€ {{ "%.2f"|format(analisi.totale_incassato or 0) }}</div>
+            <div class="kpi-sub">Pagamenti ricevuti</div>
+        </div>
+        <div class="kpi-tile red">
+            <div class="kpi-label">Totale residuo</div>
+            <div class="kpi-val red">€ {{ "%.2f"|format(analisi.totale_residuo or 0) }}</div>
+            <div class="kpi-sub">Da incassare</div>
+        </div>
+        <div class="kpi-tile purple">
+            <div class="kpi-label">Margine totale</div>
+            <div class="kpi-val {% if (analisi.totale_margine or 0) >= 0 %}green{% else %}red{% endif %}">
+                € {{ "%.2f"|format(analisi.totale_margine or 0) }}
+            </div>
+            <div class="kpi-sub">Guadagno reale</div>
+        </div>
+    </div>
+
+    <!-- INDICATORI -->
+    <div class="indicatori-grid">
+        <div class="ind-card">
+            <h3>📈 Percentuale incasso</h3>
+            <div class="ind-val blue">{{ analisi.percentuale_incasso or 0 }}%</div>
+            <div class="prog-track">
+                <div class="prog-fill green" style="width: {{ analisi.percentuale_incasso or 0 }}%"></div>
+            </div>
+            <div style="font-size:12px; color:#9ca3af; margin-top:8px;">
+                Quota del fatturato già incassata
+            </div>
+        </div>
+        <div class="ind-card">
+            <h3>💹 Margine %</h3>
+            <div class="ind-val {% if (analisi.percentuale_margine or 0) >= 0 %}green{% else %}red{% endif %}">
+                {{ analisi.percentuale_margine or 0 }}%
+            </div>
+            <div class="prog-track">
+                <div class="prog-fill purple"
+                     style="width: {{ [analisi.percentuale_margine or 0, 0]|max }}%"></div>
+            </div>
+            <div style="font-size:12px; color:#9ca3af; margin-top:8px;">
+                Margine sul totale fatturato
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP LAVORI REDDITIZI -->
+    <div class="analisi-section">
+        <div class="section-title">🥇 Top lavori redditizi</div>
+        <div class="a-table-wrap">
+            <table class="a-table">
+                <thead>
+                    <tr><th>#</th><th>Lavoro</th><th>Cliente</th><th>Totale doc.</th><th>Margine</th><th>Azioni</th></tr>
+                </thead>
+                <tbody>
+                    {% if analisi.top_lavori_redditizi %}
+                        {% for lavoro in analisi.top_lavori_redditizi %}
+                        <tr>
+                            <td>
+                                {% if loop.index == 1 %}<span class="rank-num gold">1</span>
+                                {% elif loop.index == 2 %}<span class="rank-num silver">2</span>
+                                {% elif loop.index == 3 %}<span class="rank-num bronze">3</span>
+                                {% else %}<span class="rank-num">{{ loop.index }}</span>{% endif %}
+                            </td>
+                            <td><span class="lavoro-name">{{ lavoro.titolo }}</span></td>
+                            <td>
+                                {% if lavoro.cliente %}
+                                    <a href="/clienti/{{ lavoro.cliente.id }}" class="cliente-link">
+                                        {{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}
+                                    </a>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</td>
+                            <td>
+                                {% if (lavoro.margine or 0) >= 0 %}
+                                    <span class="lb lb-green">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span>
+                                {% else %}
+                                    <span class="lb lb-red">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="azioni-cell">
+                                    <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋 Apri</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="6">Nessun lavoro disponibile.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CREDITI DA INCASSARE -->
+    <div class="analisi-section">
+        <div class="section-title">💳 Crediti da incassare</div>
+        <div class="a-table-wrap">
+            <table class="a-table">
+                <thead>
+                    <tr><th>Lavoro</th><th>Cliente</th><th>Totale doc.</th><th>Pagato</th><th>Residuo</th><th>Azioni</th></tr>
+                </thead>
+                <tbody>
+                    {% if analisi.lavori_da_incassare %}
+                        {% for lavoro in analisi.lavori_da_incassare %}
+                        <tr>
+                            <td><span class="lavoro-name">{{ lavoro.titolo }}</span></td>
+                            <td>
+                                {% if lavoro.cliente %}
+                                    <a href="/clienti/{{ lavoro.cliente.id }}" class="cliente-link">
+                                        {{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}
+                                    </a>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</td>
+                            <td class="importo">€ {{ "%.2f"|format(lavoro.importo_pagato or 0) }}</td>
+                            <td><span class="lb lb-red importo">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
+                            <td>
+                                <div class="azioni-cell">
+                                    <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋</a>
+                                    <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az btn-az-green">💳 Incassa</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="6">Nessun credito da incassare. ✅</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- LAVORI IN PERDITA -->
+    <div class="analisi-section">
+        <div class="section-title">📉 Lavori in perdita</div>
+        <div class="a-table-wrap">
+            <table class="a-table">
+                <thead>
+                    <tr><th>Lavoro</th><th>Cliente</th><th>Totale doc.</th><th>Margine</th><th>Azioni</th></tr>
+                </thead>
+                <tbody>
+                    {% if analisi.lavori_perdita %}
+                        {% for lavoro in analisi.lavori_perdita %}
+                        <tr>
+                            <td><span class="lavoro-name">{{ lavoro.titolo }}</span></td>
+                            <td>
+                                {% if lavoro.cliente %}
+                                    <a href="/clienti/{{ lavoro.cliente.id }}" class="cliente-link">
+                                        {{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}
+                                    </a>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</td>
+                            <td><span class="lb lb-red importo">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span></td>
+                            <td>
+                                <div class="azioni-cell">
+                                    <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋 Apri</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="5">Nessun lavoro in perdita. ✅</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
