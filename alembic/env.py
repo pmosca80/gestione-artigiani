@@ -18,7 +18,7 @@ target_metadata = Base.metadata
 # Usa DATABASE_URL dall'ambiente se disponibile (produzione)
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=False)
 
 database_url = os.getenv("DATABASE_URL", None)
 if database_url:
