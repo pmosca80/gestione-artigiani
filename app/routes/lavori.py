@@ -484,7 +484,7 @@ def modifica_lavoro(
             costo_orario=to_float(costo_orario),
             aliquota_iva=to_float(aliquota_iva, default=22),
             sconto=to_float(sconto),
-            importo_pagato=to_float(importo_pagato),
+            utente_id=user_id,
             data_scadenza_pagamento=data_scadenza_pagamento,
             note_consuntivo=note_consuntivo
         )
