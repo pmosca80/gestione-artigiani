@@ -24,7 +24,7 @@ logger = get_logger("main")
 
 
 # Carica variabili dal file .env
-load_dotenv()
+load_dotenv(override=False)
 
 BASE_DIR = Path(__file__).resolve().parent
 
