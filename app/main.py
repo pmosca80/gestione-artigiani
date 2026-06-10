@@ -28,13 +28,12 @@ load_dotenv(override=False)
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Chiave sessione: in produzione va messa nel file .env
-SECRET_KEY = os.getenv("SECRET_KEY", "")
+SECRET_KEY = os.environ.get("SECRET_KEY") or os.getenv("SECRET_KEY", "")
 
 if not SECRET_KEY or SECRET_KEY == "dev-secret-key" or len(SECRET_KEY) < 20:
     raise RuntimeError(
-        "SECRET_KEY non impostata o non valida nel file .env. "
-        "Imposta una chiave random di almeno 20 caratteri."
+        f"SECRET_KEY non valida. Valore letto: '{SECRET_KEY[:4]}...' "
+        f"ENV keys disponibili: {[k for k in os.environ.keys() if 'SECRET' in k or 'KEY' in k]}"
     )
 
 Base.metadata.create_all(bind=engine)
