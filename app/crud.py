@@ -328,7 +328,9 @@ def aggiorna_lavoro(
     sconto: float = 0,
     importo_pagato: float = 0,
     data_scadenza_pagamento: str = "",
-    note_consuntivo: str = ""
+    note_consuntivo: str = "",
+    numero_fattura: int | None = None,
+    data_fattura: str = "",
 ):
     lavoro = db.query(Lavoro).filter(
         Lavoro.id == lavoro_id,
@@ -355,6 +357,10 @@ def aggiorna_lavoro(
         lavoro.importo_pagato = importo_pagato
 
         lavoro.data_scadenza_pagamento = data_scadenza_pagamento
+        if numero_fattura:
+            lavoro.numero_fattura = numero_fattura
+        if data_fattura:
+            lavoro.data_fattura = data_fattura
 
         # calcoli automatici
         lavoro.totale_manodopera = ore_lavoro * costo_orario

@@ -1,5 +1,41 @@
 from xml.sax.saxutils import escape as _esc
 
+# Regimi fiscali dove l'IVA non si applica → AliquotaIVA=0, Natura=N2.2
+_REGIMI_SENZA_IVA = {"RF02", "RF04", "RF05", "RF06", "RF07", "RF08", "RF09",
+                     "RF10", "RF11", "RF12", "RF13", "RF14", "RF15", "RF16",
+                     "RF17", "RF18", "RF19"}
+
+
+def errori_fatturapa(lavoro, cliente, azienda) -> list:
+    """Ritorna lista di errori bloccanti prima di generare l'XML."""
+    errori = []
+
+    if not (azienda.partita_iva or "").strip():
+        errori.append("Partita IVA azienda mancante → Impostazioni › Azienda")
+
+    if not (azienda.indirizzo or "").strip():
+        errori.append("Indirizzo sede azienda mancante → Impostazioni › Azienda")
+
+    if not (azienda.cap or "").strip() or not (azienda.citta or "").strip():
+        errori.append("CAP / Città sede azienda mancanti → Impostazioni › Azienda")
+
+    imponibile = float(lavoro.importo_consuntivo or 0)
+    totale     = float(lavoro.totale_documento or 0)
+
+    if imponibile <= 0:
+        errori.append("Imponibile (importo consuntivo) è zero — modifica il lavoro e inserisci i valori economici")
+
+    if totale <= 0:
+        errori.append("Totale documento è zero o negativo — calcola i totali salvando il lavoro")
+
+    if not (cliente.codice_fiscale or "").strip() and not (cliente.partita_iva or "").strip():
+        errori.append("Cliente senza Codice Fiscale né Partita IVA — modifica la scheda cliente")
+
+    if not (cliente.indirizzo or "").strip():
+        errori.append("Indirizzo cliente mancante — modifica la scheda cliente")
+
+    return errori
+
 
 def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
     """Genera XML FatturaPA formato FPR12 (Livello 1 — solo download, senza invio SDI)."""
@@ -21,7 +57,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
 
     # ── Cessionario (destinatario) ───────────────────────────────────────────
     codice_dest = (getattr(cliente, "codice_destinatario", None) or "0000000").strip()
-    codice_dest = (codice_dest + "0000000")[:7]          # garantisce 7 caratteri
+    codice_dest = (codice_dest + "0000000")[:7]
     pec_dest    = e(getattr(cliente, "pec_destinatario", None))
     piva_cl     = e(getattr(cliente, "partita_iva", None))
     cf_cl       = e(getattr(cliente, "codice_fiscale", None))
@@ -36,6 +72,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
         else ""
     )
 
+    # Per i privati senza P.IVA non includiamo IdFiscaleIVA
     id_fiscale_cl_block = (
         f"<IdFiscaleIVA>\n          <IdPaese>IT</IdPaese>\n"
         f"          <IdCodice>{piva_cl}</IdCodice>\n        </IdFiscaleIVA>\n        "
@@ -51,15 +88,30 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
             f"          <Cognome>{e(cliente.cognome)}</Cognome>"
         )
 
+    # ── Importi ──────────────────────────────────────────────────────────────
+    imponibile = float(lavoro.importo_consuntivo or 0)
+    totale     = float(lavoro.totale_documento or 0)
+
+    # Regime senza IVA (forfettario RF19, minimi RF02, ecc.) → forza 0%
+    regime_senza_iva = (azienda.regime_fiscale or "RF01").strip().upper() in _REGIMI_SENZA_IVA
+    aliquota = 0.0 if regime_senza_iva else float(lavoro.aliquota_iva or 22)
+    iva_amt  = 0.0 if (regime_senza_iva or aliquota == 0) else float(
+        lavoro.totale_iva or round(imponibile * aliquota / 100, 2)
+    )
+
+    # Ricalcola totale per regime senza IVA (non applicare IVA al totale)
+    if regime_senza_iva:
+        totale = imponibile
+
+    # ── Elemento Natura (obbligatorio quando AliquotaIVA = 0) ────────────────
+    usa_natura = (aliquota == 0.0)
+    natura_block  = "\n        <Natura>N2.2</Natura>" if usa_natura else ""
+    esigibilita_block = "\n        <EsigibilitaIVA>I</EsigibilitaIVA>" if not usa_natura else ""
+
     # ── Documento ────────────────────────────────────────────────────────────
     num_fattura  = getattr(lavoro, "numero_fattura", None) or lavoro.id
     data_fattura = getattr(lavoro, "data_fattura", None) or lavoro.data_lavoro
     progressivo  = str(num_fattura).zfill(5)
-
-    imponibile = float(lavoro.importo_consuntivo or 0)
-    aliquota   = float(lavoro.aliquota_iva or 22)
-    iva_amt    = float(lavoro.totale_iva or round(imponibile * aliquota / 100, 2))
-    totale     = float(lavoro.totale_documento or round(imponibile + iva_amt, 2))
 
     desc = e(lavoro.descrizione or lavoro.titolo or "Prestazione di servizi")[:1000]
 
@@ -133,13 +185,12 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
         "        <Quantita>1.00</Quantita>\n"
         f"        <PrezzoUnitario>{imponibile:.2f}</PrezzoUnitario>\n"
         f"        <PrezzoTotale>{imponibile:.2f}</PrezzoTotale>\n"
-        f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>\n"
+        f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>{natura_block}\n"
         "      </DettaglioLinee>\n"
         "      <DatiRiepilogo>\n"
-        f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>\n"
+        f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>{natura_block}\n"
         f"        <ImponibileImporto>{imponibile:.2f}</ImponibileImporto>\n"
-        f"        <Imposta>{iva_amt:.2f}</Imposta>\n"
-        "        <EsigibilitaIVA>I</EsigibilitaIVA>\n"
+        f"        <Imposta>{iva_amt:.2f}</Imposta>{esigibilita_block}\n"
         "      </DatiRiepilogo>\n"
         "    </DatiBeniServizi>\n"
         "  </FatturaElettronicaBody>\n"
@@ -150,7 +201,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
 
 
 def nome_file_fatturapa(azienda, lavoro) -> str:
-    """Restituisce il nome file standard: IT{PIVA}_{NUMERO}.xml"""
+    """Nome file standard FatturaPA: IT{PIVA}_{NUMERO}.xml"""
     piva = (azienda.partita_iva or "XXXXXXXX").strip().replace(" ", "")
     num  = getattr(lavoro, "numero_fattura", None) or lavoro.id
     return f"IT{piva}_{str(num).zfill(5)}.xml"

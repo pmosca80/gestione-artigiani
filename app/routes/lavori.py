@@ -462,10 +462,12 @@ def modifica_lavoro(
     sconto: str = Form("0"),
     data_scadenza_pagamento: str = Form(""),
     note_consuntivo: str = Form(""),
+    numero_fattura: str = Form(""),
+    data_fattura: str = Form(""),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    
+
     try:
         lavoro_esistente = crud.get_lavoro_by_id(db, lavoro_id, user_id)
         if not lavoro_esistente:
@@ -486,7 +488,9 @@ def modifica_lavoro(
             sconto=to_float(sconto),
             utente_id=user_id,
             data_scadenza_pagamento=data_scadenza_pagamento,
-            note_consuntivo=note_consuntivo
+            note_consuntivo=note_consuntivo,
+            numero_fattura=int(numero_fattura) if numero_fattura.strip() else None,
+            data_fattura=data_fattura,
         )
 
         calcola_totali_lavoro(db, lavoro_id)

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
-from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa
+from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa, errori_fatturapa
 
 router = APIRouter(prefix="/documenti", tags=["documenti"])
 
@@ -43,6 +43,44 @@ def scarica_fattura_xml(
 
     cliente = lavoro.cliente
     azienda = _crud.get_impostazioni_azienda(db, user_id)
+
+    errori = errori_fatturapa(lavoro, cliente, azienda)
+    if errori:
+        items = "".join(f"<li>{err}</li>" for err in errori)
+        return HTMLResponse(
+            status_code=422,
+            content=f"""<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FatturaPA — dati mancanti</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {{ font-family: 'DM Sans', sans-serif; background: #f8fafc; }}
+    .wrap {{ max-width: 640px; margin: 60px auto; padding: 0 20px; }}
+    .card {{ background: white; border: 1px solid #fca5a5; border-radius: 16px; padding: 32px; }}
+    h2 {{ font-size: 20px; font-weight: 700; color: #991b1b; margin: 0 0 8px; }}
+    p  {{ color: #6b7280; font-size: 14px; margin: 0 0 20px; }}
+    ul {{ color: #374151; font-size: 14px; padding-left: 20px; line-height: 1.9; margin: 0 0 28px; }}
+    .btn {{ display: inline-block; padding: 10px 20px; background: #2563eb; color: white;
+            border-radius: 9px; font-size: 14px; font-weight: 700; text-decoration: none; }}
+    .btn-gray {{ background: #f3f4f6; color: #374151; margin-left: 8px; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Impossibile generare la FatturaPA</h2>
+      <p>Correggi i seguenti dati prima di scaricare il file XML:</p>
+      <ul>{items}</ul>
+      <a href="/lavori/{lavoro_id}/modifica" class="btn">✏️ Modifica lavoro</a>
+      <a href="/lavori/{lavoro_id}" class="btn btn-gray">← Torna alla scheda</a>
+    </div>
+  </div>
+</body>
+</html>""",
+        )
 
     xml_bytes = genera_xml_fatturapa(lavoro, cliente, azienda)
     filename  = nome_file_fatturapa(azienda, lavoro)
