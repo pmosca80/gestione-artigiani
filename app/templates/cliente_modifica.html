@@ -195,6 +195,34 @@
                 </div>
             </div>
 
+            <div class="form-section-title">Dati fiscali FatturaPA</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Partita IVA</label>
+                    <input type="text" name="partita_iva"
+                           value="{{ cliente.partita_iva or '' }}"
+                           placeholder="Es. 01234567890">
+                </div>
+                <div class="form-group">
+                    <label>Codice fiscale</label>
+                    <input type="text" name="codice_fiscale"
+                           value="{{ cliente.codice_fiscale or '' }}"
+                           placeholder="Es. RSSMRA80A01H501U">
+                </div>
+                <div class="form-group">
+                    <label>Codice destinatario SDI</label>
+                    <input type="text" name="codice_destinatario"
+                           value="{{ cliente.codice_destinatario or '' }}"
+                           placeholder="7 caratteri (es. ABCDE12) — lascia vuoto per privati">
+                </div>
+                <div class="form-group">
+                    <label>PEC destinatario</label>
+                    <input type="email" name="pec_destinatario"
+                           value="{{ cliente.pec_destinatario or '' }}"
+                           placeholder="pec@esempio.it (alternativa al codice SDI)">
+                </div>
+            </div>
+
             <div class="form-section-title">Note</div>
             <div class="form-grid full">
                 <div class="form-group">

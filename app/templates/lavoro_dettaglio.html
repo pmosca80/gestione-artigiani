@@ -309,6 +309,7 @@
                 <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-hero btn-hero-outline">📦 Materiali</a>
                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
+                <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-hero btn-hero-white">🧾 FatturaPA XML</a>
                 {% if lavoro.stato == "preventivo" %}
                     <form action="/lavori/{{ lavoro.id }}/invia-preventivo" method="post" style="display:inline;">
                         <button class="btn-hero btn-hero-outline">📧 Segna inviato</button>
@@ -477,6 +478,10 @@
             <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="azione-tile">
                 <div class="azione-icon">📄</div>
                 <div><h4>Genera PDF</h4><p>Preventivo o consuntivo</p></div>
+            </a>
+            <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="azione-tile">
+                <div class="azione-icon">🧾</div>
+                <div><h4>FatturaPA XML</h4><p>Scarica XML elettronico</p></div>
             </a>
         </div>
     </div>
@@ -692,6 +697,7 @@
         <a href="/lavori/" class="btn-az btn-az-gray">← Lavori</a>
         <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az" style="background:#16a34a; color:white;">💳 Pagamenti</a>
         <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#dc2626; color:white;">📄 PDF</a>
+        <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-az" style="background:#7c3aed; color:white;">🧾 FatturaPA XML</a>
     </div>
 
 </div>

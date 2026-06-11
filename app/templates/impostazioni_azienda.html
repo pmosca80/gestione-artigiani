@@ -195,16 +195,66 @@
                            placeholder="Es. 333 1234567">
                 </div>
                 <div class="form-group span2">
-                    <label>Indirizzo</label>
-                    <input type="text" name="indirizzo"
-                           value="{{ azienda.indirizzo or '' }}"
-                           placeholder="Via, numero civico, città">
-                </div>
-                <div class="form-group span2">
                     <label>Email</label>
                     <input type="email" name="email"
                            value="{{ azienda.email or '' }}"
                            placeholder="email@esempio.it">
+                </div>
+            </div>
+
+            <div class="form-section-title">Sede legale (per FatturaPA)</div>
+            <div class="form-grid">
+                <div class="form-group span2">
+                    <label>Indirizzo sede</label>
+                    <input type="text" name="indirizzo"
+                           value="{{ azienda.indirizzo or '' }}"
+                           placeholder="Via e numero civico">
+                </div>
+                <div class="form-group">
+                    <label>CAP</label>
+                    <input type="text" name="cap"
+                           value="{{ azienda.cap or '' }}"
+                           placeholder="Es. 20100" maxlength="5">
+                </div>
+                <div class="form-group">
+                    <label>Città</label>
+                    <input type="text" name="citta"
+                           value="{{ azienda.citta or '' }}"
+                           placeholder="Es. Milano">
+                </div>
+                <div class="form-group">
+                    <label>Provincia</label>
+                    <input type="text" name="provincia"
+                           value="{{ azienda.provincia or '' }}"
+                           placeholder="Es. MI" maxlength="2">
+                </div>
+            </div>
+
+            <div class="form-section-title">Dati fiscali FatturaPA</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Codice fiscale</label>
+                    <input type="text" name="codice_fiscale"
+                           value="{{ azienda.codice_fiscale or '' }}"
+                           placeholder="Es. RSSMRA80A01H501U">
+                </div>
+                <div class="form-group">
+                    <label>Regime fiscale</label>
+                    <select name="regime_fiscale">
+                        {% set regimi = [
+                            ("RF01","RF01 — Ordinario"),
+                            ("RF02","RF02 — Contribuenti minimi"),
+                            ("RF04","RF04 — Agricoltura e pesca"),
+                            ("RF10","RF10 — Commercio ambulante"),
+                            ("RF19","RF19 — Regime forfettario"),
+                        ] %}
+                        {% for val, label in regimi %}
+                        <option value="{{ val }}"
+                            {% if (azienda.regime_fiscale or 'RF01') == val %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 

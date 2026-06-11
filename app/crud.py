@@ -95,15 +95,46 @@ def get_cliente_by_id(db: Session, cliente_id: int, utente_id: int | None = None
     return query.first()
 
 
-def aggiorna_cliente(db: Session, cliente_id: int, nome: str, cognome: str, telefono: str, utente_id: int):
+def aggiorna_cliente(
+    db: Session,
+    cliente_id: int,
+    utente_id: int,
+    tipo_cliente: str = "privato",
+    nome: str = "",
+    cognome: str = "",
+    ragione_sociale: str = "",
+    telefono: str = "",
+    email: str = "",
+    indirizzo: str = "",
+    citta: str = "",
+    provincia: str = "",
+    cap: str = "",
+    partita_iva: str = "",
+    codice_fiscale: str = "",
+    codice_destinatario: str = "",
+    pec_destinatario: str = "",
+    note: str = "",
+):
     cliente = db.query(Cliente).filter(
         Cliente.id == cliente_id,
         Cliente.utente_id == utente_id
     ).first()
     if cliente:
+        cliente.tipo_cliente = tipo_cliente
         cliente.nome = nome
         cliente.cognome = cognome
+        cliente.ragione_sociale = ragione_sociale
         cliente.telefono = telefono
+        cliente.email = email
+        cliente.indirizzo = indirizzo
+        cliente.citta = citta
+        cliente.provincia = provincia
+        cliente.cap = cap
+        cliente.partita_iva = partita_iva
+        cliente.codice_fiscale = codice_fiscale
+        cliente.codice_destinatario = codice_destinatario
+        cliente.pec_destinatario = pec_destinatario
+        cliente.note = note
         db.commit()
         db.refresh(cliente)
     return cliente
@@ -693,7 +724,12 @@ def salva_impostazioni_azienda(
     indirizzo: str,
     telefono: str,
     email: str,
-    logo_path: str = None
+    logo_path: str = None,
+    codice_fiscale: str = "",
+    regime_fiscale: str = "RF01",
+    cap: str = "",
+    citta: str = "",
+    provincia: str = "",
 ):
     azienda = db.query(ImpostazioniAzienda).filter(
         ImpostazioniAzienda.utente_id == utente_id
@@ -705,7 +741,12 @@ def salva_impostazioni_azienda(
 
     azienda.nome_azienda = nome_azienda
     azienda.partita_iva = partita_iva
+    azienda.codice_fiscale = codice_fiscale
+    azienda.regime_fiscale = regime_fiscale or "RF01"
     azienda.indirizzo = indirizzo
+    azienda.cap = cap
+    azienda.citta = citta
+    azienda.provincia = provincia
     azienda.telefono = telefono
     azienda.email = email
 

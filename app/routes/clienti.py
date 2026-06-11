@@ -135,13 +135,44 @@ def form_modifica_cliente(
 def modifica_cliente(
     request: Request,
     cliente_id: int,
-    nome: str = Form(...),
-    cognome: str = Form(...),
+    tipo_cliente: str = Form("privato"),
+    nome: str = Form(""),
+    cognome: str = Form(""),
+    ragione_sociale: str = Form(""),
     telefono: str = Form(""),
+    email: str = Form(""),
+    indirizzo: str = Form(""),
+    citta: str = Form(""),
+    provincia: str = Form(""),
+    cap: str = Form(""),
+    partita_iva: str = Form(""),
+    codice_fiscale: str = Form(""),
+    codice_destinatario: str = Form(""),
+    pec_destinatario: str = Form(""),
+    note: str = Form(""),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    cliente = crud.aggiorna_cliente(db, cliente_id, nome, cognome, telefono, user_id)
+    cliente = crud.aggiorna_cliente(
+        db=db,
+        cliente_id=cliente_id,
+        utente_id=user_id,
+        tipo_cliente=tipo_cliente,
+        nome=nome,
+        cognome=cognome,
+        ragione_sociale=ragione_sociale,
+        telefono=telefono,
+        email=email,
+        indirizzo=indirizzo,
+        citta=citta,
+        provincia=provincia,
+        cap=cap,
+        partita_iva=partita_iva,
+        codice_fiscale=codice_fiscale,
+        codice_destinatario=codice_destinatario,
+        pec_destinatario=pec_destinatario,
+        note=note,
+    )
 
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")

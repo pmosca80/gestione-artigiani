@@ -43,7 +43,12 @@ def salva_impostazioni_azienda(
     request: Request,
     nome_azienda: str = Form(""),
     partita_iva: str = Form(""),
+    codice_fiscale: str = Form(""),
+    regime_fiscale: str = Form("RF01"),
     indirizzo: str = Form(""),
+    cap: str = Form(""),
+    citta: str = Form(""),
+    provincia: str = Form(""),
     telefono: str = Form(""),
     email: str = Form(""),
     logo: UploadFile = File(None),
@@ -63,7 +68,12 @@ def salva_impostazioni_azienda(
             logo_path = str(percorso)
 
     crud.salva_impostazioni_azienda(
-        db, user_id, nome_azienda, partita_iva, indirizzo, telefono, email, logo_path
+        db, user_id, nome_azienda, partita_iva, indirizzo, telefono, email, logo_path,
+        codice_fiscale=codice_fiscale,
+        regime_fiscale=regime_fiscale,
+        cap=cap,
+        citta=citta,
+        provincia=provincia,
     )
     return RedirectResponse(url="/impostazioni/azienda", status_code=303)
 

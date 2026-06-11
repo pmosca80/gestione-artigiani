@@ -38,6 +38,11 @@ class Cliente(Base):
     provincia = Column(String, nullable=True)
     cap = Column(String, nullable=True)
 
+    partita_iva = Column(String, nullable=True)
+    codice_fiscale = Column(String, nullable=True)
+    codice_destinatario = Column(String, nullable=True)
+    pec_destinatario = Column(String, nullable=True)
+
     note = Column(Text, nullable=True)
 
     data_creazione = Column(String, nullable=False)
@@ -87,6 +92,8 @@ class Lavoro(Base):
     importo_pagato = Column(Float, default=0)
     residuo_pagamento = Column(Float, default=0)
     data_scadenza_pagamento = Column(String, nullable=True)
+    numero_fattura = Column(Integer, nullable=True)
+    data_fattura = Column(String, nullable=True)
 
     note_consuntivo = Column(Text, nullable=True)
 
@@ -172,7 +179,12 @@ class ImpostazioniAzienda(Base):
 
     nome_azienda = Column(String, nullable=True)
     partita_iva = Column(String, nullable=True)
+    codice_fiscale = Column(String, nullable=True)
+    regime_fiscale = Column(String, nullable=True, default="RF01")
     indirizzo = Column(String, nullable=True)
+    cap = Column(String, nullable=True)
+    citta = Column(String, nullable=True)
+    provincia = Column(String, nullable=True)
     telefono = Column(String, nullable=True)
     email = Column(String, nullable=True)
 
