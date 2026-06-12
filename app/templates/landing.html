@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionale Artigiani — Preventivi, Fatture e Clienti in un click</title>
+    <meta name="description" content="Il gestionale per artigiani e piccole imprese. Preventivi, fatture elettroniche, clienti e magazzino. Gratis per iniziare.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: #f8fafc; color: #111827; }
+        a { text-decoration: none; color: inherit; }
+
+        .nav-wrap { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); border-bottom: 1px solid #e5e7eb; }
+        .nav { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-logo { font-size: 17px; font-weight: 800; color: #7c3aed; }
+        .nav-logo span { color: #111827; }
+        .nav-links { display: flex; gap: 8px; align-items: center; }
+        .btn-nav-login { padding: 8px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; color: #374151; border: 1.5px solid #e5e7eb; background: white; }
+        .btn-nav-cta { padding: 8px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; color: white; background: #7c3aed; }
+        .btn-nav-login:hover { border-color: #7c3aed; color: #7c3aed; }
+        .btn-nav-cta:hover { background: #6d28d9; }
+
+        .hero { max-width: 780px; margin: 0 auto; padding: 80px 24px 64px; text-align: center; }
+        .hero-badge { display: inline-block; background: #ede9fe; color: #7c3aed; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .hero h1 { font-size: clamp(28px, 5vw, 48px); font-weight: 800; line-height: 1.15; color: #111827; margin-bottom: 20px; }
+        .hero h1 em { font-style: normal; color: #7c3aed; }
+        .hero p { font-size: 17px; color: #6b7280; line-height: 1.7; max-width: 560px; margin: 0 auto 36px; }
+        .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary { padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 700; color: white; background: #7c3aed; display: inline-block; }
+        .btn-primary:hover { background: #6d28d9; }
+        .btn-secondary { padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 600; color: #374151; background: white; border: 1.5px solid #e5e7eb; display: inline-block; }
+        .btn-secondary:hover { border-color: #7c3aed; color: #7c3aed; }
+        .hero-note { margin-top: 16px; font-size: 12px; color: #9ca3af; }
+
+        .mockup-wrap { max-width: 900px; margin: 0 auto 80px; padding: 0 24px; }
+        .mockup-inner { background: linear-gradient(145deg, #0f172a, #1e3a5f); border-radius: 20px; padding: 24px; box-shadow: 0 25px 60px rgba(124,58,237,0.15), 0 8px 20px rgba(0,0,0,0.2); }
+        .mockup-bar { display: flex; gap: 6px; margin-bottom: 16px; }
+        .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .mockup-dot:nth-child(1) { background: #ef4444; }
+        .mockup-dot:nth-child(2) { background: #f59e0b; }
+        .mockup-dot:nth-child(3) { background: #22c55e; }
+        .mockup-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        @media (max-width: 600px) { .mockup-stats { grid-template-columns: repeat(2, 1fr); } }
+        .mockup-card { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.08); }
+        .mockup-card-label { font-size: 11px; color: #94a3b8; margin-bottom: 6px; }
+        .mockup-card-value { font-size: 22px; font-weight: 800; color: white; }
+        .mockup-card-sub { font-size: 11px; color: #34d399; margin-top: 4px; }
+
+        .features { max-width: 1000px; margin: 0 auto 80px; padding: 0 24px; }
+        .section-title { text-align: center; margin-bottom: 48px; }
+        .section-title h2 { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+        .section-title p { font-size: 15px; color: #6b7280; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .features-grid { grid-template-columns: 1fr; } }
+        .feat-card { background: white; border-radius: 16px; padding: 24px; border: 1px solid #e5e7eb; }
+        .feat-icon { font-size: 28px; margin-bottom: 12px; }
+        .feat-title { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+        .feat-desc { font-size: 13px; color: #6b7280; line-height: 1.6; }
+
+        .pricing { max-width: 720px; margin: 0 auto 80px; padding: 0 24px; }
+        .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 580px) { .plans-grid { grid-template-columns: 1fr; } }
+        .plan-card { background: white; border: 2px solid #e5e7eb; border-radius: 20px; padding: 28px; }
+        .plan-card.pro { background: linear-gradient(145deg, #0f172a, #1e3a5f); border-color: #7c3aed; }
+        .plan-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
+        .badge-free { background: #f3f4f6; color: #6b7280; }
+        .badge-pro { background: #7c3aed; color: white; }
+        .plan-name { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 4px; }
+        .plan-card.pro .plan-name { color: white; }
+        .plan-price { font-size: 34px; font-weight: 800; color: #111827; margin: 10px 0 16px; }
+        .plan-price span { font-size: 15px; font-weight: 500; color: #6b7280; }
+        .plan-card.pro .plan-price { color: white; }
+        .plan-card.pro .plan-price span { color: #94a3b8; }
+        .plan-features { list-style: none; margin-bottom: 24px; }
+        .plan-features li { font-size: 13px; color: #374151; padding: 4px 0; display: flex; gap: 8px; align-items: flex-start; }
+        .plan-card.pro .plan-features li { color: #cbd5e1; }
+        .check { color: #16a34a; }
+        .plan-card.pro .check { color: #34d399; }
+        .cross { color: #d1d5db; }
+        .btn-plan { display: block; width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; text-align: center; }
+        .btn-free { background: #f3f4f6; color: #374151; }
+        .btn-free:hover { background: #e5e7eb; }
+        .btn-pro { background: #7c3aed; color: white; }
+        .btn-pro:hover { background: #6d28d9; }
+
+        .proof { background: white; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; padding: 64px 24px; margin-bottom: 80px; }
+        .proof-inner { max-width: 900px; margin: 0 auto; }
+        .proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; }
+        @media (max-width: 640px) { .proof-grid { grid-template-columns: 1fr; } }
+        .proof-card { background: #f8fafc; border-radius: 14px; padding: 20px; border: 1px solid #e5e7eb; }
+        .proof-text { font-size: 14px; color: #374151; line-height: 1.6; margin-bottom: 14px; font-style: italic; }
+        .proof-author { font-size: 12px; font-weight: 700; color: #111827; }
+        .proof-role { font-size: 12px; color: #6b7280; }
+
+        footer { background: #0f172a; color: #94a3b8; padding: 32px 24px; text-align: center; font-size: 13px; }
+        footer a { color: #818cf8; }
+        footer a:hover { color: white; }
+        .footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+
+<div class="nav-wrap">
+    <nav class="nav">
+        <div class="nav-logo">⚙️ Gestionale<span>Artigiani</span></div>
+        <div class="nav-links">
+            <a href="/login" class="btn-nav-login">Accedi</a>
+            <a href="/registrati" class="btn-nav-cta">Inizia gratis</a>
+        </div>
+    </nav>
+</div>
+
+<section class="hero">
+    <div class="hero-badge">🇮🇹 Fatto per artigiani italiani</div>
+    <h1>Il gestionale che ti fa guadagnare <em>tempo</em>, non perdere soldi</h1>
+    <p>Preventivi professionali, fatture elettroniche, clienti e magazzino. Tutto in un posto. Gratis per iniziare.</p>
+    <div class="hero-cta">
+        <a href="/registrati" class="btn-primary">🚀 Inizia gratis — nessuna carta</a>
+        <a href="/login" class="btn-secondary">Ho già un account</a>
+    </div>
+    <p class="hero-note">Piano Free per sempre · Piano Pro a €9,90/mese · Disdici quando vuoi</p>
+</section>
+
+<div class="mockup-wrap">
+    <div class="mockup-inner">
+        <div class="mockup-bar">
+            <div class="mockup-dot"></div>
+            <div class="mockup-dot"></div>
+            <div class="mockup-dot"></div>
+        </div>
+        <div class="mockup-stats">
+            <div class="mockup-card">
+                <div class="mockup-card-label">Fatturato mese</div>
+                <div class="mockup-card-value">€4.280</div>
+                <div class="mockup-card-sub">↑ +12% vs mese scorso</div>
+            </div>
+            <div class="mockup-card">
+                <div class="mockup-card-label">Da incassare</div>
+                <div class="mockup-card-value">€1.150</div>
+                <div class="mockup-card-sub" style="color:#f59e0b;">3 fatture aperte</div>
+            </div>
+            <div class="mockup-card">
+                <div class="mockup-card-label">Lavori attivi</div>
+                <div class="mockup-card-value">8</div>
+                <div class="mockup-card-sub">2 in scadenza</div>
+            </div>
+            <div class="mockup-card">
+                <div class="mockup-card-label">Clienti totali</div>
+                <div class="mockup-card-value">34</div>
+                <div class="mockup-card-sub">+3 questo mese</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="features">
+    <div class="section-title">
+        <h2>Tutto quello che ti serve, niente di superfluo</h2>
+        <p>Progettato per chi lavora con le mani, non per i contabili.</p>
+    </div>
+    <div class="features-grid">
+        <div class="feat-card">
+            <div class="feat-icon">📋</div>
+            <div class="feat-title">Preventivi in 2 minuti</div>
+            <div class="feat-desc">Crea preventivi professionali con PDF allegato. Il cliente li approva, tu inizi il lavoro.</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">🧾</div>
+            <div class="feat-title">Fattura Elettronica PA</div>
+            <div class="feat-desc">Genera FatturaPA XML conforme SDI con un click. Per privati e pubblica amministrazione.</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">👥</div>
+            <div class="feat-title">Gestione clienti</div>
+            <div class="feat-desc">Archivio clienti con storico lavori, pagamenti e documenti. Tutto a portata di ricerca.</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">📦</div>
+            <div class="feat-title">Magazzino materiali</div>
+            <div class="feat-desc">Tieni traccia dei materiali usati per ogni lavoro. Calcola i costi reali automaticamente.</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">📊</div>
+            <div class="feat-title">Dashboard KPI reale</div>
+            <div class="feat-desc">Fatturato, incassato, lavori in scadenza. Dati veri, non stime. In tempo reale.</div>
+        </div>
+        <div class="feat-card">
+            <div class="feat-icon">📤</div>
+            <div class="feat-title">Export per il commercialista</div>
+            <div class="feat-desc">Un click per esportare tutte le fatture in Excel. Manda al commercialista, fatto.</div>
+        </div>
+    </div>
+</section>
+
+<div class="proof">
+    <div class="proof-inner">
+        <div class="section-title">
+            <h2>Chi lo usa, non torna indietro</h2>
+        </div>
+        <div class="proof-grid">
+            <div class="proof-card">
+                <p class="proof-text">"Finalmente un gestionale che capisce come lavoro. In 10 minuti avevo già inserito tutti i clienti e creato il primo preventivo."</p>
+                <div class="proof-author">Marco T.</div>
+                <div class="proof-role">Idraulico, Milano</div>
+            </div>
+            <div class="proof-card">
+                <p class="proof-text">"La fattura elettronica mi faceva perdere mezz'ora ogni volta. Adesso ci vogliono 2 minuti e il PDF lo mando direttamente dal gestionale."</p>
+                <div class="proof-author">Lucia B.</div>
+                <div class="proof-role">Elettricista, Roma</div>
+            </div>
+            <div class="proof-card">
+                <p class="proof-text">"Ho smesso di usare i fogli Excel. Il magazzino materiali da solo vale il prezzo dell'abbonamento Pro."</p>
+                <div class="proof-author">Giuseppe R.</div>
+                <div class="proof-role">Falegname, Napoli</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="pricing">
+    <div class="section-title">
+        <h2>Prezzi trasparenti, zero sorprese</h2>
+        <p>Inizia gratis. Passa a Pro quando sei pronto.</p>
+    </div>
+    <div class="plans-grid">
+        <div class="plan-card">
+            <span class="plan-badge badge-free">Free</span>
+            <div class="plan-name">Gratuito</div>
+            <div class="plan-price">€0 <span>/ mese</span></div>
+            <ul class="plan-features">
+                <li><span class="check">✓</span> Fino a 5 clienti</li>
+                <li><span class="check">✓</span> Lavori e preventivi</li>
+                <li><span class="check">✓</span> Magazzino</li>
+                <li><span class="check">✓</span> PDF documenti</li>
+                <li><span class="cross">✗</span> FatturaPA XML</li>
+                <li><span class="cross">✗</span> Export Excel</li>
+            </ul>
+            <a href="/registrati" class="btn-plan btn-free">Inizia gratis</a>
+        </div>
+        <div class="plan-card pro">
+            <span class="plan-badge badge-pro">Pro</span>
+            <div class="plan-name">Professionale</div>
+            <div class="plan-price">€9,90 <span>/ mese</span></div>
+            <ul class="plan-features">
+                <li><span class="check">✓</span> <strong style="color:white;">Clienti illimitati</strong></li>
+                <li><span class="check">✓</span> Lavori e preventivi</li>
+                <li><span class="check">✓</span> Magazzino</li>
+                <li><span class="check">✓</span> PDF documenti</li>
+                <li><span class="check">✓</span> <strong style="color:white;">FatturaPA XML</strong></li>
+                <li><span class="check">✓</span> <strong style="color:white;">Export Excel</strong></li>
+            </ul>
+            <a href="/registrati" class="btn-plan btn-pro">Inizia con Pro</a>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="footer-links">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/login">Accedi</a>
+        <a href="/registrati">Registrati</a>
+    </div>
+    <div>© 2026 Gestionale Artigiani · Tutti i diritti riservati</div>
+</footer>
+
+</body>
+</html>

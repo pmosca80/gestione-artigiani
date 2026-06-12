@@ -171,9 +171,12 @@ logger.info("Scheduler avviato — controllo scadenze ogni giorno alle 08:00")
 def home(
     request: Request,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user),
 ):
     from app.services.piani import get_piano, conta_clienti, LIMITE_CLIENTI_FREE
+
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return templates.TemplateResponse(request=request, name="landing.html", context={})
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
     if not azienda or not azienda.nome_azienda:
