@@ -13,7 +13,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -23,6 +23,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.services.notifiche import controlla_scadenze
 from app.services.backup import esegui_backup
 from app.services.reminder_fatture import controlla_fatture_non_pagate
+from app.services.garanzie_reminder import controlla_garanzie
 from app.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 
@@ -152,6 +153,7 @@ app.include_router(team.router)
 app.include_router(onboarding.router)
 app.include_router(preventivi_template.router)
 app.include_router(firma.router)
+app.include_router(garanzie.router)
 
 @app.get("/api/cerca")
 def cerca_globale(
@@ -260,8 +262,14 @@ scheduler.add_job(
     id="reminder_fatture",
     replace_existing=True,
 )
+scheduler.add_job(
+    controlla_garanzie,
+    trigger=CronTrigger(hour=9, minute=0),
+    id="reminder_garanzie",
+    replace_existing=True,
+)
 scheduler.start()
-logger.info("Scheduler avviato — scadenze 08:00, reminder fatture 08:30, backup 02:00")
+logger.info("Scheduler avviato — scadenze 08:00, fatture 08:30, garanzie 09:00, backup 02:00")
 
 
 @app.get("/")

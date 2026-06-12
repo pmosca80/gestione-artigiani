@@ -345,6 +345,29 @@ class SessioneLavoro(Base):
     ore_calcolate = Column(Float, nullable=True)
 
 
+class Garanzia(Base):
+    __tablename__ = "garanzie"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    cliente_id = Column(Integer, ForeignKey("clienti.id"), nullable=False)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=True)
+
+    descrizione = Column(String, nullable=False)
+    data_installazione = Column(String, nullable=False)
+    durata_mesi = Column(Integer, nullable=False, default=24)
+    data_scadenza = Column(String, nullable=False)
+    note = Column(Text, nullable=True)
+
+    reminder_30g_inviato = Column(Integer, default=0)
+    reminder_7g_inviato = Column(Integer, default=0)
+
+    data_creazione = Column(String, nullable=False)
+
+    cliente = relationship("Cliente")
+    lavoro = relationship("Lavoro")
+
+
 class InvitoAccount(Base):
     __tablename__ = "inviti_account"
 

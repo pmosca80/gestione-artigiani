@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuova garanzia — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .page-header h1 { font-size: 22px; font-weight: 700; color: #111827; margin: 0; }
+        .btn-back {
+            padding: 7px 13px; background: #f3f4f6; color: #374151;
+            border-radius: 8px; font-size: 13px; font-weight: 600;
+            text-decoration: none; transition: background 0.15s;
+        }
+        .btn-back:hover { background: #e5e7eb; }
+
+        .form-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 16px; padding: 28px 28px 32px; max-width: 640px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block; font-size: 13px; font-weight: 700;
+            color: #374151; margin-bottom: 6px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%; padding: 10px 13px;
+            border: 1.5px solid #e5e7eb; border-radius: 9px;
+            font-size: 14px; font-family: 'DM Sans', sans-serif;
+            color: #111827; background: white; outline: none;
+            transition: border-color 0.15s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { border-color: #2563eb; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group .hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+
+        .durate-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .durata-btn {
+            padding: 9px 6px; text-align: center;
+            border: 1.5px solid #e5e7eb; border-radius: 9px;
+            font-size: 13px; font-weight: 600; color: #374151;
+            cursor: pointer; transition: all 0.15s; background: white;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .durata-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+        .durata-btn.sel { border-color: #2563eb; background: #2563eb; color: white; }
+
+        .durata-custom {
+            display: flex; align-items: center; gap: 8px;
+            margin-top: 10px;
+        }
+        .durata-custom input {
+            width: 90px; padding: 8px 10px;
+            border: 1.5px solid #e5e7eb; border-radius: 8px;
+            font-size: 14px; font-family: 'DM Mono', monospace;
+            text-align: center;
+        }
+        .durata-custom span { font-size: 13px; color: #6b7280; }
+
+        .scadenza-preview {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 8px; padding: 8px 12px;
+            font-size: 13px; font-weight: 600; color: #166534;
+            margin-top: 10px; font-family: 'DM Mono', monospace;
+        }
+
+        .btn-submit {
+            width: 100%; padding: 13px; background: #111827;
+            color: white; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer; margin-top: 8px;
+            transition: background 0.15s;
+        }
+        .btn-submit:hover { background: #374151; }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <a href="/garanzie/" class="btn-back">‹ Garanzie</a>
+        <h1>🛡️ Nuova garanzia</h1>
+    </div>
+
+    <div class="form-card">
+        <form action="/garanzie/nuova" method="post">
+
+            <div class="form-group">
+                <label for="descrizione">Apparecchio / Impianto *</label>
+                <input type="text" id="descrizione" name="descrizione" required
+                       placeholder="es. Caldaia Vaillant ecoTEC Pro 24kW">
+                <div class="hint">Descrivi l'apparecchio installato in modo riconoscibile</div>
+            </div>
+
+            <div class="form-group">
+                <label for="cliente_id">Cliente *</label>
+                <select id="cliente_id" name="cliente_id" required>
+                    <option value="">— Seleziona cliente —</option>
+                    {% for c in clienti %}
+                    <option value="{{ c.id }}">
+                        {{ c.ragione_sociale or (c.nome ~ ' ' ~ (c.cognome or '')) }}
+                        {% if c.telefono %} · {{ c.telefono }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data_installazione">Data installazione *</label>
+                    <input type="date" id="data_installazione" name="data_installazione" required
+                           value="{{ oggi }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Durata garanzia</label>
+                <input type="hidden" id="durata_mesi" name="durata_mesi" value="24">
+                <div class="durate-grid">
+                    <button type="button" class="durata-btn" data-mesi="6">6 mesi</button>
+                    <button type="button" class="durata-btn" data-mesi="12">1 anno</button>
+                    <button type="button" class="durata-btn sel" data-mesi="24">2 anni</button>
+                    <button type="button" class="durata-btn" data-mesi="36">3 anni</button>
+                    <button type="button" class="durata-btn" data-mesi="48">4 anni</button>
+                    <button type="button" class="durata-btn" data-mesi="60">5 anni</button>
+                </div>
+                <div class="durata-custom">
+                    <input type="number" id="durata_custom" min="1" max="240" placeholder="24"
+                           style="width:90px;">
+                    <span>mesi (personalizzata)</span>
+                </div>
+                <div id="scadenza-preview" class="scadenza-preview" style="display:none;">
+                    📅 Scade il <span id="scad-data">—</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="note">Note</label>
+                <textarea id="note" name="note"
+                    placeholder="Numero seriale, modello, note di installazione..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">✓ Salva garanzia</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    var durataMesiInput = document.getElementById('durata_mesi');
+    var dataInst = document.getElementById('data_installazione');
+    var scadPreview = document.getElementById('scadenza-preview');
+    var scadData = document.getElementById('scad-data');
+    var customInput = document.getElementById('durata_custom');
+
+    var oggi = new Date().toISOString().slice(0, 10);
+    if (!dataInst.value) dataInst.value = oggi;
+
+    function addMonths(dateStr, mesi) {
+        if (!dateStr) return null;
+        var d = new Date(dateStr);
+        if (isNaN(d)) return null;
+        var targetMonth = d.getMonth() + mesi;
+        var targetYear = d.getFullYear() + Math.floor(targetMonth / 12);
+        targetMonth = ((targetMonth % 12) + 12) % 12;
+        var maxDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+        d.setFullYear(targetYear);
+        d.setMonth(targetMonth);
+        d.setDate(Math.min(d.getDate(), maxDay));
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+
+    function aggiorna() {
+        var mesi = parseInt(durataMesiInput.value) || 24;
+        var d = dataInst.value;
+        if (d) {
+            var scad = addMonths(d, mesi);
+            if (scad) {
+                scadData.textContent = scad;
+                scadPreview.style.display = 'inline-flex';
+            }
+        }
+    }
+
+    document.querySelectorAll('.durata-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.durata-btn').forEach(function (b) { b.classList.remove('sel'); });
+            btn.classList.add('sel');
+            durataMesiInput.value = btn.dataset.mesi;
+            customInput.value = '';
+            aggiorna();
+        });
+    });
+
+    customInput.addEventListener('input', function () {
+        var v = parseInt(customInput.value);
+        if (v > 0) {
+            document.querySelectorAll('.durata-btn').forEach(function (b) { b.classList.remove('sel'); });
+            durataMesiInput.value = v;
+            aggiorna();
+        }
+    });
+
+    dataInst.addEventListener('change', aggiorna);
+
+    aggiorna();
+})();
+</script>
+
+</body>
+</html>

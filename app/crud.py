@@ -1,6 +1,7 @@
-from app.models import DocumentoPDF
+from app.models import DocumentoPDF, Garanzia
 import math
 import secrets
+import calendar
 from datetime import datetime, timedelta
 from app.models import ImpostazioniAzienda
 
@@ -2132,12 +2133,85 @@ def get_notifiche_dashboard(
         if l.stato in ["da_fare", "in_corso"]
     )
 
+    oggi_str = oggi
+
+    garanzie = db.query(Garanzia).filter(Garanzia.utente_id == utente_id).all()
+    tra_30 = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    garanzie_scadenza = sum(
+        1 for g in garanzie
+        if g.data_scadenza and g.data_scadenza <= tra_30
+    )
+
     return {
         "pagamenti_scaduti": pagamenti_scaduti,
         "lavori_oggi": lavori_oggi,
         "scorte_basse": scorte_basse,
         "lavori_aperti": lavori_aperti,
+        "garanzie_scadenza": garanzie_scadenza,
     }
+
+
+def _aggiungi_mesi(data_str: str, mesi: int) -> str:
+    d = datetime.strptime(data_str, "%Y-%m-%d")
+    target_month = d.month + mesi
+    target_year = d.year + (target_month - 1) // 12
+    target_month = ((target_month - 1) % 12) + 1
+    max_day = calendar.monthrange(target_year, target_month)[1]
+    return f"{target_year:04d}-{target_month:02d}-{min(d.day, max_day):02d}"
+
+
+def crea_garanzia(
+    db: Session,
+    utente_id: int,
+    cliente_id: int,
+    lavoro_id: int | None,
+    descrizione: str,
+    data_installazione: str,
+    durata_mesi: int,
+    note: str,
+) -> Garanzia:
+    g = Garanzia(
+        utente_id=utente_id,
+        cliente_id=cliente_id,
+        lavoro_id=lavoro_id or None,
+        descrizione=descrizione,
+        data_installazione=data_installazione,
+        durata_mesi=durata_mesi,
+        data_scadenza=_aggiungi_mesi(data_installazione, durata_mesi),
+        note=note or None,
+        data_creazione=datetime.now().strftime("%Y-%m-%d"),
+    )
+    db.add(g)
+    db.commit()
+    db.refresh(g)
+    return g
+
+
+def get_garanzie(db: Session, utente_id: int):
+    return (
+        db.query(Garanzia)
+        .filter(Garanzia.utente_id == utente_id)
+        .order_by(Garanzia.data_scadenza)
+        .all()
+    )
+
+
+def get_garanzia(db: Session, garanzia_id: int, utente_id: int):
+    return db.query(Garanzia).filter(
+        Garanzia.id == garanzia_id,
+        Garanzia.utente_id == utente_id,
+    ).first()
+
+
+def elimina_garanzia(db: Session, garanzia_id: int, utente_id: int):
+    g = get_garanzia(db, garanzia_id, utente_id)
+    if g:
+        db.delete(g)
+        db.commit()
+
+
+def get_garanzie_tutte(db: Session):
+    return db.query(Garanzia).all()
 
 
 def genera_token_firma(db: Session, lavoro_id: int, utente_id: int):
