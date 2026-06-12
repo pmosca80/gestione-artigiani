@@ -111,7 +111,13 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
     # ── Documento ────────────────────────────────────────────────────────────
     num_fattura  = getattr(lavoro, "numero_fattura", None) or lavoro.id
     data_fattura = getattr(lavoro, "data_fattura", None) or lavoro.data_lavoro
-    progressivo  = str(num_fattura).zfill(5)
+    try:
+        anno_fattura = int(str(data_fattura)[:4])
+    except (ValueError, TypeError):
+        from datetime import date
+        anno_fattura = date.today().year
+    numero_formattato = f"{anno_fattura}/{str(num_fattura).zfill(3)}"
+    progressivo = str(num_fattura).zfill(5)
 
     desc = e(lavoro.descrizione or lavoro.titolo or "Prestazione di servizi")[:1000]
 
@@ -174,7 +180,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
         "        <TipoDocumento>TD01</TipoDocumento>\n"
         "        <Divisa>EUR</Divisa>\n"
         f"        <Data>{data_fattura}</Data>\n"
-        f"        <Numero>{num_fattura}</Numero>\n"
+        f"        <Numero>{numero_formattato}</Numero>\n"
         f"        <ImportoTotaleDocumento>{totale:.2f}</ImportoTotaleDocumento>\n"
         "      </DatiGeneraliDocumento>\n"
         "    </DatiGenerali>\n"
@@ -201,7 +207,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
 
 
 def nome_file_fatturapa(azienda, lavoro) -> str:
-    """Nome file standard FatturaPA: IT{PIVA}_{NUMERO}.xml"""
+    """Nome file FatturaPA: IT{PIVA}_{NUMERO}.xml  (progressivo 5 cifre, spec SDI)"""
     piva = (azienda.partita_iva or "XXXXXXXX").strip().replace(" ", "")
     num  = getattr(lavoro, "numero_fattura", None) or lavoro.id
     return f"IT{piva}_{str(num).zfill(5)}.xml"

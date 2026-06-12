@@ -368,6 +368,26 @@
 
 <div class="dash-body">
 
+    <!-- Banner upgrade piano -->
+    {% if piano_corrente == 'free' %}
+    {% set pct_clienti = ((n_clienti / limite_free) * 100) | int %}
+    {% if pct_clienti >= 60 %}
+    <div style="background:{% if pct_clienti >= 100 %}#fee2e2{% elif pct_clienti >= 80 %}#fef3c7{% else %}#eff6ff{% endif %};border:1px solid {% if pct_clienti >= 100 %}#fca5a5{% elif pct_clienti >= 80 %}#fcd34d{% else %}#bfdbfe{% endif %};border-radius:12px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+            <span style="font-size:13px;font-weight:700;color:{% if pct_clienti >= 100 %}#991b1b{% elif pct_clienti >= 80 %}#92400e{% else %}#1e40af{% endif %};">
+                {% if pct_clienti >= 100 %}
+                🚫 Limite raggiunto — {{ n_clienti }}/{{ limite_free }} clienti (Piano Free)
+                {% else %}
+                ⚠️ {{ n_clienti }}/{{ limite_free }} clienti usati — Piano Free
+                {% endif %}
+            </span>
+            <span style="font-size:12px;color:#6b7280;margin-left:8px;">Passa a Pro per clienti illimitati.</span>
+        </div>
+        <a href="/piani" style="background:#7c3aed;color:white;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">⭐ Upgrade a Pro</a>
+    </div>
+    {% endif %}
+    {% endif %}
+
     <!-- ── KPI PRINCIPALI ── -->
     <div class="dash-section">
         <div class="dash-section-title">KPI principali</div>
@@ -453,8 +473,23 @@
                 <div style="font-size:30px; font-weight:700; color:#16a34a; font-family:'DM Mono',monospace;">
                     € {{ "%.0f"|format(stats.totale_documenti_mese or 0) }}
                 </div>
-                <div style="font-size:13px; color:#6b7280; margin-top:6px;">
-                    {{ stats.lavori_mese_count or 0 }} lavori — Prev: € {{ "%.0f"|format(stats.preventivi_mese or 0) }}
+                <div style="font-size:13px; color:#6b7280; margin-top:6px; display:flex; align-items:center; gap:8px;">
+                    <span>{{ stats.lavori_mese_count or 0 }} lavori</span>
+                    {% if stats.totale_documenti_mese_prec is defined and stats.totale_documenti_mese_prec > 0 %}
+                        {% if (stats.delta_fatturato_pct or 0) >= 0 %}
+                            <span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px;">
+                                ▲ +{{ stats.delta_fatturato_pct }}% vs mese prec.
+                            </span>
+                        {% else %}
+                            <span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px;">
+                                ▼ {{ stats.delta_fatturato_pct }}% vs mese prec.
+                            </span>
+                        {% endif %}
+                    {% elif stats.totale_documenti_mese_prec is defined %}
+                        <span style="background:#f3f4f6;color:#6b7280;padding:2px 7px;border-radius:20px;font-size:11px;">
+                            Mese prec.: € {{ "%.0f"|format(stats.totale_documenti_mese_prec or 0) }}
+                        </span>
+                    {% endif %}
                 </div>
             </div>
 
@@ -468,15 +503,104 @@
 
             <div class="d-card">
                 <h3>📈 Margine mese</h3>
-                <div style="font-size:30px; font-weight:700; font-family:'DM Mono',monospace;"
-                     class="{% if (stats.margine_mese or 0) >= 0 %}text-green{% else %}text-red{% endif %}">
+                <div class="kpi-val {% if (stats.margine_mese or 0) >= 0 %}green{% else %}red{% endif %}" style="font-size:30px;">
                     € {{ "%.0f"|format(stats.margine_mese or 0) }}
                 </div>
-                <div style="font-size:13px; color:#6b7280; margin-top:6px;">Guadagno netto mese</div>
+                <div style="font-size:13px; color:#6b7280; margin-top:6px;">
+                    Mese prec.: € {{ "%.0f"|format(stats.margine_mese_prec or 0) }}
+                </div>
             </div>
 
         </div>
     </div>
+
+    <!-- ── FATTURAPA + INCASSI ── -->
+    <div class="dash-section">
+        <div class="dash-section-title">Fatturazione e incassi</div>
+        <div class="kpi-strip">
+
+            <div class="kpi-tile purple">
+                <span class="kpi-icon">🧾</span>
+                <div class="kpi-label">Fatture emesse {{ oggi[:4] }}</div>
+                <div class="kpi-val" style="color:#7c3aed;">{{ stats.fatture_anno_count or 0 }}</div>
+                <div class="kpi-sub">{{ stats.fatture_mese_count or 0 }} questo mese · <a href="/fatture/" style="color:#7c3aed;">Registro</a></div>
+            </div>
+
+            <div class="kpi-tile green">
+                <span class="kpi-icon">💶</span>
+                <div class="kpi-label">Fatturato FPA {{ oggi[:4] }}</div>
+                <div class="kpi-val green">€ {{ "%.0f"|format(stats.fatturato_fatturapa_anno or 0) }}</div>
+                <div class="kpi-sub">Totale FatturaPA anno</div>
+            </div>
+
+            <div class="kpi-tile green">
+                <span class="kpi-icon">✅</span>
+                <div class="kpi-label">Pagati</div>
+                <div class="kpi-val green">{{ stats.pct_pagato_val or 0 }}%</div>
+                <div class="kpi-sub">{{ stats.lavori_pagati or 0 }} lavori pagati</div>
+            </div>
+
+            <div class="kpi-tile orange">
+                <span class="kpi-icon">🔄</span>
+                <div class="kpi-label">Acconto</div>
+                <div class="kpi-val" style="color:#f97316;">{{ stats.pct_parziale_val or 0 }}%</div>
+                <div class="kpi-sub">{{ stats.lavori_acconto or 0 }} lavori parziali</div>
+            </div>
+
+            <div class="kpi-tile red">
+                <span class="kpi-icon">⏳</span>
+                <div class="kpi-label">Da pagare</div>
+                <div class="kpi-val red">{{ stats.pct_da_pagare_val or 0 }}%</div>
+                <div class="kpi-sub">{{ stats.lavori_da_pagare or 0 }} lavori aperti</div>
+            </div>
+
+        </div>
+
+        <!-- Barra progress incassi -->
+        <div class="d-card" style="margin-top:14px;">
+            <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+                Distribuzione stati pagamento
+            </div>
+            <div style="display:flex;height:12px;border-radius:999px;overflow:hidden;gap:2px;">
+                <div style="background:#16a34a;width:{{ stats.pct_pagato_val or 0 }}%;transition:width 0.6s;"></div>
+                <div style="background:#f97316;width:{{ stats.pct_parziale_val or 0 }}%;transition:width 0.6s;"></div>
+                <div style="background:#dc2626;width:{{ stats.pct_da_pagare_val or 0 }}%;transition:width 0.6s;"></div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:#6b7280;">
+                <span style="color:#16a34a;">■ Pagato {{ stats.pct_pagato_val or 0 }}%</span>
+                <span style="color:#f97316;">■ Acconto {{ stats.pct_parziale_val or 0 }}%</span>
+                <span style="color:#dc2626;">■ Da pagare {{ stats.pct_da_pagare_val or 0 }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SCADENZE QUESTA SETTIMANA ── -->
+    {% if stats.lavori_scadenza_settimana %}
+    <div class="dash-section">
+        <div class="dash-section-title">⚡ Scadenze questa settimana (prossimi 7 giorni)</div>
+        <div class="d-card" style="border-left:4px solid #f97316;">
+            <table class="d-table">
+                <tr>
+                    <th>Lavoro</th><th>Cliente</th>
+                    <th>Scadenza</th><th>Residuo</th><th></th>
+                </tr>
+                {% for lavoro in stats.lavori_scadenza_settimana %}
+                <tr>
+                    <td><strong>{{ lavoro.titolo }}</strong></td>
+                    <td>{% if lavoro.cliente %}{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}{% else %}—{% endif %}</td>
+                    <td>
+                        <span class="db {% if lavoro.data_scadenza_pagamento == oggi %}db-red{% else %}db-orange{% endif %}">
+                            {{ lavoro.data_scadenza_pagamento }}
+                        </span>
+                    </td>
+                    <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
+                    <td><a href="/lavori/{{ lavoro.id }}/pagamenti" class="d-btn d-btn-blue">Incassa</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- ── OBIETTIVO + PERFORMANCE ── -->
     <div class="dash-section">

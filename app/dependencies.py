@@ -32,6 +32,10 @@ def verifica_account(request: Request, db: Session) -> int:
     if utente.attivo == 0:
         raise AccountDisattivato()
 
+    piano = getattr(utente, "piano", None) or "free"
+    if piano == "pro":
+        return user_id
+
     if utente.data_registrazione:
         try:
             data_reg = datetime.strptime(utente.data_registrazione, "%Y-%m-%d")

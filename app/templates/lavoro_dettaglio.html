@@ -330,15 +330,29 @@
         </div>
 
         <!-- STATUS -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         {% if (lavoro.residuo_pagamento or 0) > 0 and lavoro.data_scadenza_pagamento and lavoro.data_scadenza_pagamento < today %}
-            <div class="status-banner bad">🔴 Pagamento scaduto — residuo € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</div>
+            <div class="status-banner bad" style="flex:1; margin-top:16px;">🔴 Pagamento scaduto — residuo € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</div>
         {% elif (lavoro.margine or 0) < 0 %}
-            <div class="status-banner bad">🔴 Lavoro in perdita</div>
+            <div class="status-banner bad" style="flex:1; margin-top:16px;">🔴 Lavoro in perdita</div>
         {% elif (lavoro.residuo_pagamento or 0) > 0 %}
-            <div class="status-banner warning">🟡 Da incassare — € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }} residuo</div>
+            <div class="status-banner warning" style="flex:1; margin-top:16px;">🟡 Da incassare — € {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }} residuo</div>
         {% else %}
-            <div class="status-banner good">🟢 Lavoro chiuso correttamente</div>
+            <div class="status-banner good" style="flex:1; margin-top:16px;">🟢 Lavoro chiuso correttamente</div>
         {% endif %}
+        {% if fattura_emessa %}
+            <a href="/fatture/" style="text-decoration:none; margin-top:16px;">
+                <div class="status-banner" style="background:rgba(124,58,237,0.2); color:#c4b5fd; cursor:pointer;">
+                    🧾 Fattura {{ fattura_emessa.anno }}/{{ "%03d"|format(fattura_emessa.numero) }} emessa
+                    {% if fattura_emessa.stato == "inviata_sdi" %}&nbsp;· ✓ SDI{% endif %}
+                </div>
+            </a>
+        {% else %}
+            <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" style="text-decoration:none; margin-top:16px;">
+                <div class="status-banner neutral" style="cursor:pointer;">🧾 Clicca per generare FatturaPA</div>
+            </a>
+        {% endif %}
+        </div>
     </div>
 
     <!-- INFO -->
@@ -362,6 +376,18 @@
                 {% if lavoro.stato_pagamento == "pagato" %}<span class="lb lb-green">✓ Pagato</span>
                 {% elif lavoro.stato_pagamento == "acconto" %}<span class="lb lb-orange">↗ Acconto</span>
                 {% else %}<span class="lb lb-red">✗ Da pagare</span>{% endif %}
+            </span>
+        </div>
+        <div>
+            <span class="info-label">FatturaPA</span>
+            <span class="info-val">
+                {% if fattura_emessa %}
+                    <a href="/fatture/" style="text-decoration:none;">
+                        <span class="lb" style="background:#ede9fe; color:#7c3aed;">🧾 {{ fattura_emessa.anno }}/{{ "%03d"|format(fattura_emessa.numero) }}</span>
+                    </a>
+                {% else %}
+                    <span class="lb lb-gray">Non emessa</span>
+                {% endif %}
             </span>
         </div>
         <div>
@@ -479,10 +505,20 @@
                 <div class="azione-icon">📄</div>
                 <div><h4>Genera PDF</h4><p>Preventivo o consuntivo</p></div>
             </a>
+            {% if fattura_emessa %}
+            <a href="/fatture/" class="azione-tile" style="border-color:#c4b5fd; background:#faf5ff;">
+                <div class="azione-icon" style="background:#ede9fe;">🧾</div>
+                <div>
+                    <h4 style="color:#7c3aed;">{{ fattura_emessa.anno }}/{{ "%03d"|format(fattura_emessa.numero) }}</h4>
+                    <p>FatturaPA emessa ✓</p>
+                </div>
+            </a>
+            {% else %}
             <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="azione-tile">
                 <div class="azione-icon">🧾</div>
-                <div><h4>FatturaPA XML</h4><p>Scarica XML elettronico</p></div>
+                <div><h4>FatturaPA XML</h4><p>Genera e scarica</p></div>
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -587,6 +623,72 @@
         </div>
     </div>
 
+    <!-- FATTURAPA -->
+    <div class="l-section">
+        <div class="section-title">🧾 FatturaPA</div>
+        {% if fattura_emessa %}
+        <div class="l-card" style="border-left:4px solid #7c3aed;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <div style="font-size:22px; font-weight:700; color:#7c3aed; font-family:'DM Mono',monospace; margin-bottom:6px;">
+                        {{ fattura_emessa.anno }}/{{ "%03d"|format(fattura_emessa.numero) }}
+                    </div>
+                    <div style="font-size:13px; color:#6b7280;">
+                        Emessa il {{ fattura_emessa.data_emissione }} ·
+                        {% if fattura_emessa.stato == "inviata_sdi" %}
+                            <span class="lb lb-green" style="font-size:11px;">✓ Inviata SDI</span>
+                        {% else %}
+                            <span class="lb lb-blue" style="font-size:11px;">Emessa</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#9ca3af; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Imponibile</div>
+                        <div style="font-size:16px; font-weight:700; font-family:'DM Mono',monospace;">€ {{ "%.2f"|format(fattura_emessa.importo_imponibile or 0) }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#9ca3af; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">IVA</div>
+                        <div style="font-size:16px; font-weight:700; font-family:'DM Mono',monospace;">€ {{ "%.2f"|format(fattura_emessa.importo_iva or 0) }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#7c3aed; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Totale</div>
+                        <div style="font-size:20px; font-weight:700; color:#7c3aed; font-family:'DM Mono',monospace;">€ {{ "%.2f"|format(fattura_emessa.importo_totale or 0) }}</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f3f0ff; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-az btn-az-gray" style="background:#ede9fe; color:#7c3aed;">↓ Riscarica XML</a>
+                {% set cli_email = lavoro.cliente.email if lavoro.cliente else "" %}
+                {% if cli_email %}
+                <form method="post" action="/fatture/{{ fattura_emessa.id }}/invia-email" style="display:inline;"
+                      onsubmit="return confirm('Inviare la fattura a {{ cli_email }}?')">
+                    <button type="submit" class="btn-az" style="background:#2563eb;color:white;">📧 Invia al cliente</button>
+                </form>
+                {% else %}
+                <span class="btn-az btn-az-gray" style="opacity:0.5;cursor:not-allowed;" title="Il cliente non ha un indirizzo email">📧 Invia email</span>
+                {% endif %}
+                <a href="/fatture/" class="btn-az btn-az-gray">📋 Registro fatture</a>
+                <span style="font-size:12px; color:#9ca3af;">{{ fattura_emessa.nome_file or '—' }}</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="l-card">
+            <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                <div style="font-size:32px;">🧾</div>
+                <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:600; color:#374151; margin-bottom:4px;">Nessuna FatturaPA emessa per questo lavoro</div>
+                    <div style="font-size:13px; color:#9ca3af;">Clicca il pulsante per generare e scaricare l'XML elettronico.</div>
+                </div>
+                <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml"
+                   class="btn-az" style="background:#7c3aed; color:white; padding:8px 16px; font-size:13px;">
+                    🧾 Genera FatturaPA XML
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- ALLEGATI -->
     <div class="l-section">
         <div class="section-title">📎 Allegati</div>
@@ -667,6 +769,15 @@
                         <span>{{ lavoro.data_lavoro }}</span>
                     </div>
                 </div>
+                {% if fattura_emessa %}
+                <div class="tl-item">
+                    <div class="tl-dot" style="background:#ede9fe;">🧾</div>
+                    <div class="tl-content">
+                        <strong style="color:#7c3aed;">FatturaPA {{ fattura_emessa.anno }}/{{ "%03d"|format(fattura_emessa.numero) }}</strong>
+                        <span>{{ fattura_emessa.data_emissione }}</span>
+                    </div>
+                </div>
+                {% endif %}
                 {% for p in pagamenti %}
                 <div class="tl-item">
                     <div class="tl-dot">💳</div>

@@ -6,10 +6,114 @@
     <a href="/materiali/">📦 Magazzino</a>
     <a href="/lavori/agenda/scadenzario">📅 Agenda</a>
     <a href="/lavori/analisi/economica">📊 Analisi</a>
+    <a href="/fatture/">🧾 Fatture</a>
     <a href="/documenti">📄 Archivio PDF</a>
     <a href="/lavori/allegati/archivio">📎 Allegati</a>
     <a href="/impostazioni/azienda">⚙️ Impostazioni</a>
     <a href="/impostazioni/backup/pagina">💾 Backup</a>
     <a href="/guida">📖 Guida</a>
+    <a href="/piani" style="font-weight:700;color:#7c3aed;">⭐ Piano</a>
+
+    <div class="search-wrap">
+        <input type="text" id="global-search" placeholder="Cerca clienti, lavori, materiali…" autocomplete="off" spellcheck="false">
+        <div id="search-dropdown"></div>
+    </div>
+
     <a href="/logout">🚪 Logout</a>
 </div>
+
+<!-- Cookie banner GDPR -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;color:#e2e8f0;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,0.25);">
+    <span style="font-size:13px;line-height:1.5;flex:1;min-width:200px;">
+        🍪 Questo gestionale utilizza esclusivamente <strong>cookie tecnici di sessione</strong> necessari al funzionamento.
+        Non usiamo cookie di profilazione o analytics.
+        <a href="/privacy" style="color:#818cf8;text-decoration:underline;">Privacy Policy</a>
+    </span>
+    <button id="cookie-ok-btn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+        Ho capito
+    </button>
+</div>
+
+<script>
+(function () {
+    var inp = document.getElementById('global-search');
+    var drop = document.getElementById('search-dropdown');
+    var timer = null;
+
+    function debounce(fn, ms) {
+        return function () {
+            clearTimeout(timer);
+            timer = setTimeout(fn, ms);
+        };
+    }
+
+    function renderResults(data) {
+        var total = data.clienti.length + data.lavori.length + data.materiali.length;
+        if (total === 0) {
+            drop.innerHTML = '<div class="sr-empty">Nessun risultato trovato</div>';
+            drop.style.display = 'block';
+            return;
+        }
+        var html = '';
+
+        function renderGroup(icon, label, items) {
+            if (!items.length) return '';
+            var s = '<div class="sr-section">' + icon + ' ' + label + '</div>';
+            items.forEach(function (r) {
+                s += '<a href="' + r.url + '" class="sr-item">'
+                   + '<span class="sr-label">' + escHtml(r.label) + '</span>'
+                   + (r.sub ? '<span class="sr-sub">' + escHtml(r.sub) + '</span>' : '')
+                   + '</a>';
+            });
+            return s;
+        }
+
+        html += renderGroup('👥', 'Clienti', data.clienti);
+        html += renderGroup('🛠️', 'Lavori', data.lavori);
+        html += renderGroup('📦', 'Materiali', data.materiali);
+
+        drop.innerHTML = html;
+        drop.style.display = 'block';
+    }
+
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function doSearch() {
+        var q = inp.value.trim();
+        if (q.length < 2) { drop.style.display = 'none'; return; }
+        fetch('/api/cerca?q=' + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(renderResults)
+            .catch(function () { drop.style.display = 'none'; });
+    }
+
+    inp.addEventListener('input', debounce(doSearch, 280));
+
+    inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { drop.style.display = 'none'; inp.blur(); }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.search-wrap')) drop.style.display = 'none';
+    });
+})();
+
+(function () {
+    var banner = document.getElementById('cookie-banner');
+    var btn = document.getElementById('cookie-ok-btn');
+    if (!banner) return;
+    if (localStorage.getItem('cookie_ok') !== '1') {
+        banner.style.display = 'flex';
+    }
+    btn.addEventListener('click', function () {
+        localStorage.setItem('cookie_ok', '1');
+        banner.style.display = 'none';
+    });
+})();
+</script>

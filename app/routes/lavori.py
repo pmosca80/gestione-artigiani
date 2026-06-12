@@ -314,6 +314,11 @@ def dettaglio_lavoro(
         lavoro_id
     )
 
+    fattura_emessa = (
+        lavoro.fatture_emesse[0]
+        if lavoro.fatture_emesse else None
+    )
+
     return templates.TemplateResponse(
         request=request,
         name="lavoro_dettaglio.html",
@@ -332,6 +337,7 @@ def dettaglio_lavoro(
             "margine_percentuale": margine_percentuale,
             "today": datetime.now().strftime("%Y-%m-%d"),
             "allegati_lavoro": allegati_lavoro,
+            "fattura_emessa": fattura_emessa,
         }
     )
 

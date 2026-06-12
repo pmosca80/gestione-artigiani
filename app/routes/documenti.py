@@ -82,8 +82,42 @@ def scarica_fattura_xml(
 </html>""",
         )
 
+    # Auto-assegna numero fattura se non ancora impostato
+    if not lavoro.numero_fattura:
+        anno_gen, numero_gen = _crud.genera_numero_fattura(db, user_id)
+        lavoro.numero_fattura = numero_gen
+        if not lavoro.data_fattura:
+            from datetime import date
+            lavoro.data_fattura = f"{anno_gen}-{date.today().month:02d}-{date.today().day:02d}"
+        db.commit()
+        db.refresh(lavoro)
+
+    lavoro.stato_fattura = "emessa"
+    db.commit()
+
+    # Salva nel registro fatture
+    from app.services.fatturapa import _REGIMI_SENZA_IVA
+    from datetime import date as _date
+    data_em = lavoro.data_fattura or _date.today().isoformat()
+    try:
+        anno = int(data_em[:4])
+    except (ValueError, TypeError):
+        anno = _date.today().year
+    imponibile_val = float(lavoro.importo_consuntivo or 0)
+    regime_str = (azienda.regime_fiscale or "RF01").strip().upper()
+    regime_senza_iva = regime_str in _REGIMI_SENZA_IVA
+    aliquota_val = 0.0 if regime_senza_iva else float(lavoro.aliquota_iva or 22)
+    iva_val = 0.0 if (regime_senza_iva or aliquota_val == 0) else float(
+        lavoro.totale_iva or round(imponibile_val * aliquota_val / 100, 2)
+    )
+    totale_val = imponibile_val if regime_senza_iva else float(lavoro.totale_documento or 0)
+    filename = nome_file_fatturapa(azienda, lavoro)
+    _crud.salva_fattura_emessa(
+        db, user_id, lavoro.id, lavoro.numero_fattura, anno, data_em,
+        imponibile_val, iva_val, totale_val, filename, azienda.regime_fiscale or "RF01"
+    )
+
     xml_bytes = genera_xml_fatturapa(lavoro, cliente, azienda)
-    filename  = nome_file_fatturapa(azienda, lavoro)
 
     return Response(
         content=xml_bytes,

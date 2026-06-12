@@ -16,6 +16,10 @@ class Utente(Base):
     data_registrazione = Column(String, nullable=True)
     attivo = Column(Integer, nullable=False, default=1)
 
+    piano = Column(String, nullable=True, default="free")
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+
 class Cliente(Base):
     __tablename__ = "clienti"
 
@@ -94,13 +98,16 @@ class Lavoro(Base):
     data_scadenza_pagamento = Column(String, nullable=True)
     numero_fattura = Column(Integer, nullable=True)
     data_fattura = Column(String, nullable=True)
+    stato_fattura = Column(String, nullable=True)
 
     note_consuntivo = Column(Text, nullable=True)
 
     data_creazione = Column(String, nullable=False)
 
     cliente = relationship("Cliente", back_populates="lavori")
-    
+    fatture_emesse = relationship("FatturaEmessa", back_populates="lavoro", cascade="all, delete-orphan")
+
+
 class Materiale(Base):
     __tablename__ = "materiali"
 
@@ -190,6 +197,8 @@ class ImpostazioniAzienda(Base):
 
     ultimo_numero_pdf = Column(Integer, nullable=False, default=0)
     ultimo_numero_preventivo = Column(Integer, nullable=False, default=0)
+    ultimo_numero_fattura = Column(Integer, nullable=False, default=0)
+    ultimo_anno_fattura = Column(Integer, nullable=True)
     obiettivo_mensile = Column(Float, default=5000)
     logo_path = Column(String, nullable=True)
 
@@ -252,3 +261,28 @@ class AllegatoLavoro(Base):
 
     descrizione = Column(Text, nullable=True)
     data_creazione = Column(String, nullable=False)
+
+
+class FatturaEmessa(Base):
+    __tablename__ = "fatture_emesse"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
+
+    numero = Column(Integer, nullable=False)
+    anno = Column(Integer, nullable=False)
+    data_emissione = Column(String, nullable=False)
+
+    importo_imponibile = Column(Float, default=0)
+    importo_iva = Column(Float, default=0)
+    importo_totale = Column(Float, default=0)
+
+    nome_file = Column(String, nullable=True)
+    regime = Column(String, nullable=True, default="RF01")
+    stato = Column(String, nullable=False, default="emessa")
+
+    data_creazione = Column(String, nullable=False)
+
+    lavoro = relationship("Lavoro", back_populates="fatture_emesse")

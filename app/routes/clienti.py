@@ -60,6 +60,10 @@ def crea_cliente_form(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.services.piani import puo_aggiungere_cliente
+    if not puo_aggiungere_cliente(db, user_id):
+        return RedirectResponse(url="/piani?limite=clienti", status_code=303)
+
     crud.crea_cliente(db, nome, cognome, telefono, user_id)
 
     return RedirectResponse(url="/clienti", status_code=303)

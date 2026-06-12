@@ -17,7 +17,8 @@ from app.models import (
     CaricoMateriale,
     FotoLavoro,
     PagamentoLavoro,
-    AllegatoLavoro
+    AllegatoLavoro,
+    FatturaEmessa,
 )
 from app.models import MovimentoMagazzino
 
@@ -1162,7 +1163,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
             mesi[mese]["costi"] += (lavoro.totale_materiali or 0) + (lavoro.totale_manodopera or 0)
             mesi[mese]["margine"] += lavoro.margine or 0
 
-    mesi_ordinati = sorted(mesi.keys())[-6:]
+    mesi_ordinati = sorted(mesi.keys())[-12:]
 
     grafico_mesi_labels = mesi_ordinati
     grafico_mesi_fatturato = [mesi[m]["fatturato"] for m in mesi_ordinati]
@@ -1181,6 +1182,55 @@ def get_dashboard_pro(db: Session, utente_id: int):
     )
 
     scadenzario = scadenzario[:10]
+
+    # ── Confronto mese precedente ─────────────────────────────────────────────
+    from datetime import date as _date_kpi, timedelta as _td_kpi
+    _today = _date_kpi.today()
+    if _today.month == 1:
+        _mese_prec = f"{_today.year - 1}-12"
+    else:
+        _mese_prec = f"{_today.year}-{_today.month - 1:02d}"
+
+    lavori_mese_prec = [l for l in lavori if l.data_creazione and l.data_creazione.startswith(_mese_prec)]
+    totale_documenti_mese_prec = sum(l.totale_documento or 0 for l in lavori_mese_prec)
+    margine_mese_prec = sum(l.margine or 0 for l in lavori_mese_prec)
+
+    if totale_documenti_mese_prec > 0:
+        delta_fatturato_pct = round(
+            (totale_documenti_mese - totale_documenti_mese_prec) / totale_documenti_mese_prec * 100, 1
+        )
+    elif totale_documenti_mese > 0:
+        delta_fatturato_pct = 100.0
+    else:
+        delta_fatturato_pct = 0.0
+
+    # ── Lavori in scadenza questa settimana ───────────────────────────────────
+    _fine_sett = (_today + _td_kpi(days=7)).isoformat()
+    _oggi_iso = _today.isoformat()
+    lavori_scadenza_settimana = sorted(
+        [l for l in lavori
+         if l.data_scadenza_pagamento
+         and _oggi_iso <= l.data_scadenza_pagamento <= _fine_sett
+         and (l.residuo_pagamento or 0) > 0],
+        key=lambda l: l.data_scadenza_pagamento
+    )
+
+    # ── % incassi per stato ───────────────────────────────────────────────────
+    pct_pagato_val = round(lavori_pagati / lavori_totali * 100, 1) if lavori_totali else 0.0
+    pct_parziale_val = round(lavori_acconto / lavori_totali * 100, 1) if lavori_totali else 0.0
+    pct_da_pagare_val = round(lavori_da_pagare / lavori_totali * 100, 1) if lavori_totali else 0.0
+
+    # ── FatturaPA stats anno corrente ─────────────────────────────────────────
+    fatture_anno_list = db.query(FatturaEmessa).filter(
+        FatturaEmessa.utente_id == utente_id,
+        FatturaEmessa.anno == _today.year
+    ).all()
+    fatture_anno_count = len(fatture_anno_list)
+    fatturato_fatturapa_anno = sum(f.importo_totale or 0 for f in fatture_anno_list)
+    fatture_mese_count = sum(
+        1 for f in fatture_anno_list
+        if f.data_emissione and f.data_emissione.startswith(mese_corrente)
+    )
 
     return {
         "lavori_totali": lavori_totali,
@@ -1241,6 +1291,16 @@ def get_dashboard_pro(db: Session, utente_id: int):
         "grafico_mesi_costi": grafico_mesi_costi,
         "grafico_mesi_margine": grafico_mesi_margine,
         "scadenzario": scadenzario,
+        "totale_documenti_mese_prec": totale_documenti_mese_prec,
+        "margine_mese_prec": margine_mese_prec,
+        "delta_fatturato_pct": delta_fatturato_pct,
+        "lavori_scadenza_settimana": lavori_scadenza_settimana,
+        "pct_pagato_val": pct_pagato_val,
+        "pct_parziale_val": pct_parziale_val,
+        "pct_da_pagare_val": pct_da_pagare_val,
+        "fatture_anno_count": fatture_anno_count,
+        "fatturato_fatturapa_anno": fatturato_fatturapa_anno,
+        "fatture_mese_count": fatture_mese_count,
     }
 
 def get_tutti_carichi_disponibili(db: Session, utente_id: int):
@@ -2173,3 +2233,101 @@ def get_lavori_piu_redditizi(
     )
 
     return lavori[:10]
+
+
+# ========================
+# REGISTRO FATTURE
+# ========================
+
+def genera_numero_fattura(db: Session, utente_id: int) -> tuple[int, int]:
+    """Ritorna (anno, numero) con reset automatico ogni anno."""
+    impostazioni = get_impostazioni_azienda(db, utente_id)
+    anno_corrente = datetime.now().year
+    if (impostazioni.ultimo_anno_fattura or 0) != anno_corrente:
+        impostazioni.ultimo_numero_fattura = 0
+        impostazioni.ultimo_anno_fattura = anno_corrente
+    impostazioni.ultimo_numero_fattura = (impostazioni.ultimo_numero_fattura or 0) + 1
+    db.commit()
+    db.refresh(impostazioni)
+    return anno_corrente, impostazioni.ultimo_numero_fattura
+
+
+def salva_fattura_emessa(
+    db: Session,
+    utente_id: int,
+    lavoro_id: int,
+    numero: int,
+    anno: int,
+    data_emissione: str,
+    imponibile: float,
+    iva: float,
+    totale: float,
+    nome_file: str,
+    regime: str = "RF01",
+) -> FatturaEmessa:
+    existing = (
+        db.query(FatturaEmessa)
+        .filter(FatturaEmessa.lavoro_id == lavoro_id, FatturaEmessa.utente_id == utente_id)
+        .first()
+    )
+    if existing:
+        existing.nome_file = nome_file
+        existing.data_emissione = data_emissione
+        existing.importo_imponibile = imponibile
+        existing.importo_iva = iva
+        existing.importo_totale = totale
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    fattura = FatturaEmessa(
+        utente_id=utente_id,
+        lavoro_id=lavoro_id,
+        numero=numero,
+        anno=anno,
+        data_emissione=data_emissione,
+        importo_imponibile=imponibile,
+        importo_iva=iva,
+        importo_totale=totale,
+        nome_file=nome_file,
+        regime=regime,
+        stato="emessa",
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    db.add(fattura)
+    db.commit()
+    db.refresh(fattura)
+    return fattura
+
+
+def get_fatture_registro(db: Session, utente_id: int, anno: int | None = None):
+    q = (
+        db.query(FatturaEmessa)
+        .filter(FatturaEmessa.utente_id == utente_id)
+    )
+    if anno:
+        q = q.filter(FatturaEmessa.anno == anno)
+    return q.order_by(FatturaEmessa.numero.asc()).all()
+
+
+def get_anni_fatture(db: Session, utente_id: int):
+    rows = (
+        db.query(func.distinct(FatturaEmessa.anno))
+        .filter(FatturaEmessa.utente_id == utente_id)
+        .order_by(FatturaEmessa.anno.desc())
+        .all()
+    )
+    return [r[0] for r in rows]
+
+
+def aggiorna_stato_fattura(db: Session, fattura_id: int, utente_id: int, nuovo_stato: str):
+    f = (
+        db.query(FatturaEmessa)
+        .filter(FatturaEmessa.id == fattura_id, FatturaEmessa.utente_id == utente_id)
+        .first()
+    )
+    if f:
+        f.stato = nuovo_stato
+        db.commit()
+        db.refresh(f)
+    return f

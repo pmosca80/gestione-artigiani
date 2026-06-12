@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Fatture — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p  { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        /* Anno filter */
+        .anno-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .anno-bar span { font-size: 13px; color: #6b7280; font-weight: 500; }
+        .anno-pill {
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            background: white;
+            transition: background 0.12s, color 0.12s;
+        }
+        .anno-pill:hover { background: #f3f4f6; }
+        .anno-pill.attivo { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+        .btn-export-excel {
+            margin-left: auto;
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #16a34a;
+            color: #16a34a;
+            background: #f0fdf4;
+            transition: background 0.12s, color 0.12s;
+            white-space: nowrap;
+        }
+        .btn-export-excel:hover { background: #16a34a; color: white; }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 18px;
+        }
+        .summary-card .label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                                letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 6px; }
+        .summary-card .value { font-size: 22px; font-weight: 700; color: #111827;
+                                font-family: 'DM Mono', monospace; }
+        .summary-card.purple { border-top: 3px solid #7c3aed; }
+        .summary-card.purple .value { color: #7c3aed; }
+
+        /* Table */
+        .doc-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .doc-table { width: 100%; border-collapse: collapse; }
+        .doc-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .doc-table th {
+            padding: 11px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #9ca3af;
+            text-align: left;
+        }
+        .doc-table td {
+            padding: 13px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .doc-table tbody tr:last-child td { border-bottom: none; }
+        .doc-table tbody tr:hover td { background: #fafafa; }
+
+        /* Totals footer */
+        .doc-table tfoot td {
+            padding: 13px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border-top: 2px solid #e5e7eb;
+            color: #111827;
+            background: #f8fafc;
+        }
+
+        .num-cell {
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            color: #7c3aed;
+        }
+        .num-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background: #ede9fe;
+            border-radius: 7px;
+            font-size: 14px;
+            margin-right: 6px;
+        }
+        .mono { font-family: 'DM Mono', monospace; font-size: 12px; color: #6b7280; }
+        .importo { font-family: 'DM Mono', monospace; font-size: 13px; text-align: right; }
+        .importo-tot { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700;
+                        color: #111827; text-align: right; }
+
+        /* Stato fattura badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .badge-emessa     { background: #dbeafe; color: #1d4ed8; }
+        .badge-inviata    { background: #dcfce7; color: #15803d; }
+        .badge-da_pagare  { background: #fef3c7; color: #92400e; }
+        .badge-parziale   { background: #fee2e2; color: #b91c1c; }
+        .badge-pagato     { background: #d1fae5; color: #065f46; }
+
+        /* Azioni */
+        .azioni-cell { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+        .btn-az {
+            padding: 5px 11px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: opacity 0.15s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-purple { background: #7c3aed; color: white; }
+        .btn-az-gray   { background: #f3f4f6; color: #374151; }
+        .btn-az-green  { background: #059669; color: white; }
+
+        .stato-form { display: inline; }
+        .stato-select {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 7px;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+        }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+        .empty-state p { color: #9ca3af; font-size: 14px; margin: 0 0 20px; }
+
+        @media (max-width: 800px) {
+            .doc-table-wrap { overflow-x: auto; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <h1>🧾 Registro Fatture</h1>
+        <p>Tutte le FatturaPA emesse — scarica l'XML o aggiorna lo stato di invio</p>
+    </div>
+
+    {% if flash_ok %}
+    <div style="background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#166534;">
+        ✅ Fattura inviata via email con successo!
+    </div>
+    {% endif %}
+    {% if flash_err %}
+    <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#991b1b;">
+        ⚠️ {{ flash_err }}
+        {% if "MAIL_USERNAME" in flash_err %}
+            &nbsp;—&nbsp;<a href="/impostazioni/azienda" style="color:#991b1b;">Vai a Impostazioni</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if not smtp_ok %}
+    <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:13px;color:#92400e;">
+        📧 <strong>Invio email non configurato.</strong>
+        Per abilitare il bottone "Invia email", imposta <code>MAIL_USERNAME</code> e <code>MAIL_PASSWORD</code> nelle variabili d'ambiente.
+    </div>
+    {% endif %}
+
+    <!-- Filtro anno + export -->
+    <div class="anno-bar">
+        {% if anni_disponibili %}
+        <span>Anno:</span>
+        {% for a in anni_disponibili %}
+        <a href="/fatture/?anno={{ a }}"
+           class="anno-pill {% if a == anno_sel %}attivo{% endif %}">{{ a }}</a>
+        {% endfor %}
+        {% endif %}
+        <a href="/fatture/export-excel?anno={{ anno_sel }}"
+           class="btn-export-excel" title="Scarica Excel per il commercialista">
+            📥 Excel {{ anno_sel }}
+        </a>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="label">Fatture emesse</div>
+            <div class="value">{{ fatture|length }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Totale imponibile</div>
+            <div class="value">€ {{ "%.2f"|format(tot_imponibile) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Totale IVA</div>
+            <div class="value">€ {{ "%.2f"|format(tot_iva) }}</div>
+        </div>
+        <div class="summary-card purple">
+            <div class="label">Totale fatturato</div>
+            <div class="value">€ {{ "%.2f"|format(tot_totale) }}</div>
+        </div>
+    </div>
+
+    <!-- Tabella -->
+    <div class="doc-table-wrap">
+        {% if fatture %}
+        <table class="doc-table">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th style="text-align:right">Imponibile</th>
+                    <th style="text-align:right">IVA</th>
+                    <th style="text-align:right">Totale</th>
+                    <th>Pagamento</th>
+                    <th>Stato</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in fatture %}
+                {% set lav = f.lavoro %}
+                {% set cli = lav.cliente if lav else None %}
+                <tr>
+                    <td>
+                        <span class="num-icon">🧾</span>
+                        <span class="num-cell">{{ f.anno }}/{{ "%03d"|format(f.numero) }}</span>
+                    </td>
+                    <td class="mono">{{ f.data_emissione }}</td>
+                    <td>
+                        {% if cli %}
+                            {% if cli.tipo_cliente == "azienda" %}
+                                {{ cli.ragione_sociale or "—" }}
+                            {% else %}
+                                {{ (cli.nome or "") }} {{ (cli.cognome or "") }}
+                            {% endif %}
+                        {% else %}
+                            <span style="color:#d1d5db">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="importo">€ {{ "%.2f"|format(f.importo_imponibile or 0) }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(f.importo_iva or 0) }}</td>
+                    <td class="importo-tot">€ {{ "%.2f"|format(f.importo_totale or 0) }}</td>
+                    <td>
+                        {% if lav %}
+                            {% if lav.stato_pagamento == "pagato" %}
+                                <span class="badge badge-pagato">Pagato</span>
+                            {% elif lav.stato_pagamento == "parzialmente_pagato" %}
+                                <span class="badge badge-parziale">Parziale</span>
+                            {% else %}
+                                <span class="badge badge-da_pagare">Da pagare</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if f.stato == "inviata_sdi" %}
+                            <span class="badge badge-inviata">Inviata SDI</span>
+                        {% else %}
+                            <span class="badge badge-emessa">Emessa</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="azioni-cell">
+                            {% if lav %}
+                            <a href="/documenti/lavori/{{ lav.id }}/fattura-xml"
+                               class="btn-az btn-az-purple">↓ XML</a>
+                            <a href="/lavori/{{ lav.id }}"
+                               class="btn-az btn-az-gray">📋 Lavoro</a>
+                            {% endif %}
+                            {% set cli = lav.cliente if lav else None %}
+                            {% if smtp_ok and cli and cli.email %}
+                            <form class="stato-form" method="post"
+                                  action="/fatture/{{ f.id }}/invia-email"
+                                  onsubmit="return confirm('Inviare la fattura a {{ cli.email }}?')">
+                                <button type="submit" class="btn-az"
+                                        style="background:#2563eb;color:white;"
+                                        title="Invia XML al cliente">📧 Email</button>
+                            </form>
+                            {% elif not smtp_ok %}
+                            <span class="btn-az btn-az-gray" style="opacity:0.45;cursor:not-allowed;" title="SMTP non configurato">📧</span>
+                            {% elif cli and not cli.email %}
+                            <span class="btn-az btn-az-gray" style="opacity:0.45;cursor:not-allowed;" title="Cliente senza email">📧</span>
+                            {% endif %}
+                            {% if f.stato != "inviata_sdi" %}
+                            <form class="stato-form" method="post"
+                                  action="/fatture/{{ f.id }}/stato">
+                                <button type="submit" name="stato" value="inviata_sdi"
+                                        class="btn-az btn-az-green"
+                                        title="Segna come inviata al SDI">✓ SDI</button>
+                            </form>
+                            {% else %}
+                            <form class="stato-form" method="post"
+                                  action="/fatture/{{ f.id }}/stato">
+                                <button type="submit" name="stato" value="emessa"
+                                        class="btn-az btn-az-gray"
+                                        title="Riporta a emessa">↩ Emessa</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">Totali {{ anno_sel }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(tot_imponibile) }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(tot_iva) }}</td>
+                    <td class="importo-tot">€ {{ "%.2f"|format(tot_totale) }}</td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon">🧾</span>
+            <p>Nessuna fattura emessa nel {{ anno_sel }}.<br>
+               Apri un lavoro e clicca <strong>🧾 FatturaPA XML</strong> per generarne una.</p>
+            <a href="/lavori/" class="btn">Vai ai lavori</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+</body>
+</html>
