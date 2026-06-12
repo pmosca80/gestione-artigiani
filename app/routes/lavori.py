@@ -138,6 +138,57 @@ def crea_lavoro_form(
         logger.error(f"Errore creazione lavoro | utente {user_id} | {e}")
         raise
 
+@router.get("/nuovo-rapido", response_class=HTMLResponse)
+def form_lavoro_rapido(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.models import Cliente
+    clienti = (
+        db.query(Cliente)
+        .filter(Cliente.utente_id == user_id)
+        .order_by(Cliente.ragione_sociale, Cliente.cognome, Cliente.nome)
+        .all()
+    )
+    oggi = datetime.now().strftime("%Y-%m-%d")
+    return templates.TemplateResponse(
+        request=request,
+        name="lavoro_nuovo_rapido.html",
+        context={"clienti": clienti, "oggi": oggi},
+    )
+
+
+@router.post("/nuovo-rapido")
+def crea_lavoro_rapido(
+    request: Request,
+    cliente_id: int = Form(...),
+    titolo: str = Form(...),
+    data_lavoro: str = Form(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.models import Cliente
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.utente_id == user_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    lavoro = crud.crea_lavoro(
+        db=db,
+        cliente_id=cliente_id,
+        data_lavoro=data_lavoro,
+        titolo=titolo,
+        descrizione="",
+        stato="da_fare",
+        importo_preventivato=None,
+        importo_consuntivo=None,
+        aliquota_iva=22,
+        sconto=0,
+        note_consuntivo="",
+        utente_id=user_id,
+    )
+    return RedirectResponse(url=f"/lavori/{lavoro.id}", status_code=303)
+
+
 @router.get("/allegati/archivio", response_class=HTMLResponse)
 def archivio_allegati(
     request: Request,

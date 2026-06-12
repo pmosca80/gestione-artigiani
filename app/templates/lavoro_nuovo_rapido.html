@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Nuovo Lavoro — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; background: #f5f7fb; }
+
+        .rapido-wrap {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 28px 20px 100px;
+        }
+        .rapido-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 28px 0;
+        }
+        .rapido-field {
+            margin-bottom: 20px;
+        }
+        .rapido-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rapido-field input,
+        .rapido-field select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+            color: #111827;
+        }
+        .rapido-field input:focus,
+        .rapido-field select:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+        }
+        #cliente-cerca {
+            margin-bottom: 8px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 14px center;
+            padding-left: 40px;
+        }
+        #cliente-select {
+            cursor: pointer;
+        }
+        .rapido-submit {
+            width: 100%;
+            padding: 17px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            font-family: inherit;
+            transition: background 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .rapido-submit:active { transform: scale(0.98); background: #6d28d9; }
+        .rapido-back {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            color: #6b7280;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .nessun-cliente {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="rapido-wrap">
+    <h1 class="rapido-title">🛠️ Nuovo Lavoro</h1>
+
+    {% if clienti %}
+    <form method="post" action="/lavori/nuovo-rapido">
+
+        <div class="rapido-field">
+            <label for="cliente-cerca">Cliente</label>
+            <input type="search" id="cliente-cerca" placeholder="Cerca per nome o telefono…" autocomplete="off" autocorrect="off">
+            <select name="cliente_id" id="cliente-select" required>
+                <option value="">— Seleziona cliente —</option>
+                {% for c in clienti %}
+                <option value="{{ c.id }}"
+                    data-q="{{ ((c.ragione_sociale or '') ~ ' ' ~ (c.nome or '') ~ ' ' ~ (c.cognome or '') ~ ' ' ~ (c.telefono or '')) | lower }}">
+                    {% if c.ragione_sociale %}{{ c.ragione_sociale }}{% else %}{{ c.nome or '' }} {{ c.cognome or '' }}{% endif %}{% if c.telefono %} · {{ c.telefono }}{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="rapido-field">
+            <label for="titolo">Titolo lavoro</label>
+            <input type="text" name="titolo" id="titolo"
+                   placeholder="es. Impianto elettrico bagno, Riparazione caldaia…"
+                   required autocomplete="off">
+        </div>
+
+        <div class="rapido-field">
+            <label for="data_lavoro">Data</label>
+            <input type="date" name="data_lavoro" id="data_lavoro" value="{{ oggi }}" required>
+        </div>
+
+        <button type="submit" class="rapido-submit">Crea lavoro →</button>
+    </form>
+    {% else %}
+    <div class="nessun-cliente">
+        Nessun cliente ancora. <a href="/clienti/nuovo" style="color:#92400e;font-weight:700;">Aggiungi il primo cliente →</a>
+    </div>
+    {% endif %}
+
+    <a class="rapido-back" href="/lavori/">← Tutti i lavori</a>
+</div>
+
+<script>
+(function () {
+    var cerca = document.getElementById('cliente-cerca');
+    var sel   = document.getElementById('cliente-select');
+    if (!cerca || !sel) return;
+
+    var allOpts = Array.from(sel.options).filter(function (o) { return o.value; });
+
+    cerca.addEventListener('input', function () {
+        var q = cerca.value.toLowerCase().trim();
+        allOpts.forEach(function (o) {
+            var match = !q || (o.dataset.q || '').includes(q);
+            o.hidden = !match;
+        });
+        if (sel.selectedOptions[0] && sel.selectedOptions[0].hidden) {
+            sel.value = '';
+        }
+    });
+
+    // Se c'è un solo cliente visibile e si preme Invio nella cerca, selezionalo
+    cerca.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var visibili = allOpts.filter(function (o) { return !o.hidden; });
+        if (visibili.length === 1) {
+            sel.value = visibili[0].value;
+            document.getElementById('titolo').focus();
+        }
+    });
+})();
+</script>
+</body>
+</html>

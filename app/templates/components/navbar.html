@@ -143,6 +143,40 @@ function _installaPWA() {
 })();
 </script>
 
+<!-- FAB speed-dial azione rapida -->
+<div class="fab-container" id="fab-container">
+    <div class="fab-actions" id="fab-actions" aria-hidden="true">
+        <a class="fab-action" href="/clienti/nuovo">
+            <span class="fab-action-label">Nuovo Cliente</span>
+            <span class="fab-action-btn">👥</span>
+        </a>
+        <a class="fab-action" href="/lavori/nuovo-rapido">
+            <span class="fab-action-label">Nuovo Lavoro</span>
+            <span class="fab-action-btn">🛠️</span>
+        </a>
+    </div>
+    <button class="fab-main" id="fab-main" aria-label="Azioni rapide" aria-expanded="false">+</button>
+</div>
+<script>
+(function () {
+    var container = document.getElementById('fab-container');
+    var btn = document.getElementById('fab-main');
+    if (!container || !btn) return;
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = container.classList.toggle('fab-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        document.getElementById('fab-actions').setAttribute('aria-hidden', open ? 'false' : 'true');
+    });
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#fab-container')) {
+            container.classList.remove('fab-open');
+            btn.setAttribute('aria-expanded', 'false');
+        }
+    });
+})();
+</script>
+
 <!-- Cookie banner GDPR -->
 <div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;color:#e2e8f0;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,0.25);">
     <span style="font-size:13px;line-height:1.5;flex:1;min-width:200px;">
