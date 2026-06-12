@@ -34,7 +34,20 @@ def verifica_account(request: Request, db: Session) -> int:
 
     piano = getattr(utente, "piano", None) or "free"
     if piano == "pro":
-        return user_id
+        pro_scadenza = getattr(utente, "pro_scadenza", None)
+        stripe_sub = getattr(utente, "stripe_subscription_id", None)
+        if pro_scadenza and not stripe_sub:
+            try:
+                if datetime.now() > datetime.strptime(pro_scadenza, "%Y-%m-%d"):
+                    utente.piano = "free"
+                    utente.attivo = 1
+                    utente.pro_scadenza = None
+                    db.commit()
+                    piano = "free"
+            except Exception:
+                pass
+        if piano == "pro":
+            return user_id
 
     if utente.data_registrazione:
         try:

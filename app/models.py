@@ -17,6 +17,7 @@ class Utente(Base):
     attivo = Column(Integer, nullable=False, default=1)
 
     piano = Column(String, nullable=True, default="free")
+    pro_scadenza = Column(String, nullable=True)
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 

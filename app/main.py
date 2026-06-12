@@ -40,6 +40,17 @@ if not SECRET_KEY or SECRET_KEY == "dev-secret-key" or len(SECRET_KEY) < 20:
 
 Base.metadata.create_all(bind=engine)
 
+# Migrazione inline: aggiunge colonne aggiunte dopo il deploy iniziale
+from sqlalchemy import text, inspect as _inspect
+def _run_migrations():
+    insp = _inspect(engine)
+    cols = [c["name"] for c in insp.get_columns("utenti")]
+    with engine.connect() as conn:
+        if "pro_scadenza" not in cols:
+            conn.execute(text("ALTER TABLE utenti ADD COLUMN pro_scadenza VARCHAR"))
+            conn.commit()
+_run_migrations()
+
 app = FastAPI(
     title="Gestione Artigiani"
 )

@@ -170,6 +170,16 @@
     <div class="login-card">
         <h2>Accedi al tuo account</h2>
 
+        {% if request.query_params.get('promo') == '1' %}
+        <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+            🎉 Registrazione completata! Hai ricevuto <strong>1 mese di Pro gratis</strong>. Accedi ora.
+        </div>
+        {% elif request.query_params.get('registrato') == '1' %}
+        <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+            ✅ Account creato! Accedi con le tue credenziali.
+        </div>
+        {% endif %}
+
         {% if errore %}
         <div class="errore-box">
             ⚠️ {{ errore }}

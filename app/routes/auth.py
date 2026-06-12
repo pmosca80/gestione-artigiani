@@ -82,37 +82,34 @@ def register(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
-    codice_invito: str = Form(...),
+    codice_promo: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    codice_corretto = os.getenv("CODICE_INVITO", "")
-
-    if not codice_corretto or codice_invito != codice_corretto:
-        return templates.TemplateResponse(
-            request=request,
-            name="register.html",
-            context={"errore": "Codice invito non valido"}
-        )
-
     esiste = db.query(Utente).filter(Utente.username == username).first()
-
     if esiste:
         return templates.TemplateResponse(
             request=request,
             name="register.html",
-            context={"errore": "Username già esistente"}
+            context={"errore": "Username già in uso. Scegli un altro username."}
         )
+
+    from datetime import timedelta
+    codice_promo_valido = os.getenv("CODICE_PROMO", "")
+    promo_ok = bool(codice_promo and codice_promo_valido and codice_promo.strip() == codice_promo_valido)
 
     nuovo = Utente(
         username=username,
         password=hash_password(password),
         data_registrazione=datetime.now().strftime("%Y-%m-%d"),
-        attivo=1
+        attivo=2 if promo_ok else 1,
+        piano="pro" if promo_ok else "free",
+        pro_scadenza=(datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if promo_ok else None,
     )
-
     db.add(nuovo)
     db.commit()
 
+    if promo_ok:
+        return RedirectResponse(url="/login?promo=1", status_code=303)
     return RedirectResponse(url="/login", status_code=303)
 
 @router.get("/logout")
