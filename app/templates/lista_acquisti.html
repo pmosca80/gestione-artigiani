@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista acquisti — Magazzino</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 14px;
+            background: #f3f4f6;
+            color: #374151;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-back:hover { background: #e5e7eb; }
+
+        /* AZIONI */
+        .azioni-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn-stampa {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            background: #111827;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-stampa:hover { background: #374151; }
+
+        .btn-copia {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            background: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-copia:hover { background: #15803d; }
+
+        /* INTESTAZIONE LISTA (visibile nella stampa) */
+        .lista-header {
+            background: #111827;
+            color: white;
+            border-radius: 12px;
+            padding: 18px 22px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .lista-header-title { font-size: 18px; font-weight: 700; }
+        .lista-header-meta { font-size: 13px; color: #9ca3af; }
+        .lista-header-data { font-family: 'DM Mono', monospace; font-size: 14px; color: #e5e7eb; }
+
+        /* TABELLA */
+        .la-table-wrap {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .la-table { width: 100%; border-collapse: collapse; }
+        .la-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .la-table th {
+            padding: 11px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #9ca3af;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .la-table th.th-center { text-align: center; }
+        .la-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .la-table tbody tr:last-child td { border-bottom: none; }
+        .la-table tbody tr:hover td { background: #fafafa; }
+        .la-table tbody tr.esaurito td { background: #fff1f2; }
+        .la-table tbody tr.esaurito:hover td { background: #ffe4e6; }
+
+        .mat-nome { font-weight: 700; color: #111827; font-size: 14px; }
+        .mat-cat { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+        .stock-val { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 16px; color: #dc2626; }
+        .scorta-val { font-family: 'DM Mono', monospace; font-size: 14px; color: #6b7280; }
+
+        /* CAMPO QUANTITA EDITABILE */
+        .input-qta {
+            width: 70px;
+            padding: 7px 10px;
+            border: 2px solid #16a34a;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: #166534;
+            background: #f0fdf4;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .input-qta:focus { border-color: #15803d; background: white; }
+
+        .unita { font-size: 12px; color: #9ca3af; margin-left: 4px; }
+
+        .lb { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .lb-red { background: #fee2e2; color: #991b1b; }
+        .lb-orange { background: #ffedd5; color: #9a3412; }
+
+        /* EMPTY */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .empty-icon { font-size: 48px; display: block; margin-bottom: 14px; }
+        .empty-state h3 { font-size: 18px; color: #111827; margin-bottom: 8px; }
+        .empty-state p { color: #6b7280; font-size: 14px; }
+
+        /* NOTE CAMPO */
+        .note-qta {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 3px;
+            text-align: center;
+        }
+
+        /* FOOTER STAMPA */
+        .lista-footer {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 13px;
+            color: #6b7280;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .lista-footer strong { color: #111827; }
+
+        /* STAMPA */
+        @media print {
+            .no-print { display: none !important; }
+            .btn-back { display: none !important; }
+            body { background: white; }
+            .container { max-width: 100%; padding: 0; }
+            .lista-header { background: #111827 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .la-table-wrap { border: 1px solid #ccc; box-shadow: none; }
+            .la-table tbody tr.esaurito td { background: #fff1f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .input-qta { border: 2px solid #16a34a !important; background: #f0fdf4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+        @media (max-width: 600px) {
+            .la-table-wrap { overflow-x: auto; }
+            .th-hide { display: none; }
+            .td-hide { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>🛒 Lista acquisti</h1>
+            <p>Materiali sotto scorta minima — da riordinare</p>
+        </div>
+        <a href="/materiali/" class="btn-back no-print">‹ Magazzino</a>
+    </div>
+
+    {% if da_riordinare %}
+
+    <!-- AZIONI -->
+    <div class="azioni-bar no-print">
+        <button class="btn-stampa" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+        <button class="btn-copia" onclick="copiaLista()">📋 Copia per WhatsApp</button>
+    </div>
+
+    <!-- INTESTAZIONE -->
+    <div class="lista-header">
+        <div>
+            <div class="lista-header-title">
+                {% if impostazioni and impostazioni.nome_azienda %}{{ impostazioni.nome_azienda }} — {% endif %}Lista acquisti
+            </div>
+            <div class="lista-header-meta">{{ da_riordinare|length }} articolo{% if da_riordinare|length != 1 %}i{% endif %} da riordinare</div>
+        </div>
+        <div class="lista-header-data">{{ oggi }}</div>
+    </div>
+
+    <!-- TABELLA -->
+    <div class="la-table-wrap">
+        <table class="la-table" id="tabella-acquisti">
+            <thead>
+                <tr>
+                    <th>Materiale</th>
+                    <th class="th-hide">Categoria</th>
+                    <th class="th-center">In stock</th>
+                    <th class="th-center th-hide">Soglia min.</th>
+                    <th class="th-center">Da ordinare</th>
+                    <th>Stato</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for voce in da_riordinare %}
+                {% set m = voce.m %}
+                <tr class="{% if (m.quantita or 0) == 0 %}esaurito{% endif %}"
+                    data-nome="{{ m.nome }}"
+                    data-unita="{{ m.unita_misura or 'pz' }}">
+                    <td>
+                        <div class="mat-nome">{{ m.nome }}</div>
+                    </td>
+                    <td class="td-hide">
+                        <span style="color:#6b7280;">{{ m.categoria or '—' }}</span>
+                    </td>
+                    <td style="text-align:center;">
+                        <span class="stock-val">{{ m.quantita or 0 }}</span>
+                        <span class="unita">{{ m.unita_misura or 'pz' }}</span>
+                    </td>
+                    <td style="text-align:center;" class="td-hide">
+                        <span class="scorta-val">{{ m.scorta_minima or 0 }}</span>
+                        <span class="unita">{{ m.unita_misura or 'pz' }}</span>
+                    </td>
+                    <td style="text-align:center;">
+                        <input
+                            class="input-qta"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value="{{ voce.da_ordinare }}"
+                            data-default="{{ voce.da_ordinare }}"
+                        >
+                        <div class="note-qta no-print">{{ m.unita_misura or 'pz' }}</div>
+                    </td>
+                    <td>
+                        {% if (m.quantita or 0) == 0 %}
+                            <span class="lb lb-red">⚠️ Esaurito</span>
+                        {% else %}
+                            <span class="lb lb-orange">↓ Riordina</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="lista-footer">
+        <span><strong>{{ da_riordinare|length }}</strong> articoli da acquistare</span>
+        <span style="color:#9ca3af;">Modifica le quantità prima di stampare o copiare</span>
+    </div>
+
+    {% else %}
+
+    <div class="empty-state">
+        <span class="empty-icon">✅</span>
+        <h3>Tutto in ordine!</h3>
+        <p>Nessun materiale è sotto la scorta minima.<br>Puoi impostare le soglie nella scheda di ogni materiale.</p>
+    </div>
+
+    {% endif %}
+
+</div>
+
+<script>
+function copiaLista() {
+    var righe = document.querySelectorAll('#tabella-acquisti tbody tr');
+    var lines = [];
+    var oggi = '{{ oggi }}';
+    {% if impostazioni and impostazioni.nome_azienda %}
+    lines.push('📦 Lista acquisti — {{ impostazioni.nome_azienda }}');
+    {% else %}
+    lines.push('📦 Lista acquisti');
+    {% endif %}
+    lines.push('Data: ' + oggi);
+    lines.push('');
+
+    righe.forEach(function(tr) {
+        var nome = tr.dataset.nome || '';
+        var unita = tr.dataset.unita || 'pz';
+        var qta = tr.querySelector('.input-qta');
+        var qtaVal = qta ? qta.value : '?';
+        lines.push('• ' + nome + ': ' + qtaVal + ' ' + unita);
+    });
+
+    lines.push('');
+    lines.push('Totale articoli: ' + righe.length);
+
+    var testo = lines.join('\n');
+    navigator.clipboard.writeText(testo).then(function() {
+        var btn = document.querySelector('.btn-copia');
+        var orig = btn.textContent;
+        btn.textContent = '✓ Copiato!';
+        btn.style.background = '#166534';
+        setTimeout(function() {
+            btn.textContent = orig;
+            btn.style.background = '';
+        }, 2500);
+    }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = testo;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+    });
+}
+</script>
+
+</body>
+</html>

@@ -71,6 +71,33 @@ def crea_materiale_form(
 
     return RedirectResponse(url="/materiali/", status_code=303)
 
+
+@router.get("/lista-acquisti", response_class=HTMLResponse)
+def lista_acquisti(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from datetime import date
+    tutti = crud.get_materiali(db, user_id, "")
+    da_riordinare = []
+    for m in tutti:
+        if (m.scorta_minima or 0) > 0 and (m.quantita or 0) <= (m.scorta_minima or 0):
+            da_ordinare = max(0, (m.scorta_minima or 0) - (m.quantita or 0))
+            da_riordinare.append({"m": m, "da_ordinare": da_ordinare})
+    da_riordinare.sort(key=lambda x: (x["m"].quantita or 0))
+    impostazioni = crud.get_impostazioni_azienda(db, user_id)
+    return templates.TemplateResponse(
+        request=request,
+        name="lista_acquisti.html",
+        context={
+            "da_riordinare": da_riordinare,
+            "impostazioni": impostazioni,
+            "oggi": date.today().strftime("%d/%m/%Y"),
+        },
+    )
+
+
 @router.get("/{materiale_id}/movimento", response_class=HTMLResponse)
 def form_movimento(materiale_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
