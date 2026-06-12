@@ -63,6 +63,7 @@ def login(
 
     request.session.clear()
     request.session["user_id"] = user.id
+    request.session["username"] = user.username
 
     return RedirectResponse(url="/", status_code=303)
 

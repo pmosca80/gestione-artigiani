@@ -19,6 +19,9 @@
         <div id="search-dropdown"></div>
     </div>
 
+    {% if request.session.get('username') == 'admin' %}
+    <a href="/impostazioni/admin" style="font-weight:700;color:#dc2626;">🔧 Admin</a>
+    {% endif %}
     <a href="/logout">🚪 Logout</a>
 </div>
 
