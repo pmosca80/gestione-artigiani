@@ -21,6 +21,7 @@ from app.models import (
     FatturaEmessa,
     TemplatePreventivo,
     VocePreventivo,
+    SessioneLavoro,
 )
 from app.models import MovimentoMagazzino
 
@@ -2551,3 +2552,58 @@ def elimina_voce_preventivo(db: Session, voce_id: int, utente_id: int) -> bool:
 def calcola_totale_voci(db: Session, utente_id: int, lavoro_id: int) -> float:
     voci = get_voci_preventivo(db, utente_id, lavoro_id)
     return sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)
+
+
+def get_sessione_aperta(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(SessioneLavoro)
+        .filter(
+            SessioneLavoro.utente_id == utente_id,
+            SessioneLavoro.lavoro_id == lavoro_id,
+            SessioneLavoro.fine == None,
+        )
+        .first()
+    )
+
+
+def apri_sessione(db: Session, utente_id: int, lavoro_id: int) -> SessioneLavoro:
+    s = SessioneLavoro(
+        utente_id=utente_id,
+        lavoro_id=lavoro_id,
+        inizio=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        fine=None,
+        ore_calcolate=None,
+    )
+    db.add(s)
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+def chiudi_sessione(db: Session, sessione_id: int, utente_id: int):
+    s = db.query(SessioneLavoro).filter(
+        SessioneLavoro.id == sessione_id,
+        SessioneLavoro.utente_id == utente_id,
+    ).first()
+    if not s:
+        return None
+    fine = datetime.now()
+    inizio = datetime.strptime(s.inizio, "%Y-%m-%d %H:%M:%S")
+    ore = (fine - inizio).total_seconds() / 3600
+    s.fine = fine.strftime("%Y-%m-%d %H:%M:%S")
+    s.ore_calcolate = round(ore, 2)
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+def get_sessioni_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(SessioneLavoro)
+        .filter(
+            SessioneLavoro.utente_id == utente_id,
+            SessioneLavoro.lavoro_id == lavoro_id,
+        )
+        .order_by(SessioneLavoro.inizio.desc())
+        .all()
+    )

@@ -373,6 +373,8 @@ def dettaglio_lavoro(
     )
 
     voci_preventivo = crud.get_voci_preventivo(db, user_id, lavoro_id)
+    sessione_aperta = crud.get_sessione_aperta(db, user_id, lavoro_id)
+    sessioni_lavoro = crud.get_sessioni_lavoro(db, user_id, lavoro_id)
 
     return templates.TemplateResponse(
         request=request,
@@ -394,6 +396,8 @@ def dettaglio_lavoro(
             "allegati_lavoro": allegati_lavoro,
             "fattura_emessa": fattura_emessa,
             "voci_preventivo": voci_preventivo,
+            "sessione_aperta": sessione_aperta,
+            "sessioni_lavoro": sessioni_lavoro,
         }
     )
 
@@ -1452,6 +1456,40 @@ def accetta_preventivo(
         f"/lavori/{lavoro_id}",
         status_code=303
     )
+
+@router.post("/{lavoro_id}/timer/inizia")
+def timer_inizia(
+    lavoro_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404)
+    if not crud.get_sessione_aperta(db, user_id, lavoro_id):
+        crud.apri_sessione(db, user_id, lavoro_id)
+    return RedirectResponse(f"/lavori/{lavoro_id}", status_code=303)
+
+
+@router.post("/{lavoro_id}/timer/ferma")
+def timer_ferma(
+    lavoro_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404)
+    sessione = crud.get_sessione_aperta(db, user_id, lavoro_id)
+    if sessione:
+        chiusa = crud.chiudi_sessione(db, sessione.id, user_id)
+        if chiusa and chiusa.ore_calcolate:
+            lavoro.ore_lavoro = round((lavoro.ore_lavoro or 0) + chiusa.ore_calcolate, 2)
+            db.commit()
+            from app.services.calcoli import calcola_totali_lavoro
+            calcola_totali_lavoro(db, lavoro_id)
+    return RedirectResponse(f"/lavori/{lavoro_id}", status_code=303)
+
 
 @router.post("/{lavoro_id}/cambia-stato")
 def cambia_stato_lavoro(

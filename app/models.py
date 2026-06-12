@@ -330,6 +330,17 @@ class VocePreventivo(Base):
     ordine = Column(Integer, default=0)
 
 
+class SessioneLavoro(Base):
+    __tablename__ = "sessioni_lavoro"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    inizio = Column(String, nullable=False)
+    fine = Column(String, nullable=True)
+    ore_calcolate = Column(Float, nullable=True)
+
+
 class InvitoAccount(Base):
     __tablename__ = "inviti_account"
 

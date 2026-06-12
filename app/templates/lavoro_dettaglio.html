@@ -391,6 +391,46 @@
         }
         .btn-upload:hover { background: #1d4ed8; }
 
+        /* TIMER */
+        .timer-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .timer-display {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            background: rgba(220,38,38,0.18);
+            border: 1px solid rgba(220,38,38,0.35);
+            border-radius: 9px;
+            padding: 9px 15px;
+        }
+        #timer-live {
+            color: #fca5a5;
+            font-family: 'DM Mono', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .timer-pulse {
+            width: 9px; height: 9px;
+            background: #f87171;
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: blink 1.4s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.25; }
+        }
+        .btn-timer-stop  { background: #dc2626; color: white; font-size: 14px; font-weight: 800; }
+        .btn-timer-start { background: #16a34a; color: white; font-size: 14px; font-weight: 800; }
+
         /* NOTE */
         .note-box {
             background: #f8fafc;
@@ -477,6 +517,27 @@
                     </form>
                 {% endif %}
             </div>
+        </div>
+
+        <!-- TIMER -->
+        <div class="timer-row">
+            {% if sessione_aperta %}
+            <div class="timer-display">
+                <span class="timer-pulse"></span>
+                <span id="timer-live" data-start="{{ sessione_aperta.inizio }}">⏱ —</span>
+            </div>
+            <form action="/lavori/{{ lavoro.id }}/timer/ferma" method="post" style="display:inline;">
+                <button class="btn-hero btn-timer-stop">■ Ferma timer</button>
+            </form>
+            <span style="color:#94a3b8; font-size:12px;">In corso — tocca per fermare</span>
+            {% else %}
+            <form action="/lavori/{{ lavoro.id }}/timer/inizia" method="post" style="display:inline;">
+                <button class="btn-hero btn-timer-start">▶ Inizia timer</button>
+            </form>
+            {% if lavoro.ore_lavoro %}
+            <span style="color:#94a3b8; font-size:12px;">Ore registrate: <strong style="color:#e2e8f0;">{{ lavoro.ore_lavoro }}h</strong></span>
+            {% endif %}
+            {% endif %}
         </div>
 
         <!-- STATUS -->
@@ -648,6 +709,48 @@
             </div>
         </div>
     </div>
+
+    <!-- SESSIONI LAVORO -->
+    {% if sessioni_lavoro %}
+    <div class="l-section">
+        <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+            <span>⏱ Sessioni lavoro</span>
+            <span style="font-size:12px; font-weight:600; color:#374151; text-transform:none; letter-spacing:0;">
+                Totale: <strong>{{ lavoro.ore_lavoro or 0 }}h</strong>
+            </span>
+        </div>
+        <div class="l-table-wrap">
+            <table class="l-table">
+                <thead>
+                    <tr>
+                        <th>Inizio</th>
+                        <th>Fine</th>
+                        <th style="text-align:right;">Ore</th>
+                        <th>Stato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sessioni_lavoro %}
+                    <tr>
+                        <td class="importo" style="font-size:12px; color:#6b7280;">{{ s.inizio }}</td>
+                        <td class="importo" style="font-size:12px; color:#6b7280;">{{ s.fine or '—' }}</td>
+                        <td style="text-align:right; font-weight:700;">
+                            {% if s.ore_calcolate %}{{ "%.2f"|format(s.ore_calcolate) }}h{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if not s.fine %}
+                                <span class="lb lb-orange">In corso</span>
+                            {% else %}
+                                <span class="lb lb-green">Completata</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- AZIONI RAPIDE -->
     <div class="l-section">
@@ -1031,6 +1134,23 @@
             lb.style.display = 'flex';
         });
     });
+
+    // Timer live — aggiorna ogni secondo
+    var timerEl = document.getElementById('timer-live');
+    if (timerEl) {
+        var raw = timerEl.dataset.start; // "2026-06-12 14:30:00"
+        var start = new Date(raw.replace(' ', 'T')).getTime();
+        function tick() {
+            var secs = Math.floor((Date.now() - start) / 1000);
+            if (secs < 0) secs = 0;
+            var h = Math.floor(secs / 3600);
+            var m = Math.floor((secs % 3600) / 60);
+            var s = secs % 60;
+            timerEl.textContent = '⏱ ' + h + 'h ' + (m < 10 ? '0' + m : m) + 'm ' + (s < 10 ? '0' + s : s) + 's';
+        }
+        tick();
+        setInterval(tick, 1000);
+    }
 })();
 </script>
 </body>
