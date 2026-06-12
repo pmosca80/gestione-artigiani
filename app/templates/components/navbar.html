@@ -87,6 +87,50 @@ function _installaPWA() {
 })();
 </script>
 
+<!-- Bottom navigation — solo mobile -->
+<nav class="bottom-nav" id="bottom-nav">
+    <a class="bottom-nav-item" href="/">
+        <span class="bn-icon">🏠</span>
+        <span>Home</span>
+    </a>
+    <a class="bottom-nav-item" href="/clienti/">
+        <span class="bn-icon">👥</span>
+        <span>Clienti</span>
+    </a>
+    <a class="bottom-nav-item" href="/lavori/">
+        <span class="bn-icon">🛠️</span>
+        <span>Lavori</span>
+    </a>
+    <a class="bottom-nav-item" href="/fatture/">
+        <span class="bn-icon">🧾</span>
+        <span>Fatture</span>
+    </a>
+    <button class="bottom-nav-item" id="bottom-menu-btn" aria-label="Apri menu">
+        <span class="bn-icon">☰</span>
+        <span>Menu</span>
+    </button>
+</nav>
+<script>
+(function () {
+    var menuBtn = document.getElementById('bottom-menu-btn');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', function () {
+            var toggle = document.getElementById('navbar-toggle');
+            if (toggle) {
+                toggle.click();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    }
+    var path = window.location.pathname;
+    document.querySelectorAll('.bottom-nav-item[href]').forEach(function (a) {
+        var href = a.getAttribute('href');
+        var match = href === '/' ? path === '/' : path.startsWith(href);
+        if (match) a.classList.add('bn-active');
+    });
+})();
+</script>
+
 <!-- Cookie banner GDPR -->
 <div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;color:#e2e8f0;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,0.25);">
     <span style="font-size:13px;line-height:1.5;flex:1;min-width:200px;">

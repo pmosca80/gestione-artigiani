@@ -1,12 +1,12 @@
-const CACHE = 'gestionale-v1';
+const CACHE = 'gestionale-v2';
 const STATIC = [
+  '/static/style.css',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
   '/static/manifest.json',
 ];
 
 self.addEventListener('install', e => {
-  // Non bloccare l'installazione se un asset non carica
   e.waitUntil(
     caches.open(CACHE)
       .then(c => Promise.allSettled(STATIC.map(url =>

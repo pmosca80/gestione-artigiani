@@ -751,3 +751,132 @@ th {
 .row-info {
     background-color: #e8f4fd;
 }
+
+/* ══ MOBILE / ANDROID ══════════════════════════════════════════════════ */
+
+/* Bottom nav: nascosta su desktop, mostrata solo via media query */
+.bottom-nav { display: none; }
+
+@media (max-width: 900px) {
+    /* Previene zoom automatico su Android/iOS quando si tocca un campo
+       (il browser zooma se font-size < 16px) */
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="password"],
+    input[type="search"],
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="time"],
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+    /* Navbar sempre visibile anche durante lo scroll */
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 500;
+    }
+
+    /* Spazio extra in fondo perché la bottom nav non copra i contenuti */
+    body {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Bottom navigation bar — stile Android */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 600;
+        background: #0f172a;
+        border-top: 1px solid rgba(255,255,255,0.10);
+        height: 60px;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        box-shadow: 0 -2px 16px rgba(0,0,0,0.30);
+    }
+
+    .bottom-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 10px;
+        font-family: inherit;
+        gap: 3px;
+        padding: 6px 4px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: color 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        min-height: 44px; /* touch target minimo WCAG */
+    }
+
+    .bottom-nav-item .bn-icon {
+        font-size: 20px;
+        line-height: 1;
+        display: block;
+    }
+
+    .bottom-nav-item:active {
+        color: #a78bfa;
+    }
+
+    .bottom-nav-item.bn-active {
+        color: #7c3aed;
+    }
+
+    /* Pill evidenziatore sotto item attivo */
+    .bottom-nav-item.bn-active .bn-icon {
+        background: rgba(124,58,237,0.15);
+        border-radius: 14px;
+        padding: 2px 14px;
+    }
+
+    /* Container principale: non tagliare il contenuto orizzontalmente */
+    .container {
+        overflow-x: hidden;
+    }
+
+    /* Titoli più compatti */
+    .main-title { font-size: 24px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+
+    /* Grid con colonna singola su schermi molto stretti */
+    .action-grid,
+    .economy-banner,
+    .cliente-info-box {
+        grid-template-columns: 1fr;
+    }
+
+    /* KPI compatti */
+    .kpi-card { padding: 16px; }
+
+    /* Top header: stack verticale */
+    .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    /* Pulsanti azione full-width su mobile */
+    .cliente-actions {
+        width: 100%;
+    }
+    .cliente-actions .btn,
+    .cliente-actions a {
+        flex: 1;
+        text-align: center;
+    }
+}

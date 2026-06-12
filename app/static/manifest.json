@@ -9,6 +9,7 @@
   "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
   "lang": "it",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/static/icons/icon-192.png",
@@ -27,6 +28,36 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuovo Lavoro",
+      "short_name": "Lavoro",
+      "description": "Aggiungi un nuovo lavoro",
+      "url": "/lavori/nuovo",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nuovo Cliente",
+      "short_name": "Cliente",
+      "description": "Aggiungi un nuovo cliente",
+      "url": "/clienti/nuovo",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "description": "Scadenzario lavori",
+      "url": "/lavori/agenda/scadenzario",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Torna alla dashboard",
+      "url": "/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
