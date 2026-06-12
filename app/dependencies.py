@@ -17,25 +17,10 @@ class AccountDisattivato(Exception):
     pass
 
 
-def verifica_account(request: Request, db: Session) -> int:
-    from app.models import Utente
-
-    user_id = request.session.get("user_id")
-    if not user_id:
-        raise NotAuthenticated()
-
-    utente = db.query(Utente).filter(Utente.id == user_id).first()
-
-    if not utente:
-        raise NotAuthenticated()
-
-    if utente.attivo == 0:
-        raise AccountDisattivato()
-
-    if utente.username == "admin":
-        return user_id
-
+def _check_piano_trial(utente, db: Session) -> None:
+    """Verifica piano Pro e scadenza trial. Lancia AccountScaduto se trial finito."""
     piano = getattr(utente, "piano", None) or "free"
+
     if piano == "pro":
         pro_scadenza = getattr(utente, "pro_scadenza", None)
         stripe_sub = getattr(utente, "stripe_subscription_id", None)
@@ -47,11 +32,14 @@ def verifica_account(request: Request, db: Session) -> int:
                     utente.pro_scadenza = None
                     db.commit()
                     piano = "free"
+            except AccountScaduto:
+                raise
             except Exception:
                 pass
         if piano == "pro":
-            return user_id
+            return
 
+    # Piano free: verifica trial 30 giorni
     if utente.data_registrazione:
         try:
             data_reg = datetime.strptime(utente.data_registrazione, "%Y-%m-%d")
@@ -60,9 +48,37 @@ def verifica_account(request: Request, db: Session) -> int:
                 raise AccountScaduto()
         except AccountScaduto:
             raise
-        except:
+        except Exception:
             pass
 
+
+def verifica_account(request: Request, db: Session) -> int:
+    from app.models import Utente
+
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise NotAuthenticated()
+
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    if not utente:
+        raise NotAuthenticated()
+
+    if utente.attivo == 0:
+        raise AccountDisattivato()
+
+    if utente.username == "admin":
+        return user_id
+
+    titolare_id = getattr(utente, "titolare_id", None)
+    if titolare_id:
+        # Collaboratore: verifica e usa l'account del titolare
+        titolare = db.query(Utente).filter(Utente.id == titolare_id).first()
+        if not titolare or titolare.attivo == 0:
+            raise AccountDisattivato()
+        _check_piano_trial(titolare, db)
+        return titolare_id
+
+    _check_piano_trial(utente, db)
     return user_id
 
 

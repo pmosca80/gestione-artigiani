@@ -25,6 +25,25 @@ def _get_user_id(request: Request) -> int | None:
     return request.session.get("user_id")
 
 
+def _effective_id(request: Request, db: Session) -> int | None:
+    """Restituisce l'ID effettivo del titolare (anche per collaboratori)."""
+    uid = request.session.get("user_id")
+    if not uid:
+        return None
+    from app.models import Utente
+    u = db.query(Utente).filter(Utente.id == uid).first()
+    return (getattr(u, "titolare_id", None) or uid) if u else uid
+
+
+def _is_collaboratore(request: Request, db: Session) -> bool:
+    uid = request.session.get("user_id")
+    if not uid:
+        return False
+    from app.models import Utente
+    u = db.query(Utente).filter(Utente.id == uid).first()
+    return bool(u and getattr(u, "titolare_id", None))
+
+
 @router.get("/piani", response_class=HTMLResponse)
 def pagina_piani(
     request: Request,
@@ -36,8 +55,11 @@ def pagina_piani(
     if not user_id:
         return RedirectResponse("/login", status_code=303)
 
-    piano_corrente = get_piano(db, user_id)
-    n_clienti = conta_clienti(db, user_id)
+    eff_id = _effective_id(request, db)
+    is_collab = _is_collaboratore(request, db)
+
+    piano_corrente = get_piano(db, eff_id)
+    n_clienti = conta_clienti(db, eff_id)
     stripe_ok = stripe_configurato()
     price_id = get_stripe_price_id()
 
@@ -52,6 +74,7 @@ def pagina_piani(
             "price_id": price_id,
             "trial_scaduto": trial_scaduto,
             "successo": successo,
+            "is_collaboratore": is_collab,
         },
     )
 
@@ -66,6 +89,8 @@ def crea_checkout(
     user_id = _get_user_id(request)
     if not user_id:
         return RedirectResponse("/login", status_code=303)
+    if _is_collaboratore(request, db):
+        return RedirectResponse("/piani?errore=solo_titolare", status_code=303)
 
     if not stripe_configurato():
         return RedirectResponse("/piani?errore=stripe_non_configurato", status_code=303)
@@ -133,6 +158,8 @@ def portale_stripe(
     user_id = _get_user_id(request)
     if not user_id:
         return RedirectResponse("/login", status_code=303)
+    if _is_collaboratore(request, db):
+        return RedirectResponse("/piani?errore=solo_titolare", status_code=303)
 
     if not stripe_configurato():
         return RedirectResponse("/piani?errore=stripe_non_configurato", status_code=303)

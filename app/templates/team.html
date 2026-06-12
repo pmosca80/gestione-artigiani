@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=128">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f1f5f9; }
+        .page-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            padding: 28px 36px;
+            color: white;
+        }
+        .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+        .page-header p  { margin: 6px 0 0; font-size: 13px; color: #94a3b8; }
+        .container { max-width: 760px; margin: 32px auto; padding: 0 24px 60px; }
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6b7280;
+            margin: 0 0 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .collab-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .collab-row:last-child { border-bottom: none; }
+        .collab-info { display: flex; align-items: center; gap: 12px; }
+        .collab-avatar {
+            width: 38px; height: 38px;
+            background: #7c3aed;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700; font-size: 15px;
+        }
+        .collab-name { font-size: 14px; font-weight: 600; color: #111827; }
+        .collab-badge {
+            font-size: 11px; font-weight: 600;
+            background: #f3f4f6; color: #6b7280;
+            padding: 2px 8px; border-radius: 99px;
+        }
+        .btn-danger {
+            background: #fee2e2; color: #991b1b;
+            border: none; border-radius: 8px;
+            padding: 6px 14px; font-size: 12px; font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-danger:hover { background: #fca5a5; }
+        .btn-primary {
+            background: #7c3aed; color: white;
+            border: none; border-radius: 10px;
+            padding: 11px 24px; font-size: 14px; font-weight: 700;
+            cursor: pointer; text-decoration: none; display: inline-block;
+        }
+        .btn-primary:hover { background: #6d28d9; }
+        .link-box {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .link-box input {
+            flex: 1; border: none; background: transparent;
+            font-size: 13px; color: #374151; outline: none;
+            font-family: monospace;
+        }
+        .btn-copy {
+            background: #e0e7ff; color: #3730a3;
+            border: none; border-radius: 7px;
+            padding: 6px 14px; font-size: 12px; font-weight: 700;
+            cursor: pointer; white-space: nowrap;
+        }
+        .btn-copy:hover { background: #c7d2fe; }
+        .alert-banner {
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .alert-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .empty-state { text-align: center; padding: 24px; color: #9ca3af; font-size: 14px; }
+        .scadenza-note { font-size: 11px; color: #9ca3af; margin-top: 6px; }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="page-header">
+    <h1>👥 Gestione Team</h1>
+    <p>Invita collaboratori per condividere l'accesso al gestionale</p>
+</div>
+
+<div class="container">
+
+    {% if errore == 'pro_required' %}
+    <div class="alert-banner alert-warning">⭐ Funzionalità disponibile solo con Piano Pro. <a href="/piani" style="color:#92400e;font-weight:700;">Attiva Pro →</a></div>
+    {% elif errore == 'limite_raggiunto' %}
+    <div class="alert-banner alert-error">🚫 Hai raggiunto il limite massimo di {{ max_collaboratori }} collaboratori.</div>
+    {% endif %}
+
+    <!-- Collaboratori attivi -->
+    <div class="card">
+        <div class="card-title">Collaboratori ({{ collaboratori|length }}/{{ max_collaboratori }})</div>
+
+        {% if collaboratori %}
+            {% for c in collaboratori %}
+            <div class="collab-row">
+                <div class="collab-info">
+                    <div class="collab-avatar">{{ c.username[0].upper() }}</div>
+                    <div>
+                        <div class="collab-name">{{ c.username }}</div>
+                        <div class="collab-badge">Collaboratore</div>
+                    </div>
+                </div>
+                <form method="post" action="/team/rimuovi/{{ c.id }}"
+                      onsubmit="return confirm('Rimuovere {{ c.username }} dal team? Potrà ancora accedere con le sue credenziali ma non vedrà più i tuoi dati.');">
+                    <button type="submit" class="btn-danger">Rimuovi</button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">Nessun collaboratore ancora. Genera un link di invito per aggiungerne uno.</div>
+        {% endif %}
+    </div>
+
+    <!-- Invito -->
+    <div class="card">
+        <div class="card-title">Link di Invito</div>
+
+        {% if piano != 'pro' %}
+        <div style="text-align:center;padding:20px;">
+            <p style="font-size:14px;color:#6b7280;margin-bottom:16px;">
+                ⭐ Il team è disponibile solo con Piano Pro.<br>
+                Passa a Pro per invitare fino a {{ max_collaboratori }} collaboratori.
+            </p>
+            <a href="/piani" class="btn-primary">Attiva Piano Pro</a>
+        </div>
+
+        {% elif collaboratori|length >= max_collaboratori %}
+        <div class="alert-banner alert-warning" style="margin-bottom:0;">
+            🚫 Hai già {{ max_collaboratori }} collaboratori (limite massimo).
+        </div>
+
+        {% else %}
+            {% if link_invito %}
+            <p style="font-size:13px;color:#374151;margin-bottom:12px;">
+                Condividi questo link con il tuo collaboratore. Valido fino al <strong>{{ invito_scadenza }}</strong>.
+            </p>
+            <div class="link-box">
+                <input type="text" id="link-input" value="{{ link_invito }}" readonly>
+                <button class="btn-copy" onclick="copiaLink()">📋 Copia</button>
+            </div>
+            <p class="scadenza-note">Il link scade tra 7 giorni. Generarne uno nuovo invalida il precedente.</p>
+            <div style="margin-top:14px;">
+                <form method="post" action="/team/invita">
+                    <button type="submit" class="btn-primary" style="background:#6b7280;font-size:13px;padding:8px 18px;">
+                        🔄 Genera nuovo link
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
+                Genera un link da condividere con il collaboratore. Chiunque abbia il link potrà creare un account e accedere ai tuoi dati.
+            </p>
+            <form method="post" action="/team/invita">
+                <button type="submit" class="btn-primary">🔗 Genera link di invito</button>
+            </form>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;font-size:13px;color:#6b7280;line-height:1.7;">
+        <strong style="color:#374151;">Come funziona:</strong><br>
+        1. Genera un link di invito e condividilo con il collaboratore (WhatsApp, email, ecc.)<br>
+        2. Il collaboratore apre il link, sceglie username e password, e accede al gestionale<br>
+        3. Il collaboratore vede gli stessi dati tuoi: clienti, lavori, magazzino, fatture<br>
+        4. Puoi rimuoverlo in qualsiasi momento da questa pagina
+    </div>
+</div>
+
+<script>
+function copiaLink() {
+    var inp = document.getElementById('link-input');
+    inp.select();
+    inp.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    var btn = event.target;
+    btn.textContent = '✅ Copiato!';
+    setTimeout(function() { btn.textContent = '📋 Copia'; }, 2000);
+}
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -69,7 +69,11 @@ def _run_migrations():
     with engine.connect() as conn:
         if "pro_scadenza" not in cols:
             conn.execute(text("ALTER TABLE utenti ADD COLUMN pro_scadenza VARCHAR"))
-            conn.commit()
+        if "titolare_id" not in cols:
+            conn.execute(text("ALTER TABLE utenti ADD COLUMN titolare_id INTEGER"))
+        if "ruolo" not in cols:
+            conn.execute(text("ALTER TABLE utenti ADD COLUMN ruolo VARCHAR DEFAULT 'titolare'"))
+        conn.commit()
 _run_migrations()
 
 app = FastAPI(
@@ -106,6 +110,7 @@ app.include_router(impostazioni.router)
 app.include_router(documenti.router)
 app.include_router(fatture.router)
 app.include_router(piani.router)
+app.include_router(team.router)
 
 @app.get("/api/cerca")
 def cerca_globale(
@@ -214,9 +219,14 @@ def home(
 ):
     from app.services.piani import get_piano, conta_clienti, LIMITE_CLIENTI_FREE
 
-    user_id = request.session.get("user_id")
-    if not user_id:
+    raw_user_id = request.session.get("user_id")
+    if not raw_user_id:
         return templates.TemplateResponse(request=request, name="landing.html", context={})
+
+    # Risolve l'ID effettivo: per i collaboratori usa l'ID del titolare
+    from app.models import Utente as _Utente
+    _raw_utente = db.query(_Utente).filter(_Utente.id == raw_user_id).first()
+    user_id = (getattr(_raw_utente, "titolare_id", None) or raw_user_id) if _raw_utente else raw_user_id
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
     if not azienda or not azienda.nome_azienda:
@@ -227,30 +237,19 @@ def home(
 
     stats = crud.get_dashboard_pro(db, user_id)
 
-    notifiche = crud.get_notifiche_dashboard(
-        db,
-        user_id
-    )
+    notifiche = crud.get_notifiche_dashboard(db, user_id)
 
-    classifica_clienti = crud.get_classifica_clienti(
-        db,
-        user_id
-    )
+    classifica_clienti = crud.get_classifica_clienti(db, user_id)
 
-    lavori_redditizi = crud.get_lavori_piu_redditizi(
-        db,
-        user_id
-    )
+    lavori_redditizi = crud.get_lavori_piu_redditizi(db, user_id)
 
     cliente_top = None
-
     if classifica_clienti:
         cliente_top = classifica_clienti[0]
 
-    # Calcolo giorni rimasti nel trial (free o promo pro)
+    # Calcolo giorni rimasti nel trial (del titolare, non del collaboratore)
     trial_giorni_rimasti = None
     trial_tipo = None
-    from app.models import Utente as _Utente
     utente_obj = db.query(_Utente).filter(_Utente.id == user_id).first()
     if utente_obj and utente_obj.username != "admin":
         if piano_corrente == "free" and getattr(utente_obj, "attivo", 1) != 2 and utente_obj.data_registrazione:

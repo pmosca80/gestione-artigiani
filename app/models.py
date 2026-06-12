@@ -21,6 +21,10 @@ class Utente(Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 
+    # Multi-utente: NULL = titolare, impostato = collaboratore
+    titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
+    ruolo = Column(String, nullable=True, default="titolare")  # "titolare" | "collaboratore"
+
 class Cliente(Base):
     __tablename__ = "clienti"
 
@@ -287,3 +291,14 @@ class FatturaEmessa(Base):
     data_creazione = Column(String, nullable=False)
 
     lavoro = relationship("Lavoro", back_populates="fatture_emesse")
+
+
+class InvitoAccount(Base):
+    __tablename__ = "inviti_account"
+
+    id = Column(Integer, primary_key=True, index=True)
+    titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    token = Column(String, nullable=False, unique=True)
+    scadenza = Column(String, nullable=False)
+    usato = Column(Integer, default=0)
+    data_creazione = Column(String, nullable=False)

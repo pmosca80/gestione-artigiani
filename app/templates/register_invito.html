@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unisciti al team — Gestionale Artigiani</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 24px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 44px;
+            width: 100%; max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .logo { font-size: 32px; margin-bottom: 6px; }
+        h1 { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 28px; line-height: 1.5; }
+        .titolare-badge {
+            background: #ede9fe; color: #5b21b6;
+            border-radius: 8px; padding: 10px 14px;
+            font-size: 13px; font-weight: 600;
+            margin-bottom: 24px;
+        }
+        label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        input[type=text], input[type=password] {
+            width: 100%; padding: 11px 14px;
+            border: 1px solid #d1d5db; border-radius: 10px;
+            font-size: 14px; color: #111827;
+            outline: none; margin-bottom: 16px;
+        }
+        input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+        .btn {
+            width: 100%; padding: 13px;
+            background: #7c3aed; color: white;
+            border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 700;
+            cursor: pointer; margin-top: 4px;
+        }
+        .btn:hover { background: #6d28d9; }
+        .error-box {
+            background: #fee2e2; color: #991b1b;
+            border: 1px solid #fca5a5; border-radius: 10px;
+            padding: 11px 14px; font-size: 13px;
+            margin-bottom: 18px; font-weight: 600;
+        }
+        .invalid-box {
+            background: #fef3c7; color: #92400e;
+            border: 1px solid #fcd34d; border-radius: 10px;
+            padding: 18px; font-size: 14px; text-align: center;
+        }
+        .login-link { text-align: center; margin-top: 20px; font-size: 13px; color: #6b7280; }
+        .login-link a { color: #7c3aed; font-weight: 600; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">👥</div>
+
+    {% if token_invalido %}
+        <h1>Link non valido</h1>
+        <div class="invalid-box" style="margin-top:16px;">
+            ⚠️ Questo link di invito è scaduto o è già stato utilizzato.<br><br>
+            Chiedi al titolare di generare un nuovo link.
+        </div>
+        <div class="login-link"><a href="/login">← Vai al login</a></div>
+    {% else %}
+        <h1>Unisciti al team</h1>
+        <p class="subtitle">Crea il tuo account per accedere al gestionale.</p>
+
+        <div class="titolare-badge">
+            🔧 Stai per unirti al team di <strong>{{ titolare_username }}</strong>
+        </div>
+
+        {% if errore %}
+        <div class="error-box">⚠️ {{ errore }}</div>
+        {% endif %}
+
+        <form method="post" action="/register/invito/{{ token }}">
+            <label for="username">Username (o email)</label>
+            <input type="text" id="username" name="username" placeholder="es. mario.rossi" required autocomplete="username">
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Almeno 6 caratteri" required autocomplete="new-password">
+
+            <button type="submit" class="btn">✅ Crea account e accedi</button>
+        </form>
+
+        <div class="login-link">Hai già un account? <a href="/login">Accedi</a></div>
+    {% endif %}
+</div>
+</body>
+</html>
