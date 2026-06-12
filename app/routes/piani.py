@@ -125,6 +125,39 @@ def checkout_annullato(request: Request):
     return RedirectResponse("/piani", status_code=303)
 
 
+@router.get("/piani/portale")
+def portale_stripe(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user_id = _get_user_id(request)
+    if not user_id:
+        return RedirectResponse("/login", status_code=303)
+
+    if not stripe_configurato():
+        return RedirectResponse("/piani?errore=stripe_non_configurato", status_code=303)
+
+    from app.models import Utente
+    import stripe as _stripe
+    _stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    if not utente or not utente.stripe_customer_id:
+        return RedirectResponse("/piani?errore=nessun_abbonamento_trovato", status_code=303)
+
+    base_url = get_base_url(request)
+    try:
+        portal = _stripe.billing_portal.Session.create(
+            customer=utente.stripe_customer_id,
+            return_url=f"{base_url}/piani",
+        )
+        return RedirectResponse(portal.url, status_code=303)
+    except Exception as exc:
+        import urllib.parse
+        msg = urllib.parse.quote(str(exc)[:120])
+        return RedirectResponse(f"/piani?errore={msg}", status_code=303)
+
+
 @router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     import stripe as _stripe

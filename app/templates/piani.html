@@ -243,9 +243,12 @@
                 <li><span class="check">✓</span> <strong>Invio fattura via email</strong></li>
             </ul>
             {% if piano_corrente == 'pro' %}
-            <span class="btn-plan btn-plan-current" style="background:#1e3a5f;color:#94a3b8;">
-                ✓ Piano attivo
-            </span>
+            <a href="/piani/portale" class="btn-plan btn-plan-upgrade" style="background:#059669;">
+                ⚙️ Gestisci abbonamento
+            </a>
+            <div style="text-align:center;margin-top:8px;font-size:11px;color:#64748b;">
+                Modifica, sospendi o cancella dal portale Stripe
+            </div>
             {% elif stripe_ok and price_id %}
             <form method="post" action="/piani/checkout">
                 <button type="submit" class="btn-plan btn-plan-upgrade">
