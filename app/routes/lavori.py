@@ -89,10 +89,12 @@ def form_lavoro(cliente_id: int, request: Request, db: Session = Depends(get_db)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
 
+    template_preventivi = crud.get_template_preventivi(db, user_id)
+
     return templates.TemplateResponse(
         request=request,
         name="lavoro_nuovo.html",
-        context={"cliente": cliente}
+        context={"cliente": cliente, "template_preventivi": template_preventivi}
     )
 
 

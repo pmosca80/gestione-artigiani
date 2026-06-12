@@ -158,10 +158,35 @@
         </div>
     </div>
 
-    <!-- TIP -->
+    <!-- TEMPLATE SELECTOR -->
+    {% if template_preventivi %}
+    <div class="tip-box" id="template-box" style="padding:0; overflow:hidden; border-color:#bfdbfe;">
+        <div style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; cursor:pointer;"
+             onclick="toggleTemplates()">
+            <span style="font-size:13px; color:#1e40af;">⚡ Usa un template per compilare velocemente</span>
+            <span id="toggle-arrow" style="font-size:11px; color:#2563eb; font-weight:700;">MOSTRA ▼</span>
+        </div>
+        <div id="template-list" style="display:none; padding:0 14px 14px; border-top:1px solid #bfdbfe; display:none;">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; padding-top:12px;">
+                {% for t in template_preventivi %}
+                <button type="button"
+                        onclick="applicaTemplate({{ t.id }}, {{ t.titolo|tojson }}, {{ t.descrizione|tojson }}, {{ t.importo_preventivato or 0 }}, {{ t.aliquota_iva or 22 }}, {{ t.sconto or 0 }}, {{ t.note_consuntivo|tojson }})"
+                        style="padding:7px 14px; background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif;">
+                    {{ t.nome }}
+                </button>
+                {% endfor %}
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/preventivi/template/" style="font-size:12px; color:#6b7280; text-decoration:none;">⚙️ Gestisci template →</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <div class="tip-box">
         💡 Puoi creare il lavoro con i dati minimi e aggiungere materiali, ore e pagamenti in seguito dalla scheda lavoro.
+        <br><a href="/preventivi/template/nuovo" style="color:#1d4ed8; font-weight:600; text-decoration:none;">+ Crea template per lavori frequenti</a>
     </div>
+    {% endif %}
 
     <form method="post">
 
@@ -238,5 +263,34 @@
 
 </div>
 
+<script>
+function toggleTemplates() {
+    var list = document.getElementById('template-list');
+    var arrow = document.getElementById('toggle-arrow');
+    if (list.style.display === 'none' || list.style.display === '') {
+        list.style.display = 'block';
+        arrow.textContent = 'NASCONDI ▲';
+    } else {
+        list.style.display = 'none';
+        arrow.textContent = 'MOSTRA ▼';
+    }
+}
+
+function applicaTemplate(id, titolo, descrizione, importo, iva, sconto, note) {
+    var form = document.querySelector('form[method="post"]');
+    if (titolo) form.querySelector('[name="titolo"]').value = titolo;
+    if (descrizione) form.querySelector('[name="descrizione"]').value = descrizione;
+    if (importo) form.querySelector('[name="importo_preventivato"]').value = importo;
+    if (iva) form.querySelector('[name="aliquota_iva"]').value = iva;
+    if (sconto) form.querySelector('[name="sconto"]').value = sconto;
+    if (note) form.querySelector('[name="note_consuntivo"]').value = note;
+    // chiudi il pannello e segnala
+    document.getElementById('template-list').style.display = 'none';
+    document.getElementById('toggle-arrow').textContent = 'MOSTRA ▼';
+    document.getElementById('template-box').style.borderColor = '#86efac';
+    document.getElementById('template-box').style.background = '#f0fdf4';
+    document.querySelector('#template-box span').textContent = '✅ Template applicato — controlla e modifica se vuoi';
+}
+</script>
 </body>
 </html>

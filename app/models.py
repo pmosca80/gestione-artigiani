@@ -302,6 +302,21 @@ class FatturaEmessa(Base):
     lavoro = relationship("Lavoro", back_populates="fatture_emesse")
 
 
+class TemplatePreventivo(Base):
+    __tablename__ = "template_preventivi"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    nome = Column(String, nullable=False)
+    titolo = Column(String, default="")
+    descrizione = Column(Text, default="")
+    importo_preventivato = Column(Float, default=0)
+    aliquota_iva = Column(Float, default=22)
+    sconto = Column(Float, default=0)
+    note_consuntivo = Column(Text, default="")
+    creato_il = Column(String, nullable=True)
+
+
 class InvitoAccount(Base):
     __tablename__ = "inviti_account"
 

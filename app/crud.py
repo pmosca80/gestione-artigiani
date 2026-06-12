@@ -2418,3 +2418,86 @@ def aggiorna_stato_fattura(db: Session, fattura_id: int, utente_id: int, nuovo_s
         db.commit()
         db.refresh(f)
     return f
+
+# ========================
+# TEMPLATE PREVENTIVI
+# ========================
+
+def get_template_preventivi(db: Session, utente_id: int):
+    return (
+        db.query(models.TemplatePreventivo)
+        .filter(models.TemplatePreventivo.utente_id == utente_id)
+        .order_by(models.TemplatePreventivo.nome)
+        .all()
+    )
+
+def get_template_preventivo(db: Session, template_id: int, utente_id: int):
+    return (
+        db.query(models.TemplatePreventivo)
+        .filter(
+            models.TemplatePreventivo.id == template_id,
+            models.TemplatePreventivo.utente_id == utente_id,
+        )
+        .first()
+    )
+
+def crea_template_preventivo(
+    db: Session,
+    utente_id: int,
+    nome: str,
+    titolo: str = "",
+    descrizione: str = "",
+    importo_preventivato: float = 0,
+    aliquota_iva: float = 22,
+    sconto: float = 0,
+    note_consuntivo: str = "",
+) -> models.TemplatePreventivo:
+    t = models.TemplatePreventivo(
+        utente_id=utente_id,
+        nome=nome,
+        titolo=titolo,
+        descrizione=descrizione,
+        importo_preventivato=importo_preventivato,
+        aliquota_iva=aliquota_iva,
+        sconto=sconto,
+        note_consuntivo=note_consuntivo,
+        creato_il=datetime.now().strftime("%Y-%m-%d"),
+    )
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return t
+
+def aggiorna_template_preventivo(
+    db: Session,
+    template_id: int,
+    utente_id: int,
+    nome: str,
+    titolo: str = "",
+    descrizione: str = "",
+    importo_preventivato: float = 0,
+    aliquota_iva: float = 22,
+    sconto: float = 0,
+    note_consuntivo: str = "",
+) -> models.TemplatePreventivo | None:
+    t = get_template_preventivo(db, template_id, utente_id)
+    if not t:
+        return None
+    t.nome = nome
+    t.titolo = titolo
+    t.descrizione = descrizione
+    t.importo_preventivato = importo_preventivato
+    t.aliquota_iva = aliquota_iva
+    t.sconto = sconto
+    t.note_consuntivo = note_consuntivo
+    db.commit()
+    db.refresh(t)
+    return t
+
+def elimina_template_preventivo(db: Session, template_id: int, utente_id: int) -> bool:
+    t = get_template_preventivo(db, template_id, utente_id)
+    if not t:
+        return False
+    db.delete(t)
+    db.commit()
+    return True
