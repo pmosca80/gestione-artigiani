@@ -19,6 +19,7 @@ from app.models import (
     PagamentoLavoro,
     AllegatoLavoro,
     FatturaEmessa,
+    TemplatePreventivo,
 )
 from app.models import MovimentoMagazzino
 
@@ -2425,18 +2426,18 @@ def aggiorna_stato_fattura(db: Session, fattura_id: int, utente_id: int, nuovo_s
 
 def get_template_preventivi(db: Session, utente_id: int):
     return (
-        db.query(models.TemplatePreventivo)
-        .filter(models.TemplatePreventivo.utente_id == utente_id)
-        .order_by(models.TemplatePreventivo.nome)
+        db.query(TemplatePreventivo)
+        .filter(TemplatePreventivo.utente_id == utente_id)
+        .order_by(TemplatePreventivo.nome)
         .all()
     )
 
 def get_template_preventivo(db: Session, template_id: int, utente_id: int):
     return (
-        db.query(models.TemplatePreventivo)
+        db.query(TemplatePreventivo)
         .filter(
-            models.TemplatePreventivo.id == template_id,
-            models.TemplatePreventivo.utente_id == utente_id,
+            TemplatePreventivo.id == template_id,
+            TemplatePreventivo.utente_id == utente_id,
         )
         .first()
     )
@@ -2451,8 +2452,8 @@ def crea_template_preventivo(
     aliquota_iva: float = 22,
     sconto: float = 0,
     note_consuntivo: str = "",
-) -> models.TemplatePreventivo:
-    t = models.TemplatePreventivo(
+) -> TemplatePreventivo:
+    t = TemplatePreventivo(
         utente_id=utente_id,
         nome=nome,
         titolo=titolo,
@@ -2479,7 +2480,7 @@ def aggiorna_template_preventivo(
     aliquota_iva: float = 22,
     sconto: float = 0,
     note_consuntivo: str = "",
-) -> models.TemplatePreventivo | None:
+) -> TemplatePreventivo | None:
     t = get_template_preventivo(db, template_id, utente_id)
     if not t:
         return None
