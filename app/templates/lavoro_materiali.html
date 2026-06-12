@@ -172,6 +172,61 @@
         @media (max-width: 500px) {
             .add-form-grid { grid-template-columns: 1fr; }
         }
+
+        /* RICERCA RAPIDA MATERIALE */
+        .mat-search-input {
+            width: 100%; padding: 13px 16px;
+            border: 2px solid #e5e7eb; border-radius: 10px;
+            font-size: 15px; font-family: 'DM Sans', sans-serif;
+            outline: none; background: #f9fafb; box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .mat-search-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+        #mat-selected-box {
+            padding: 11px 14px; background: #eff6ff;
+            border: 2px solid #2563eb; border-radius: 10px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #mat-selected-nome { font-weight: 700; color: #1e40af; font-size: 14px; }
+        .mat-desel-btn {
+            background: none; border: none; color: #6b7280;
+            font-size: 22px; cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        #mat-lista {
+            display: none; position: absolute;
+            top: calc(100% + 4px); left: 0; right: 0;
+            background: white; border: 1.5px solid #e5e7eb;
+            border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+            z-index: 200; max-height: 300px; overflow-y: auto;
+        }
+        .mat-item {
+            padding: 13px 16px; cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex; align-items: center;
+            justify-content: space-between; gap: 8px;
+        }
+        .mat-item:last-child { border-bottom: none; }
+        .mat-item:hover, .mat-item:active { background: #f8fafc; }
+        .mat-item-nome { font-weight: 600; color: #111827; font-size: 14px; }
+        .mat-item-meta { font-size: 12px; color: #9ca3af; white-space: nowrap; }
+        .quick-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #9ca3af; display: block; margin-bottom: 5px;
+        }
+        .quick-input {
+            width: 100%; padding: 12px; border: 1.5px solid #e5e7eb;
+            border-radius: 8px; font-size: 16px; font-family: 'DM Sans', sans-serif;
+            outline: none; box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .quick-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
     </style>
 </head>
 <body>
@@ -194,34 +249,42 @@
     <div class="alert-error">⚠️ Quantità insufficiente in magazzino.</div>
     {% endif %}
 
-    <!-- FORM AGGIUNGI -->
+    <!-- FORM AGGIUNGI RAPIDO -->
     <div class="add-form-card">
-        <h3>➕ Aggiungi materiale al lavoro</h3>
-        <form method="post">
-            <div class="add-form-grid">
-                <div class="add-form-group">
-                    <label>Materiale</label>
-                    <select name="materiale_id" required>
-                        {% for materiale in materiali %}
-                        <option value="{{ materiale.id }}">
-                            {{ materiale.nome }} — disp. {{ materiale.quantita }} {{ materiale.unita_misura }} — € {{ "%.2f"|format(materiale.prezzo_vendita_default or 0) }}
-                        </option>
-                        {% endfor %}
-                    </select>
+        <h3>📦 Aggiungi materiale</h3>
+        <form method="post" id="form-mat">
+            <input type="hidden" name="materiale_id" id="mat-id">
+            <input type="hidden" name="note" value="">
+
+            <div style="position:relative; margin-bottom:12px;">
+                <input type="text" id="cerca-mat"
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                       placeholder="🔍 Scrivi il nome del materiale..."
+                       class="mat-search-input"
+                       oninput="filtraMateriali(this.value)">
+                <div id="mat-selected-box" style="display:none;">
+                    <span id="mat-selected-nome"></span>
+                    <button type="button" onclick="deselezionaMat()" class="mat-desel-btn">×</button>
                 </div>
-                <div class="add-form-group">
-                    <label>Quantità</label>
-                    <input type="number" step="0.01" name="quantita" placeholder="0.00" required>
+                <div id="mat-lista"></div>
+            </div>
+
+            <div id="mat-details" style="display:none;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <div style="flex:1; min-width:120px;">
+                        <label class="quick-label">Quantità <span id="mat-unita" style="text-transform:none; font-weight:500;"></span></label>
+                        <input type="number" step="0.01" name="quantita" id="mat-qta"
+                               placeholder="0" required class="quick-input">
+                    </div>
+                    <div style="flex:1; min-width:120px;">
+                        <label class="quick-label">Prezzo cliente (€)</label>
+                        <input type="number" step="0.01" name="prezzo_unitario_cliente" id="mat-prezzo"
+                               value="0" class="quick-input">
+                    </div>
                 </div>
-                <div class="add-form-group">
-                    <label>Prezzo cliente</label>
-                    <input type="number" step="0.01" name="prezzo_unitario_cliente" value="0">
-                </div>
-                <div class="add-form-group">
-                    <label>Note</label>
-                    <input type="text" name="note" placeholder="Opzionale">
-                </div>
-                <button type="submit" class="btn-aggiungi">📦 Scarica da magazzino</button>
+                <button type="submit" class="btn-aggiungi" style="width:100%; padding:14px; font-size:15px;">
+                    📦 Aggiungi al lavoro
+                </button>
             </div>
         </form>
     </div>
@@ -345,5 +408,64 @@
 
 </div>
 
+<script>
+var _mat = [{% for m in materiali %}{"id":{{ m.id }},"nome":{{ m.nome|tojson }},"unita":{{ (m.unita_misura or '')|tojson }},"disp":{{ m.quantita or 0 }},"prezzo":{{ m.prezzo_vendita_default or 0 }}}{% if not loop.last %},{% endif %}{% endfor %}];
+
+function filtraMateriali(q) {
+    var lista = document.getElementById('mat-lista');
+    if (!q || q.length < 1) { lista.style.display = 'none'; return; }
+    var ql = q.toLowerCase();
+    var r = _mat.filter(function(m){ return m.nome.toLowerCase().indexOf(ql) >= 0; }).slice(0, 12);
+    if (!r.length) {
+        lista.innerHTML = '<div style="padding:14px; color:#9ca3af; text-align:center; font-size:13px;">Nessun risultato</div>';
+    } else {
+        lista.innerHTML = r.map(function(m){
+            return '<div class="mat-item" data-id="'+m.id+'" data-nome="'+m.nome.replace(/"/g,'&quot;')+'" data-unita="'+m.unita+'" data-prezzo="'+m.prezzo+'">' +
+                '<span class="mat-item-nome">'+m.nome+'</span>' +
+                '<span class="mat-item-meta">'+m.disp+' '+m.unita+'</span></div>';
+        }).join('');
+        lista.querySelectorAll('.mat-item').forEach(function(el){
+            el.addEventListener('mousedown', function(e){
+                e.preventDefault();
+                selezionaMat(this.dataset.id, this.dataset.nome, this.dataset.unita, parseFloat(this.dataset.prezzo));
+            });
+        });
+    }
+    lista.style.display = 'block';
+}
+
+function selezionaMat(id, nome, unita, prezzo) {
+    document.getElementById('mat-id').value = id;
+    document.getElementById('cerca-mat').style.display = 'none';
+    var box = document.getElementById('mat-selected-box');
+    box.style.display = 'flex';
+    document.getElementById('mat-selected-nome').textContent = nome;
+    document.getElementById('mat-lista').style.display = 'none';
+    document.getElementById('mat-unita').textContent = unita ? '('+unita+')' : '';
+    document.getElementById('mat-prezzo').value = prezzo || 0;
+    document.getElementById('mat-details').style.display = 'block';
+    setTimeout(function(){
+        var q = document.getElementById('mat-qta');
+        q.focus(); q.select();
+    }, 80);
+}
+
+function deselezionaMat() {
+    document.getElementById('mat-id').value = '';
+    document.getElementById('cerca-mat').style.display = 'block';
+    document.getElementById('cerca-mat').value = '';
+    document.getElementById('mat-selected-box').style.display = 'none';
+    document.getElementById('mat-details').style.display = 'none';
+    document.getElementById('cerca-mat').focus();
+}
+
+document.addEventListener('click', function(e){
+    if (!e.target.closest('#mat-lista') && e.target.id !== 'cerca-mat') {
+        document.getElementById('mat-lista').style.display = 'none';
+    }
+});
+
+document.getElementById('cerca-mat').focus();
+</script>
 </body>
 </html>
