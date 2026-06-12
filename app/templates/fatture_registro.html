@@ -349,7 +349,7 @@
                                 {% if pec_ok %}
                                 <form class="stato-form" method="post"
                                       action="/fatture/{{ f.id }}/invia-sdi"
-                                      onsubmit="return confirm('Inviare la fattura {{ f.anno }}/{{ \"%03d\"|format(f.numero) }} a SDI tramite PEC?')">
+                                      onsubmit="return confirm('Inviare la fattura {{ f.anno }}/{{ '%03d'|format(f.numero) }} a SDI tramite PEC?')">
                                     <button type="submit" class="btn-az btn-az-green"
                                             title="Invia XML a SDI tramite PEC">📤 Invia SDI</button>
                                 </form>
