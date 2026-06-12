@@ -22,6 +22,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.notifiche import controlla_scadenze
 from app.services.backup import esegui_backup
+from app.limiter import limiter
+from slowapi.errors import RateLimitExceeded
 
 logger = get_logger("main")
 
@@ -73,6 +75,8 @@ _run_migrations()
 app = FastAPI(
     title="Gestione Artigiani"
 )
+
+app.state.limiter = limiter
 
 app.add_middleware(
     SessionMiddleware,
@@ -287,6 +291,16 @@ def home(
             "trial_tipo": trial_tipo,
         }
     )
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"errore": "Troppi tentativi di accesso. Riprova tra 1 minuto."},
+        status_code=429,
+    )
+
 
 @app.exception_handler(NotAuthenticated)
 async def not_authenticated_handler(request: Request, exc: NotAuthenticated):

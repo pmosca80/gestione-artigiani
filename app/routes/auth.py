@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Utente
 from app.security import hash_password, verify_password
+from app.limiter import limiter
 from datetime import datetime
 
 router = APIRouter()
@@ -27,6 +28,7 @@ def login_page(request: Request):
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 def login(
     request: Request,
     username: str = Form(...),
