@@ -297,13 +297,13 @@
         </div>
 
         <div class="profilo-item">
-            <div class="profilo-item-label">💰 Ticket medio</div>
-            {% if riepilogo.ticket_medio %}
-                <div class="profilo-item-val">€ {{ "{:,.0f}".format(riepilogo.ticket_medio).replace(",", ".") }}</div>
-                <div class="profilo-item-sub">per lavoro documentato</div>
+            <div class="profilo-item-label">📈 Fatturato 12 mesi</div>
+            {% if riepilogo.fatturato_12mesi > 0 %}
+                <div class="profilo-item-val">€ {{ "{:,.0f}".format(riepilogo.fatturato_12mesi).replace(",", ".") }}</div>
+                <div class="profilo-item-sub">ultimi 365 giorni</div>
             {% else %}
-                <div class="profilo-item-val" style="color:#9ca3af;">—</div>
-                <div class="profilo-item-sub">nessun documento emesso</div>
+                <div class="profilo-item-val" style="color:#9ca3af;">€ 0</div>
+                <div class="profilo-item-sub">nessun documento nell'ultimo anno</div>
             {% endif %}
         </div>
 
@@ -315,9 +315,7 @@
                     {{ riepilogo.puntualita_label }}
                 </span>
             </div>
-            <div class="profilo-item-sub">
-                {% if riepilogo.puntualita_rating == 'ok' %}nessun pagamento scaduto{% else %}pagamenti con scadenza superata{% endif %}
-            </div>
+            <div class="profilo-item-sub">pagamenti aperti oltre scadenza</div>
         </div>
 
         <div class="profilo-item">

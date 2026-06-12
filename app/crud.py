@@ -1803,10 +1803,10 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
             1
         )
 
-    # Ultima visita: ultimo lavoro non-preventivo, non-annullato, per data
+    # Ultima visita: ultimo lavoro non-preventivo, non-annullato, già avvenuto (data <= oggi)
     stati_visita = {"completato", "in_corso", "da_fare"}
     lavori_reali = sorted(
-        [l for l in lavori if l.stato in stati_visita and l.data_lavoro],
+        [l for l in lavori if l.stato in stati_visita and l.data_lavoro and l.data_lavoro <= oggi],
         key=lambda l: l.data_lavoro,
         reverse=True,
     )
@@ -1815,9 +1815,14 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
         ul = lavori_reali[0]
         ultima_visita = {"data": ul.data_lavoro, "titolo": ul.titolo, "id": ul.id}
 
-    # Ticket medio (su lavori con documento > 0)
-    importi = [l.totale_documento for l in lavori if (l.totale_documento or 0) > 0]
-    ticket_medio = round(sum(importi) / len(importi)) if importi else None
+    # Fatturato ultimi 12 mesi
+    from datetime import date as _date, timedelta as _timedelta
+    un_anno_fa = (_date.today() - _timedelta(days=365)).strftime("%Y-%m-%d")
+    fatturato_12mesi = sum(
+        l.totale_documento or 0
+        for l in lavori
+        if l.data_lavoro and l.data_lavoro >= un_anno_fa and (l.totale_documento or 0) > 0
+    )
 
     # Cliente dal: data del primo lavoro
     date_lavori = sorted([l.data_lavoro for l in lavori if l.data_lavoro])
@@ -1826,17 +1831,17 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
     # Lavori completati
     n_lavori_completati = sum(1 for l in lavori if l.stato == "completato")
 
-    # Puntualità pagamenti
+    # Puntualità — conta pagamenti aperti oltre scadenza (dato attuale, non storico)
     n_ritardi = len(lavori_scaduti)
     if n_ritardi == 0:
         puntualita_rating = "ok"
         puntualita_label = "Paga puntuale"
     elif n_ritardi <= 2:
         puntualita_rating = "warn"
-        puntualita_label = f"{n_ritardi} pagament{'o' if n_ritardi == 1 else 'i'} in ritardo"
+        puntualita_label = f"{n_ritardi} pagament{'o' if n_ritardi == 1 else 'i'} scadut{'o' if n_ritardi == 1 else 'i'}"
     else:
         puntualita_rating = "risk"
-        puntualita_label = f"{n_ritardi} pagamenti in ritardo"
+        puntualita_label = f"{n_ritardi} pagamenti scaduti"
 
     return {
         "totale_lavori": totale_lavori,
@@ -1847,7 +1852,7 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
         "totale_scaduto": totale_scaduto,
         "percentuale_incasso": percentuale_incasso,
         "ultima_visita": ultima_visita,
-        "ticket_medio": ticket_medio,
+        "fatturato_12mesi": fatturato_12mesi,
         "cliente_dal": cliente_dal,
         "n_lavori_completati": n_lavori_completati,
         "puntualita_rating": puntualita_rating,
