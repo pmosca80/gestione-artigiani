@@ -1,5 +1,6 @@
 from app.models import DocumentoPDF
 import math
+import secrets
 from datetime import datetime, timedelta
 from app.models import ImpostazioniAzienda
 
@@ -2137,6 +2138,21 @@ def get_notifiche_dashboard(
         "scorte_basse": scorte_basse,
         "lavori_aperti": lavori_aperti,
     }
+
+
+def genera_token_firma(db: Session, lavoro_id: int, utente_id: int):
+    lavoro = get_lavoro_by_id(db, lavoro_id, utente_id)
+    if not lavoro:
+        return None
+    if not lavoro.token_firma:
+        lavoro.token_firma = secrets.token_urlsafe(24)
+        db.commit()
+        db.refresh(lavoro)
+    return lavoro
+
+
+def get_lavoro_by_token_firma(db: Session, token: str):
+    return db.query(Lavoro).filter(Lavoro.token_firma == token).first()
 def genera_numero_preventivo(db: Session, utente_id: int):
     impostazioni = get_impostazioni_azienda(db, utente_id)
 

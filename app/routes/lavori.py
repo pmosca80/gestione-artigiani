@@ -1427,6 +1427,17 @@ def elimina_allegato_lavoro(
         url=f"/lavori/{lavoro_id}",
         status_code=303
     )
+@router.post("/{lavoro_id}/genera-link-firma")
+def genera_link_firma(
+    lavoro_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    crud.genera_token_firma(db, lavoro_id, user_id)
+    return RedirectResponse(url=f"/lavori/{lavoro_id}", status_code=303)
+
+
 @router.post("/{lavoro_id}/apri-lavoro")
 def apri_lavoro(
     lavoro_id: int,

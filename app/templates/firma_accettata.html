@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preventivo accettato</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f0fdf4;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border: 1px solid #bbf7d0;
+            border-radius: 20px;
+            padding: 40px 32px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+        .icon { font-size: 56px; margin-bottom: 16px; }
+        h1 { font-size: 22px; font-weight: 700; color: #166534; margin-bottom: 10px; }
+        .sub { font-size: 14px; color: #4b5563; line-height: 1.6; margin-bottom: 24px; }
+        .details {
+            background: #f0fdf4;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .det-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+        .det-row:last-child { margin-bottom: 0; }
+        .det-label { color: #6b7280; }
+        .det-val { font-weight: 600; color: #166534; }
+        .footer-note { font-size: 12px; color: #9ca3af; line-height: 1.5; }
+        .azienda-nome { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon">🎉</div>
+    <h1>Preventivo accettato!</h1>
+    <div class="sub">
+        Grazie{% if lavoro.firma_nome_cliente %}, <strong>{{ lavoro.firma_nome_cliente }}</strong>{% endif %}.<br>
+        La tua accettazione è stata registrata.
+    </div>
+    <div class="details">
+        <div class="det-row">
+            <span class="det-label">Lavoro</span>
+            <span class="det-val">{{ lavoro.titolo }}</span>
+        </div>
+        <div class="det-row">
+            <span class="det-label">Data accettazione</span>
+            <span class="det-val">{{ lavoro.data_accettazione_preventivo }}</span>
+        </div>
+        {% if lavoro.importo_preventivato %}
+        <div class="det-row">
+            <span class="det-label">Importo</span>
+            <span class="det-val">€ {{ "%.2f"|format(lavoro.importo_preventivato) }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% if impostazioni and impostazioni.nome_azienda %}
+    <div class="azienda-nome">{{ impostazioni.nome_azienda }}</div>
+    {% endif %}
+    {% if impostazioni and impostazioni.telefono %}
+    <div class="footer-note">📞 {{ impostazioni.telefono }}</div>
+    {% endif %}
+    <div class="footer-note" style="margin-top:12px;">Puoi chiudere questa pagina.</div>
+</div>
+</body>
+</html>

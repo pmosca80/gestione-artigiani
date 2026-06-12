@@ -13,7 +13,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -90,6 +90,11 @@ def _run_migrations():
         ]:
             if col not in imp_cols:
                 conn.execute(text(f"ALTER TABLE impostazioni_azienda ADD COLUMN {col} {defn}"))
+        # Firma digitale preventivi
+        lav_cols = [c["name"] for c in insp.get_columns("lavori")]
+        for col in ["token_firma", "firma_nome_cliente", "firma_ip"]:
+            if col not in lav_cols:
+                conn.execute(text(f"ALTER TABLE lavori ADD COLUMN {col} VARCHAR"))
         # Template preventivi
         if not _inspect(engine).has_table("template_preventivi"):
             conn.execute(text("""
@@ -146,6 +151,7 @@ app.include_router(piani.router)
 app.include_router(team.router)
 app.include_router(onboarding.router)
 app.include_router(preventivi_template.router)
+app.include_router(firma.router)
 
 @app.get("/api/cerca")
 def cerca_globale(

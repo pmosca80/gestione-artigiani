@@ -109,6 +109,10 @@ class Lavoro(Base):
 
     note_consuntivo = Column(Text, nullable=True)
 
+    token_firma = Column(String, nullable=True)
+    firma_nome_cliente = Column(String, nullable=True)
+    firma_ip = Column(String, nullable=True)
+
     data_creazione = Column(String, nullable=False)
 
     cliente = relationship("Cliente", back_populates="lavori")

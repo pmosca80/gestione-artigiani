@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preventivo — {% if impostazioni and impostazioni.nome_azienda %}{{ impostazioni.nome_azienda }}{% else %}Preventivo{% endif %}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f8fafc;
+            color: #111827;
+            min-height: 100vh;
+        }
+
+        .wrapper {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 20px 16px 60px;
+        }
+
+        /* HEADER AZIENDA */
+        .azienda-header {
+            background: #111827;
+            color: white;
+            border-radius: 16px;
+            padding: 22px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .azienda-icon {
+            width: 44px; height: 44px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .azienda-nome { font-size: 17px; font-weight: 700; }
+        .azienda-sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+        /* CARD PRINCIPALE */
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .prv-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .prv-titolo {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .prv-cliente {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+        .prv-cliente strong { color: #374151; }
+
+        .prv-descrizione {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* VOCI */
+        .voci-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+        }
+
+        .voci-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .voci-table thead th {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            padding: 0 0 8px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .voci-table thead th:last-child { text-align: right; }
+        .voci-table tbody td {
+            padding: 10px 0;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            vertical-align: top;
+        }
+        .voci-table tbody tr:last-child td { border-bottom: none; }
+        .voci-table .td-desc { color: #111827; font-weight: 500; }
+        .voci-table .td-qty { color: #6b7280; white-space: nowrap; padding-right: 12px; }
+        .voci-table .td-price { text-align: right; font-family: 'DM Mono', monospace; color: #374151; white-space: nowrap; }
+
+        /* TOTALE */
+        .totale-box {
+            background: #111827;
+            color: white;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-top: 16px;
+        }
+        .totale-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #9ca3af;
+            margin-bottom: 6px;
+        }
+        .totale-row.finale {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .totale-row.finale span:last-child { font-family: 'DM Mono', monospace; }
+
+        /* NOTE */
+        .note-text {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* GIA FIRMATO */
+        .gia-firmato {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .gia-firmato .check { font-size: 40px; margin-bottom: 10px; }
+        .gia-firmato strong { display: block; font-size: 18px; color: #166534; margin-bottom: 4px; }
+        .gia-firmato span { font-size: 13px; color: #4ade80; }
+
+        /* FORM ACCETTAZIONE */
+        .firma-form {
+            background: white;
+            border: 2px solid #16a34a;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .firma-form-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+        .firma-form-sub {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+        .input-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .input-nome {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            color: #111827;
+            margin-bottom: 16px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .input-nome:focus { border-color: #16a34a; }
+
+        .btn-accetta {
+            width: 100%;
+            background: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .btn-accetta:hover { background: #15803d; }
+        .btn-accetta:active { transform: scale(0.98); }
+
+        .legal-note {
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        .importo-prev {
+            display: inline-block;
+            background: #f0fdf4;
+            color: #166534;
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            padding: 8px 16px;
+            border-radius: 10px;
+            margin: 12px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <!-- HEADER AZIENDA -->
+    <div class="azienda-header">
+        <div class="azienda-icon">🏢</div>
+        <div>
+            <div class="azienda-nome">{% if impostazioni and impostazioni.nome_azienda %}{{ impostazioni.nome_azienda }}{% else %}Preventivo{% endif %}</div>
+            {% if impostazioni and impostazioni.telefono %}
+            <div class="azienda-sub">📞 {{ impostazioni.telefono }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if lavoro.firma_nome_cliente %}
+    <!-- GIA FIRMATO -->
+    <div class="gia-firmato">
+        <div class="check">✅</div>
+        <strong>Preventivo già accettato</strong>
+        <span>Firmato da {{ lavoro.firma_nome_cliente }} il {{ lavoro.data_accettazione_preventivo }}</span>
+    </div>
+    {% endif %}
+
+    <!-- CARD PREVENTIVO -->
+    <div class="card">
+        <div class="prv-badge">📑 Preventivo{% if lavoro.numero_preventivo %} n. {{ lavoro.numero_preventivo }}{% endif %}</div>
+        <div class="prv-titolo">{{ lavoro.titolo }}</div>
+        {% if lavoro.cliente %}
+        <div class="prv-cliente">Per <strong>{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome or '' }}{% if lavoro.cliente.ragione_sociale %} — {{ lavoro.cliente.ragione_sociale }}{% endif %}</strong></div>
+        {% endif %}
+        {% if lavoro.descrizione %}
+        <div class="prv-descrizione">{{ lavoro.descrizione }}</div>
+        {% endif %}
+    </div>
+
+    <!-- VOCI PREVENTIVO -->
+    {% if voci %}
+    <div class="card">
+        <div class="voci-title">Dettaglio voci</div>
+        <table class="voci-table">
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th>Qtà</th>
+                    <th>Totale</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in voci %}
+                <tr>
+                    <td class="td-desc">{{ v.descrizione }}</td>
+                    <td class="td-qty">{{ v.quantita }}{% if v.unita_misura %} {{ v.unita_misura }}{% endif %}</td>
+                    <td class="td-price">€ {{ "%.2f"|format(v.quantita * v.prezzo_unitario) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totale-box">
+            {% if lavoro.aliquota_iva and lavoro.aliquota_iva > 0 and lavoro.aliquota_iva != 0 %}
+            <div class="totale-row">
+                <span>Imponibile</span>
+                <span>€ {{ "%.2f"|format(lavoro.importo_preventivato or 0) }}</span>
+            </div>
+            <div class="totale-row">
+                <span>IVA {{ lavoro.aliquota_iva|int }}%</span>
+                <span>€ {{ "%.2f"|format((lavoro.importo_preventivato or 0) * (lavoro.aliquota_iva or 0) / 100) }}</span>
+            </div>
+            {% endif %}
+            <div class="totale-row finale">
+                <span>Totale</span>
+                <span>€ {{ "%.2f"|format(lavoro.totale_documento or lavoro.importo_preventivato or 0) }}</span>
+            </div>
+        </div>
+    </div>
+    {% elif lavoro.importo_preventivato %}
+    <div class="card" style="text-align:center;">
+        <div class="voci-title">Importo preventivato</div>
+        <div class="importo-prev">€ {{ "%.2f"|format(lavoro.importo_preventivato) }}</div>
+        {% if lavoro.aliquota_iva and lavoro.aliquota_iva > 0 %}
+        <div style="font-size:12px; color:#6b7280; margin-top:6px;">IVA {{ lavoro.aliquota_iva|int }}% inclusa</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- NOTE -->
+    {% if lavoro.note_consuntivo %}
+    <div class="card">
+        <div class="voci-title">Note</div>
+        <div class="note-text">{{ lavoro.note_consuntivo }}</div>
+    </div>
+    {% endif %}
+
+    <!-- FORM ACCETTAZIONE o STATO -->
+    {% if not lavoro.firma_nome_cliente and lavoro.stato in ["preventivo", "preventivo_inviato", "preventivo_accettato"] %}
+    <div class="firma-form">
+        <div class="firma-form-title">✍️ Accetta il preventivo</div>
+        <div class="firma-form-sub">Scrivi il tuo nome e tocca "Accetto" per confermare di aver letto e approvato questo preventivo.</div>
+        <form action="/firma/{{ lavoro.token_firma }}/accetta" method="post">
+            <label class="input-label" for="nome_cliente">Il tuo nome e cognome</label>
+            <input
+                class="input-nome"
+                type="text"
+                id="nome_cliente"
+                name="nome_cliente"
+                placeholder="Mario Rossi"
+                required
+                autocomplete="name"
+            >
+            <button type="submit" class="btn-accetta">✅ Accetto il preventivo</button>
+        </form>
+        <div class="legal-note">Toccando "Accetto" confermi di aver letto e approvato il preventivo.<br>Accettazione registrata con data e ora.</div>
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>
