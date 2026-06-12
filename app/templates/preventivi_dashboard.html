@@ -289,13 +289,16 @@
                                     </form>
                                 {% endif %}
                                 {% if lavoro.stato == "preventivo_inviato" %}
+                                    <form action="/lavori/{{ lavoro.id }}/apri-lavoro" method="post" style="display:inline;">
+                                        <button class="btn-az btn-az-green">▶ Apri lavoro</button>
+                                    </form>
                                     <form action="/lavori/{{ lavoro.id }}/accetta-preventivo" method="post" style="display:inline;">
-                                        <button class="btn-az btn-az-green">✅ Accettato</button>
+                                        <button class="btn-az btn-az-gray">✅ Acc.</button>
                                     </form>
                                 {% endif %}
                                 {% if lavoro.stato == "preventivo_accettato" %}
-                                    <form action="/lavori/{{ lavoro.id }}/converti" method="post" style="display:inline;">
-                                        <button class="btn-az btn-az-blue">🔄 Converti</button>
+                                    <form action="/lavori/{{ lavoro.id }}/apri-lavoro" method="post" style="display:inline;">
+                                        <button class="btn-az btn-az-green">▶ Apri lavoro</button>
                                     </form>
                                 {% endif %}
                             </div>

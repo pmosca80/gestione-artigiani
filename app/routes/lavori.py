@@ -1427,6 +1427,25 @@ def elimina_allegato_lavoro(
         url=f"/lavori/{lavoro_id}",
         status_code=303
     )
+@router.post("/{lavoro_id}/apri-lavoro")
+def apri_lavoro(
+    lavoro_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404, detail="Lavoro non trovato")
+    if lavoro.stato not in ("preventivo", "preventivo_inviato", "preventivo_accettato"):
+        raise HTTPException(status_code=400, detail="Non è un preventivo")
+    lavoro.stato = "da_fare"
+    if not lavoro.data_accettazione_preventivo:
+        lavoro.data_accettazione_preventivo = datetime.now().strftime("%Y-%m-%d")
+    db.commit()
+    return RedirectResponse(url=f"/lavori/{lavoro_id}", status_code=303)
+
+
 @router.post("/{lavoro_id}/converti")
 def converti_preventivo(
     lavoro_id: int,
