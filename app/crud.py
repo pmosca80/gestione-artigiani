@@ -1298,7 +1298,15 @@ def get_dashboard_pro(db: Session, utente_id: int):
     ]
     grafico_anno_obiettivo = [round(obiettivo_mensile, 2)] * 12
 
+    # ── Lavori di oggi ────────────────────────────────────────────────────────
+    _stati_operativi = {"da_fare", "in_corso"}
+    lavori_oggi = sorted(
+        [l for l in lavori if l.data_lavoro == oggi and l.stato in _stati_operativi],
+        key=lambda l: (0 if l.stato == "in_corso" else 1, l.id)
+    )
+
     return {
+        "lavori_oggi": lavori_oggi,
         "lavori_totali": lavori_totali,
         "lavori_da_fare": lavori_da_fare,
         "lavori_in_corso": lavori_in_corso,

@@ -276,6 +276,112 @@
         .d-btn-red { background: #dc2626; color: white; }
         .d-btn-gray { background: #f3f4f6; color: #374151; }
 
+        /* ── OGGI ── */
+        .oggi-panel {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-top: 4px solid #2563eb;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .oggi-panel.no-jobs {
+            border-top-color: #d1d5db;
+        }
+        .oggi-head {
+            padding: 14px 20px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .oggi-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #2563eb;
+        }
+        .oggi-count {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            font-family: 'DM Mono', monospace;
+            line-height: 1;
+        }
+        .oggi-link-all {
+            font-size: 12px;
+            font-weight: 700;
+            color: #2563eb;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .oggi-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 20px;
+            border-bottom: 1px solid #f8fafc;
+            text-decoration: none;
+            transition: background 0.12s;
+        }
+        .oggi-row:last-child { border-bottom: none; }
+        .oggi-row:hover { background: #f9fafb; }
+        .oggi-stato {
+            flex-shrink: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .oggi-stato.in-corso { background: #f97316; box-shadow: 0 0 0 3px #ffedd5; }
+        .oggi-stato.da-fare   { background: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
+        .oggi-info { flex: 1; min-width: 0; }
+        .oggi-client {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .oggi-titolo {
+            font-size: 12px;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 1px;
+        }
+        .oggi-addr {
+            font-size: 11px;
+            color: #9ca3af;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+        .oggi-badge {
+            flex-shrink: 0;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .oggi-badge.in-corso { background: #fff7ed; color: #c2410c; }
+        .oggi-badge.da-fare  { background: #eff6ff; color: #1d4ed8; }
+        .oggi-empty {
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .oggi-empty-icon { font-size: 22px; flex-shrink: 0; }
+        .oggi-empty strong { display: block; font-size: 14px; color: #374151; }
+        .oggi-empty span { font-size: 12px; color: #9ca3af; }
+
         /* ── CHI MI DEVE? ── */
         .crediti-panel {
             background: white;
@@ -527,6 +633,57 @@
     </div>
     {% endif %}
     {% endif %}
+
+    <!-- ── OGGI ── -->
+    <div class="oggi-panel {% if not stats.lavori_oggi %}no-jobs{% endif %}">
+        <div class="oggi-head">
+            <div>
+                <div class="oggi-section-label">🗓️ Oggi</div>
+                {% if stats.lavori_oggi %}
+                <div class="oggi-count">{{ stats.lavori_oggi | length }} lavoro{% if stats.lavori_oggi | length != 1 %}i{% endif %}</div>
+                {% endif %}
+            </div>
+            <a href="/lavori/?stato=in_corso&stato=da_fare" class="oggi-link-all">Tutti i lavori →</a>
+        </div>
+
+        {% if stats.lavori_oggi %}
+        {% for lavoro in stats.lavori_oggi %}
+        {% set cl = lavoro.cliente %}
+        {% set maps_q = '' %}
+        {% if cl and cl.indirizzo %}
+            {% set maps_q = cl.indirizzo %}
+            {% if cl.citta %}{% set maps_q = maps_q ~ ', ' ~ cl.citta %}{% endif %}
+        {% endif %}
+        <a href="/lavori/{{ lavoro.id }}" class="oggi-row">
+            <div class="oggi-stato {% if lavoro.stato == 'in_corso' %}in-corso{% else %}da-fare{% endif %}"></div>
+            <div class="oggi-info">
+                <div class="oggi-client">
+                    {% if cl %}
+                        {% if cl.ragione_sociale %}{{ cl.ragione_sociale }}
+                        {% else %}{{ cl.nome or '' }} {{ cl.cognome or '' }}{% endif %}
+                    {% else %}—{% endif %}
+                </div>
+                <div class="oggi-titolo">{{ lavoro.titolo }}</div>
+                {% if maps_q %}
+                <div class="oggi-addr">📍 {{ cl.indirizzo }}{% if cl.citta %}, {{ cl.citta }}{% endif %}</div>
+                {% endif %}
+            </div>
+            <span class="oggi-badge {% if lavoro.stato == 'in_corso' %}in-corso{% else %}da-fare{% endif %}">
+                {% if lavoro.stato == 'in_corso' %}⚡ In corso{% else %}📝 Da fare{% endif %}
+            </span>
+        </a>
+        {% endfor %}
+
+        {% else %}
+        <div class="oggi-empty">
+            <div class="oggi-empty-icon">✅</div>
+            <div>
+                <strong>Nessun lavoro programmato per oggi</strong>
+                <span>Libero, o non hai ancora assegnato la data ai lavori</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 
     <!-- ── CHI MI DEVE? ── -->
     {% set ns = namespace(scaduti_ids=[]) %}
