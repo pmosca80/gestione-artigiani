@@ -1797,12 +1797,46 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
     totale_scaduto = sum(l.residuo_pagamento or 0 for l in lavori_scaduti)
 
     percentuale_incasso = 0
-
     if totale_documenti > 0:
         percentuale_incasso = round(
             (totale_pagato / totale_documenti) * 100,
             1
         )
+
+    # Ultima visita: ultimo lavoro non-preventivo, non-annullato, per data
+    stati_visita = {"completato", "in_corso", "da_fare"}
+    lavori_reali = sorted(
+        [l for l in lavori if l.stato in stati_visita and l.data_lavoro],
+        key=lambda l: l.data_lavoro,
+        reverse=True,
+    )
+    ultima_visita = None
+    if lavori_reali:
+        ul = lavori_reali[0]
+        ultima_visita = {"data": ul.data_lavoro, "titolo": ul.titolo, "id": ul.id}
+
+    # Ticket medio (su lavori con documento > 0)
+    importi = [l.totale_documento for l in lavori if (l.totale_documento or 0) > 0]
+    ticket_medio = round(sum(importi) / len(importi)) if importi else None
+
+    # Cliente dal: data del primo lavoro
+    date_lavori = sorted([l.data_lavoro for l in lavori if l.data_lavoro])
+    cliente_dal = date_lavori[0] if date_lavori else None
+
+    # Lavori completati
+    n_lavori_completati = sum(1 for l in lavori if l.stato == "completato")
+
+    # Puntualità pagamenti
+    n_ritardi = len(lavori_scaduti)
+    if n_ritardi == 0:
+        puntualita_rating = "ok"
+        puntualita_label = "Paga puntuale"
+    elif n_ritardi <= 2:
+        puntualita_rating = "warn"
+        puntualita_label = f"{n_ritardi} pagament{'o' if n_ritardi == 1 else 'i'} in ritardo"
+    else:
+        puntualita_rating = "risk"
+        puntualita_label = f"{n_ritardi} pagamenti in ritardo"
 
     return {
         "totale_lavori": totale_lavori,
@@ -1812,6 +1846,12 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
         "lavori_scaduti": lavori_scaduti,
         "totale_scaduto": totale_scaduto,
         "percentuale_incasso": percentuale_incasso,
+        "ultima_visita": ultima_visita,
+        "ticket_medio": ticket_medio,
+        "cliente_dal": cliente_dal,
+        "n_lavori_completati": n_lavori_completati,
+        "puntualita_rating": puntualita_rating,
+        "puntualita_label": puntualita_label,
     }
 
 def get_documenti_pdf_by_cliente(db: Session, utente_id: int, cliente_id: int):
