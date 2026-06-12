@@ -152,7 +152,7 @@
         <div class="cliente-banner-info">
             <strong>{{ cliente.nome }} {{ cliente.cognome }}</strong>
             <span>
-                {% if cliente.telefono %}📞 {{ cliente.telefono }}{% endif %}
+                {% if cliente.telefono %}<a href="tel:{{ cliente.telefono }}" style="color:#94a3b8; text-decoration:none;">📞 {{ cliente.telefono }}</a>{% endif %}
                 {% if cliente.citta %} · 📍 {{ cliente.citta }}{% endif %}
             </span>
         </div>
