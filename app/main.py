@@ -22,6 +22,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.notifiche import controlla_scadenze
 from app.services.backup import esegui_backup
+from app.services.reminder_fatture import controlla_fatture_non_pagate
 from app.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 
@@ -73,6 +74,10 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE utenti ADD COLUMN titolare_id INTEGER"))
         if "ruolo" not in cols:
             conn.execute(text("ALTER TABLE utenti ADD COLUMN ruolo VARCHAR DEFAULT 'titolare'"))
+        # Fatture: reminder_inviato
+        fat_cols = [c["name"] for c in insp.get_columns("fatture_emesse")]
+        if "reminder_inviato" not in fat_cols:
+            conn.execute(text("ALTER TABLE fatture_emesse ADD COLUMN reminder_inviato INTEGER DEFAULT 0"))
         conn.commit()
 _run_migrations()
 
@@ -213,8 +218,14 @@ scheduler.add_job(
     id="backup_giornaliero",
     replace_existing=True,
 )
+scheduler.add_job(
+    controlla_fatture_non_pagate,
+    trigger=CronTrigger(hour=8, minute=30),
+    id="reminder_fatture",
+    replace_existing=True,
+)
 scheduler.start()
-logger.info("Scheduler avviato — scadenze 08:00, backup 02:00")
+logger.info("Scheduler avviato — scadenze 08:00, reminder fatture 08:30, backup 02:00")
 
 
 @app.get("/")

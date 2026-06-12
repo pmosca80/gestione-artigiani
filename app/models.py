@@ -287,6 +287,7 @@ class FatturaEmessa(Base):
     nome_file = Column(String, nullable=True)
     regime = Column(String, nullable=True, default="RF01")
     stato = Column(String, nullable=False, default="emessa")
+    reminder_inviato = Column(Integer, default=0, nullable=False)
 
     data_creazione = Column(String, nullable=False)
 
