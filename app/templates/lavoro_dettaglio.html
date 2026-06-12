@@ -208,16 +208,115 @@
         /* FOTO */
         .foto-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .foto-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f1f5f9;
         }
         .foto-item img {
             width: 100%;
-            border-radius: 10px;
+            border-radius: 12px;
             object-fit: cover;
-            aspect-ratio: 4/3;
+            aspect-ratio: 1/1;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            display: block;
         }
-        .foto-item p { font-size: 12px; color: #6b7280; margin: 6px 0 0; }
+        .foto-item img:active { opacity: 0.8; }
+        .foto-item p { font-size: 11px; color: #6b7280; margin: 5px 6px 6px; }
+
+        /* Bottone scatta foto */
+        .btn-scatta-foto {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #111827;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+        .btn-scatta-foto:active { background: #374151; }
+
+        /* Bottone elimina foto */
+        .btn-del-foto {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.65);
+            color: white;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .foto-item:hover .btn-del-foto,
+        .foto-item:focus-within .btn-del-foto { opacity: 1; }
+        /* Su mobile sempre visibile */
+        @media (hover: none) { .btn-del-foto { opacity: 1; } }
+        .form-del-foto { margin: 0; }
+
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.96);
+            z-index: 8000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            cursor: zoom-out;
+        }
+        #lb-img {
+            max-width: 100%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+        #lb-cap {
+            color: #d1d5db;
+            font-size: 13px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        #lb-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
         /* UPLOAD ALLEGATO */
         .upload-form {
@@ -742,19 +841,45 @@
 
     <!-- FOTO -->
     <div class="l-section">
-        <div class="section-title">📷 Foto lavoro</div>
+        <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span>📷 Foto lavoro {% if foto_lavoro %}<span style="background:#e0f2fe;color:#0369a1;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">{{ foto_lavoro|length }}</span>{% endif %}</span>
+            <form method="post" action="/lavori/{{ lavoro.id }}/foto" enctype="multipart/form-data" id="form-foto-rapido">
+                <input type="hidden" name="descrizione" value="">
+                <input type="file" id="inp-foto-rapido" name="foto" accept="image/*" style="display:none" required>
+                <label for="inp-foto-rapido" class="btn-scatta-foto">📷 Aggiungi foto</label>
+            </form>
+        </div>
+
         {% if foto_lavoro %}
         <div class="foto-grid">
             {% for foto in foto_lavoro %}
             <div class="foto-item">
-                <img src="/{{ foto.percorso_file }}" alt="Foto lavoro">
+                <img src="/{{ foto.percorso_file.replace('\\', '/') }}"
+                     alt="{{ foto.descrizione or 'Foto lavoro' }}"
+                     data-desc="{{ foto.descrizione or '' }}"
+                     class="foto-thumb">
                 {% if foto.descrizione %}<p>{{ foto.descrizione }}</p>{% endif %}
+                <form method="post" action="/lavori/{{ lavoro.id }}/foto/{{ foto.id }}/elimina"
+                      class="form-del-foto"
+                      onsubmit="return confirm('Eliminare questa foto?')">
+                    <button type="submit" class="btn-del-foto" title="Elimina">×</button>
+                </form>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <div class="l-card"><p style="color:#9ca3af; font-size:13px; margin:0;">Nessuna foto caricata.</p></div>
+        <div class="l-card" style="text-align:center;padding:28px;">
+            <p style="color:#9ca3af;font-size:13px;margin:0 0 12px;">Nessuna foto ancora.</p>
+            <label for="inp-foto-rapido" class="btn-scatta-foto" style="font-size:15px;padding:12px 22px;">📷 Scatta la prima foto</label>
+        </div>
         {% endif %}
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" onclick="this.style.display='none'">
+        <img id="lb-img" src="" alt="">
+        <p id="lb-cap"></p>
+        <button id="lb-close" onclick="document.getElementById('lightbox').style.display='none'">✕</button>
     </div>
 
     <!-- TIMELINE -->
@@ -813,5 +938,28 @@
 
 </div>
 
+<script>
+(function () {
+    // Auto-submit appena l'artigiano sceglie una foto
+    var inp = document.getElementById('inp-foto-rapido');
+    if (inp) {
+        inp.addEventListener('change', function () {
+            if (this.files.length > 0) this.closest('form').submit();
+        });
+    }
+
+    // Lightbox: tap su una foto la ingrandisce
+    var lb = document.getElementById('lightbox');
+    var lbImg = document.getElementById('lb-img');
+    var lbCap = document.getElementById('lb-cap');
+    document.querySelectorAll('.foto-thumb').forEach(function (img) {
+        img.addEventListener('click', function () {
+            lbImg.src = img.src;
+            lbCap.textContent = img.dataset.desc || '';
+            lb.style.display = 'flex';
+        });
+    });
+})();
+</script>
 </body>
 </html>

@@ -453,7 +453,20 @@ async def carica_foto_lavoro(
 
 
 
-    return RedirectResponse(url=f"/lavori/{lavoro_id}/modifica", status_code=303)
+    return RedirectResponse(url=f"/lavori/{lavoro_id}", status_code=303)
+
+
+@router.post("/{lavoro_id}/foto/{foto_id}/elimina")
+def elimina_foto(
+    lavoro_id: int,
+    foto_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    crud.elimina_foto_lavoro(db, foto_id, user_id)
+    return RedirectResponse(url=f"/lavori/{lavoro_id}", status_code=303)
+
 
 @router.post("/{lavoro_id}/allegati")
 async def carica_allegato_lavoro(

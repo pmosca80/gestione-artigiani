@@ -1424,6 +1424,18 @@ def salva_foto_lavoro(
     return foto
 
 
+def elimina_foto_lavoro(db: Session, foto_id: int, utente_id: int):
+    from pathlib import Path
+    foto = db.query(FotoLavoro).filter(FotoLavoro.id == foto_id, FotoLavoro.utente_id == utente_id).first()
+    if foto:
+        try:
+            Path(foto.percorso_file).unlink(missing_ok=True)
+        except Exception:
+            pass
+        db.delete(foto)
+        db.commit()
+
+
 def get_foto_lavoro(db: Session, utente_id: int, lavoro_id: int):
     return (
         db.query(FotoLavoro)
