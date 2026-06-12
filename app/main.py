@@ -21,6 +21,7 @@ from app.logger import get_logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.notifiche import controlla_scadenze
+from app.services.backup import esegui_backup
 
 logger = get_logger("main")
 
@@ -192,8 +193,14 @@ scheduler.add_job(
     id="controlla_scadenze",
     replace_existing=True,
 )
+scheduler.add_job(
+    esegui_backup,
+    trigger=CronTrigger(hour=2, minute=0),
+    id="backup_giornaliero",
+    replace_existing=True,
+)
 scheduler.start()
-logger.info("Scheduler avviato — controllo scadenze ogni giorno alle 08:00")
+logger.info("Scheduler avviato — scadenze 08:00, backup 02:00")
 
 
 @app.get("/")
