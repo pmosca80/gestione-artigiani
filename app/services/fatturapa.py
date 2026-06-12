@@ -37,21 +37,25 @@ def errori_fatturapa(lavoro, cliente, azienda) -> list:
     return errori
 
 
-def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
-    """Genera XML FatturaPA formato FPR12 (Livello 1 — solo download, senza invio SDI)."""
+def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
+    """
+    Genera XML FatturaPA formato FPR12.
+    Se voci (lista di VocePreventivo) viene passata, genera una riga per voce.
+    Aggiunge sempre il blocco DatiPagamento.
+    """
 
     def e(v):
         return _esc(str(v).strip()) if v else ""
 
     # ── Cedente (emittente) ──────────────────────────────────────────────────
-    piva_az   = e(azienda.partita_iva)
-    cf_az     = e(azienda.codice_fiscale)
-    regime    = e(azienda.regime_fiscale or "RF01")
-    nome_az   = e(azienda.nome_azienda)
-    ind_az    = e(azienda.indirizzo)
-    cap_az    = e(azienda.cap or "00000")
-    citta_az  = e(azienda.citta)
-    prov_az   = e((azienda.provincia or "")[:2])
+    piva_az  = e(azienda.partita_iva)
+    cf_az    = e(azienda.codice_fiscale)
+    regime   = e(azienda.regime_fiscale or "RF01")
+    nome_az  = e(azienda.nome_azienda)
+    ind_az   = e(azienda.indirizzo)
+    cap_az   = e(azienda.cap or "00000")
+    citta_az = e(azienda.citta)
+    prov_az  = e((azienda.provincia or "")[:2])
 
     cf_cedente_block = f"\n        <CodiceFiscale>{cf_az}</CodiceFiscale>" if cf_az else ""
 
@@ -72,7 +76,6 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
         else ""
     )
 
-    # Per i privati senza P.IVA non includiamo IdFiscaleIVA
     id_fiscale_cl_block = (
         f"<IdFiscaleIVA>\n          <IdPaese>IT</IdPaese>\n"
         f"          <IdCodice>{piva_cl}</IdCodice>\n        </IdFiscaleIVA>\n        "
@@ -92,20 +95,17 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
     imponibile = float(lavoro.importo_consuntivo or 0)
     totale     = float(lavoro.totale_documento or 0)
 
-    # Regime senza IVA (forfettario RF19, minimi RF02, ecc.) → forza 0%
     regime_senza_iva = (azienda.regime_fiscale or "RF01").strip().upper() in _REGIMI_SENZA_IVA
     aliquota = 0.0 if regime_senza_iva else float(lavoro.aliquota_iva or 22)
     iva_amt  = 0.0 if (regime_senza_iva or aliquota == 0) else float(
         lavoro.totale_iva or round(imponibile * aliquota / 100, 2)
     )
 
-    # Ricalcola totale per regime senza IVA (non applicare IVA al totale)
     if regime_senza_iva:
         totale = imponibile
 
-    # ── Elemento Natura (obbligatorio quando AliquotaIVA = 0) ────────────────
-    usa_natura = (aliquota == 0.0)
-    natura_block  = "\n        <Natura>N2.2</Natura>" if usa_natura else ""
+    usa_natura        = (aliquota == 0.0)
+    natura_block      = "\n        <Natura>N2.2</Natura>" if usa_natura else ""
     esigibilita_block = "\n        <EsigibilitaIVA>I</EsigibilitaIVA>" if not usa_natura else ""
 
     # ── Documento ────────────────────────────────────────────────────────────
@@ -119,8 +119,73 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
     numero_formattato = f"{anno_fattura}/{str(num_fattura).zfill(3)}"
     progressivo = str(num_fattura).zfill(5)
 
-    desc = e(lavoro.descrizione or lavoro.titolo or "Prestazione di servizi")[:1000]
+    # ── DettaglioLinee ───────────────────────────────────────────────────────
+    if voci:
+        voci_ordinate = sorted(voci, key=lambda v: (v.ordine or 0))
+        linee = []
+        for i, v in enumerate(voci_ordinate, start=1):
+            qtq = round(float(v.quantita or 1), 2)
+            pu  = round(float(v.prezzo_unitario or 0), 2)
+            pt  = round(qtq * pu, 2)
+            um  = e(v.unita_misura or "")
+            um_tag = f"        <UnitaMisura>{um}</UnitaMisura>\n" if um else ""
+            linee.append({
+                "n": i, "desc": e(v.descrizione or "Prestazione")[:1000],
+                "um_tag": um_tag, "qtq": qtq, "pu": pu, "pt": pt,
+            })
 
+        # Aggiusta eventuali differenze da sconto/arrotondamento
+        lordo_voci = round(sum(l["pt"] for l in linee), 2)
+        diff = round(lordo_voci - imponibile, 2)
+        if abs(diff) > 0.001:
+            sconto_pct = float(lavoro.sconto or 0)
+            label = f"Sconto {sconto_pct:.0f}%" if sconto_pct > 0 else "Arrotondamento"
+            linee.append({
+                "n": len(linee) + 1, "desc": e(label),
+                "um_tag": "", "qtq": 1.0, "pu": round(-diff, 2), "pt": round(-diff, 2),
+            })
+
+        dettaglio_xml = ""
+        for l in linee:
+            dettaglio_xml += (
+                f"      <DettaglioLinee>\n"
+                f"        <NumeroLinea>{l['n']}</NumeroLinea>\n"
+                f"        <Descrizione>{l['desc']}</Descrizione>\n"
+                + l["um_tag"]
+                + f"        <Quantita>{l['qtq']:.2f}</Quantita>\n"
+                f"        <PrezzoUnitario>{l['pu']:.2f}</PrezzoUnitario>\n"
+                f"        <PrezzoTotale>{l['pt']:.2f}</PrezzoTotale>\n"
+                f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>{natura_block}\n"
+                f"      </DettaglioLinee>\n"
+            )
+    else:
+        desc = e(lavoro.descrizione or lavoro.titolo or "Prestazione di servizi")[:1000]
+        dettaglio_xml = (
+            f"      <DettaglioLinee>\n"
+            f"        <NumeroLinea>1</NumeroLinea>\n"
+            f"        <Descrizione>{desc}</Descrizione>\n"
+            f"        <Quantita>1.00</Quantita>\n"
+            f"        <PrezzoUnitario>{imponibile:.2f}</PrezzoUnitario>\n"
+            f"        <PrezzoTotale>{imponibile:.2f}</PrezzoTotale>\n"
+            f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>{natura_block}\n"
+            f"      </DettaglioLinee>\n"
+        )
+
+    # ── DatiPagamento ────────────────────────────────────────────────────────
+    data_scad = (lavoro.data_scadenza_pagamento or "").strip()
+    scad_tag  = f"        <DataScadenzaPagamento>{data_scad}</DataScadenzaPagamento>\n" if data_scad else ""
+    dati_pagamento = (
+        "    <DatiPagamento>\n"
+        "      <CondizioniPagamento>TP02</CondizioniPagamento>\n"
+        "      <DettaglioPagamento>\n"
+        "        <ModalitaPagamento>MP05</ModalitaPagamento>\n"
+        + scad_tag
+        + f"        <ImportoPagamento>{totale:.2f}</ImportoPagamento>\n"
+        "      </DettaglioPagamento>\n"
+        "    </DatiPagamento>\n"
+    )
+
+    # ── Assemblaggio XML ─────────────────────────────────────────────────────
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<p:FatturaElettronica versione="FPR12"\n'
@@ -185,21 +250,15 @@ def genera_xml_fatturapa(lavoro, cliente, azienda) -> bytes:
         "      </DatiGeneraliDocumento>\n"
         "    </DatiGenerali>\n"
         "    <DatiBeniServizi>\n"
-        "      <DettaglioLinee>\n"
-        "        <NumeroLinea>1</NumeroLinea>\n"
-        f"        <Descrizione>{desc}</Descrizione>\n"
-        "        <Quantita>1.00</Quantita>\n"
-        f"        <PrezzoUnitario>{imponibile:.2f}</PrezzoUnitario>\n"
-        f"        <PrezzoTotale>{imponibile:.2f}</PrezzoTotale>\n"
-        f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>{natura_block}\n"
-        "      </DettaglioLinee>\n"
-        "      <DatiRiepilogo>\n"
+        + dettaglio_xml
+        + "      <DatiRiepilogo>\n"
         f"        <AliquotaIVA>{aliquota:.2f}</AliquotaIVA>{natura_block}\n"
         f"        <ImponibileImporto>{imponibile:.2f}</ImponibileImporto>\n"
         f"        <Imposta>{iva_amt:.2f}</Imposta>{esigibilita_block}\n"
         "      </DatiRiepilogo>\n"
         "    </DatiBeniServizi>\n"
-        "  </FatturaElettronicaBody>\n"
+        + dati_pagamento
+        + "  </FatturaElettronicaBody>\n"
         "</p:FatturaElettronica>"
     )
 

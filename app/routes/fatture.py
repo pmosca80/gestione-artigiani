@@ -269,7 +269,8 @@ def invia_fattura_email(
     numero_fmt = f"{fattura.anno}/{str(fattura.numero).zfill(3)}"
 
     try:
-        xml_bytes = genera_xml_fatturapa(lav, cli, azienda)
+        voci = crud.get_voci_preventivo(db, user_id, lav.id)
+        xml_bytes = genera_xml_fatturapa(lav, cli, azienda, voci=voci or None)
         to_nome = (
             cli.ragione_sociale if cli.tipo_cliente == "azienda"
             else f"{cli.nome or ''} {cli.cognome or ''}".strip()
@@ -326,7 +327,8 @@ def invia_fattura_sdi(
         return RedirectResponse("/fatture/?errore=pec_non_configurata", status_code=303)
 
     try:
-        xml_bytes = genera_xml_fatturapa(lav, lav.cliente, azienda)
+        voci = crud.get_voci_preventivo(db, user_id, lav.id)
+        xml_bytes = genera_xml_fatturapa(lav, lav.cliente, azienda, voci=voci or None)
         nome_file = fattura.nome_file or nome_file_fatturapa(azienda, lav)
         invia_xml_a_sdi(xml_bytes, nome_file, azienda)
         fattura.stato = "inviata_sdi"

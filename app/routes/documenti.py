@@ -117,7 +117,8 @@ def scarica_fattura_xml(
         imponibile_val, iva_val, totale_val, filename, azienda.regime_fiscale or "RF01"
     )
 
-    xml_bytes = genera_xml_fatturapa(lavoro, cliente, azienda)
+    voci = _crud.get_voci_preventivo(db, user_id, lavoro_id)
+    xml_bytes = genera_xml_fatturapa(lavoro, cliente, azienda, voci=voci or None)
 
     return Response(
         content=xml_bytes,
