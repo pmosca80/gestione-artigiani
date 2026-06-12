@@ -49,7 +49,11 @@ function _installaPWA() {
         <a href="/impostazioni/azienda">⚙️ Impostazioni</a>
         <a href="/impostazioni/backup/pagina">💾 Backup</a>
         <a href="/guida">📖 Guida</a>
-        <a href="/piani" style="font-weight:700;color:#7c3aed;">⭐ Piano</a>
+        {% if request.session.get('piano') == 'pro' %}
+        <a href="/piani" style="font-weight:700;color:#059669;">Pro ✓</a>
+        {% else %}
+        <a href="/piani" style="font-weight:700;color:#7c3aed;">Free →</a>
+        {% endif %}
         {% if not request.session.get('is_collaboratore') %}
         <a href="/team">👥 Team</a>
         {% endif %}

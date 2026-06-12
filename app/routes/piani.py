@@ -63,6 +63,10 @@ def pagina_piani(
     stripe_ok = stripe_configurato()
     price_id = get_stripe_price_id()
 
+    from app.models import Utente
+    _u = db.query(Utente).filter(Utente.id == eff_id).first()
+    pro_scadenza = getattr(_u, "pro_scadenza", None) if _u else None
+
     return templates.TemplateResponse(
         request=request,
         name="piani.html",
@@ -75,6 +79,7 @@ def pagina_piani(
             "trial_scaduto": trial_scaduto,
             "successo": successo,
             "is_collaboratore": is_collab,
+            "pro_scadenza": pro_scadenza,
         },
     )
 

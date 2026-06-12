@@ -3,23 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piani — Gestionale Artigiani</title>
+    <title>Il mio piano — Gestionale Artigiani</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         body { font-family: 'DM Sans', sans-serif; background: #f8fafc; }
 
-        .plans-wrap { max-width: 860px; margin: 40px auto; padding: 0 20px 80px; }
+        .plans-wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
 
-        .plans-header { text-align: center; margin-bottom: 36px; }
-        .plans-header h1 { font-size: 28px; font-weight: 800; color: #111827; margin: 0 0 8px; }
-        .plans-header p  { color: #6b7280; font-size: 14px; margin: 0; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { color: #111827; }
 
-        /* Alert banners */
+        /* ── Alert banners ── */
         .alert {
             border-radius: 12px;
             padding: 14px 18px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             font-size: 13px;
             font-weight: 600;
         }
@@ -27,30 +33,26 @@
         .alert-ok    { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
         .alert-limit { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
 
-        /* Piano cards grid */
-        .plans-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 32px;
+        /* ── Hero: stato piano corrente ── */
+        .plan-status {
+            border-radius: 20px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            flex-wrap: wrap;
         }
-        @media (max-width: 640px) {
-            .plans-grid { grid-template-columns: 1fr; }
-        }
-
-        .plan-card {
+        .plan-status.free {
             background: white;
             border: 2px solid #e5e7eb;
-            border-radius: 20px;
-            padding: 28px 28px 24px;
-            position: relative;
-            transition: border-color 0.15s;
         }
-        .plan-card.current { border-color: #7c3aed; }
-        .plan-card.pro-card {
-            background: linear-gradient(145deg, #0f172a, #1e3a5f);
-            border-color: #7c3aed;
+        .plan-status.pro {
+            background: linear-gradient(135deg, #0f172a, #1e3a5f);
+            border: 2px solid #7c3aed;
         }
+
+        .plan-status-left { flex: 1; min-width: 200px; }
 
         .plan-badge {
             display: inline-block;
@@ -60,103 +62,246 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 14px;
+            margin-bottom: 8px;
         }
         .badge-free { background: #f3f4f6; color: #6b7280; }
         .badge-pro  { background: #7c3aed; color: white; }
-        .badge-attivo { background: #dcfce7; color: #166534; }
 
-        .plan-name {
-            font-size: 22px;
+        .plan-status-name {
+            font-size: 26px;
             font-weight: 800;
             color: #111827;
-            margin: 0 0 4px;
+            margin-bottom: 4px;
         }
-        .plan-card.pro-card .plan-name { color: white; }
+        .plan-status.pro .plan-status-name { color: white; }
 
-        .plan-price {
-            font-size: 36px;
-            font-weight: 800;
-            color: #111827;
-            margin: 12px 0 4px;
-        }
-        .plan-price span { font-size: 16px; font-weight: 500; color: #6b7280; }
-        .plan-card.pro-card .plan-price { color: white; }
-        .plan-card.pro-card .plan-price span { color: #94a3b8; }
-
-        .plan-desc {
+        .plan-status-sub {
             font-size: 13px;
             color: #6b7280;
-            margin: 0 0 20px;
         }
-        .plan-card.pro-card .plan-desc { color: #94a3b8; }
+        .plan-status.pro .plan-status-sub { color: #94a3b8; }
 
-        .plan-features { list-style: none; padding: 0; margin: 0 0 24px; }
-        .plan-features li {
-            font-size: 13px;
+        /* Barra utilizzo clienti */
+        .usage-box { margin-top: 16px; }
+        .usage-label {
+            font-size: 12px;
+            font-weight: 700;
             color: #374151;
-            padding: 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 6px;
             display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            line-height: 1.4;
+            justify-content: space-between;
         }
-        .plan-card.pro-card .plan-features li { color: #cbd5e1; }
-        .plan-features .check { color: #16a34a; font-size: 14px; flex-shrink: 0; }
-        .plan-features .cross { color: #d1d5db; font-size: 14px; flex-shrink: 0; }
-        .plan-card.pro-card .plan-features .check { color: #34d399; }
+        .plan-status.pro .usage-label { color: #94a3b8; }
+        .usage-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .plan-status.pro .usage-bar { background: rgba(255,255,255,0.15); }
+        .usage-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.4s;
+        }
+        .usage-fill.low    { background: #22c55e; }
+        .usage-fill.medium { background: #f59e0b; }
+        .usage-fill.full   { background: #ef4444; }
+        .usage-fill.unlimited { background: #7c3aed; width: 100%; }
 
-        .btn-plan {
-            display: block;
-            width: 100%;
-            padding: 12px;
+        .plan-status-right { flex-shrink: 0; }
+
+        .btn-upgrade {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #7c3aed;
+            color: white;
+            border: none;
             border-radius: 12px;
             font-size: 14px;
             font-weight: 700;
-            text-align: center;
             text-decoration: none;
-            border: none;
             cursor: pointer;
-            transition: opacity 0.15s;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+            white-space: nowrap;
         }
-        .btn-plan:hover { opacity: 0.88; }
-        .btn-plan-current { background: #f3f4f6; color: #6b7280; cursor: default; }
-        .btn-plan-upgrade { background: #7c3aed; color: white; }
-        .btn-plan-disabled { background: #374151; color: #6b7280; cursor: not-allowed; opacity: 0.5; }
-
-        /* Separatore */
-        .divider { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
-
-        /* FAQ / note */
-        .note-section { max-width: 600px; margin: 0 auto; }
-        .note-section h3 { font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 14px; }
-        .faq-item { margin-bottom: 16px; }
-        .faq-item dt { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 4px; }
-        .faq-item dd { font-size: 13px; color: #6b7280; margin: 0; line-height: 1.6; }
-
-        .back-link {
+        .btn-upgrade:hover { background: #6d28d9; color: white; }
+        .btn-manage {
             display: inline-block;
-            margin-bottom: 20px;
-            font-size: 13px;
-            color: #6b7280;
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
             text-decoration: none;
-            font-weight: 600;
+            white-space: nowrap;
+            transition: background 0.15s;
         }
-        .back-link:hover { color: #111827; }
+        .btn-manage:hover { background: rgba(255,255,255,0.18); color: white; }
 
+        /* ── Checklist funzionalità ── */
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #9ca3af;
+            margin: 28px 0 14px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+        @media (max-width: 560px) {
+            .features-grid { grid-template-columns: 1fr; }
+        }
+
+        .feature-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+        }
+        .feature-row.locked {
+            background: #f9fafb;
+            color: #9ca3af;
+        }
+        .feature-row.locked .feature-icon { opacity: 0.4; }
+        .feature-icon { font-size: 16px; flex-shrink: 0; }
+        .feature-text { flex: 1; }
+        .feature-tag {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 7px;
+            border-radius: 20px;
+            flex-shrink: 0;
+        }
+        .tag-ok     { background: #dcfce7; color: #166534; }
+        .tag-pro    { background: #ede9fe; color: #6d28d9; }
+
+        /* ── Upgrade card ── */
+        .upgrade-card {
+            background: linear-gradient(135deg, #0f172a, #1e3a5f);
+            border-radius: 20px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .upgrade-card-text { flex: 1; min-width: 200px; }
+        .upgrade-card-text h3 { font-size: 18px; font-weight: 700; color: white; margin: 0 0 6px; }
+        .upgrade-card-text p  { font-size: 13px; color: #94a3b8; margin: 0; }
+
+        /* ── Comparison grid ── */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        @media (max-width: 560px) { .plans-grid { grid-template-columns: 1fr; } }
+
+        .plan-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 24px;
+            position: relative;
+        }
+        .plan-card.current { border-color: #7c3aed; }
+        .plan-card.pro-card {
+            background: linear-gradient(145deg, #0f172a, #1e3a5f);
+            border-color: #7c3aed;
+        }
         .current-crown {
             position: absolute;
-            top: -12px;
+            top: -11px;
             left: 50%;
             transform: translateX(-50%);
             background: #7c3aed;
             color: white;
             font-size: 11px;
             font-weight: 700;
-            padding: 3px 12px;
+            padding: 2px 12px;
             border-radius: 20px;
             white-space: nowrap;
         }
+        .plan-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #111827;
+            margin: 10px 0 4px;
+        }
+        .plan-card.pro-card .plan-name { color: white; }
+        .plan-price {
+            font-size: 28px;
+            font-weight: 800;
+            color: #111827;
+            margin: 8px 0 4px;
+        }
+        .plan-price span { font-size: 14px; font-weight: 500; color: #6b7280; }
+        .plan-card.pro-card .plan-price { color: white; }
+        .plan-card.pro-card .plan-price span { color: #94a3b8; }
+        .plan-desc { font-size: 12px; color: #6b7280; margin: 0 0 16px; }
+        .plan-card.pro-card .plan-desc { color: #94a3b8; }
+
+        .plan-features { list-style: none; padding: 0; margin: 0 0 20px; }
+        .plan-features li {
+            font-size: 12px;
+            color: #374151;
+            padding: 4px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+        }
+        .plan-card.pro-card .plan-features li { color: #cbd5e1; }
+        .check { color: #16a34a; flex-shrink: 0; }
+        .cross { color: #d1d5db; flex-shrink: 0; }
+        .plan-card.pro-card .check { color: #34d399; }
+
+        .btn-plan {
+            display: block;
+            width: 100%;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: opacity 0.15s;
+        }
+        .btn-plan:hover { opacity: 0.88; }
+        .btn-plan-current  { background: #f3f4f6; color: #6b7280; cursor: default; }
+        .btn-plan-upgrade  { background: #7c3aed; color: white; }
+        .btn-plan-disabled { background: #374151; color: #6b7280; cursor: not-allowed; opacity: 0.5; }
+
+        .divider { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+
+        .note-section h3 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 14px; }
+        .faq-item { margin-bottom: 14px; }
+        .faq-item dt { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 3px; }
+        .faq-item dd { font-size: 13px; color: #6b7280; margin: 0; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -167,27 +312,22 @@
 
     <a href="/" class="back-link">← Dashboard</a>
 
-    <div class="plans-header">
-        <h1>Scegli il tuo piano</h1>
-        <p>Inizia gratis, passa a Pro quando sei pronto.</p>
-    </div>
-
     {% if trial_scaduto %}
     <div class="alert alert-warn">
-        ⏰ Il periodo di prova di 30 giorni è terminato. Scegli un piano per continuare a usare il gestionale.
+        ⏰ Il periodo di prova è terminato. Scegli un piano per continuare.
     </div>
     {% endif %}
 
     {% if successo %}
     <div class="alert alert-ok">
-        🎉 Pagamento completato! Il tuo account è ora attivo su piano <strong>Pro</strong>. Benvenuto!
+        🎉 Pagamento completato! Il tuo account è ora attivo su piano <strong>Pro</strong>.
     </div>
     {% endif %}
 
     {% if request.query_params.get('limite') == 'clienti' %}
     <div class="alert alert-limit">
         🚫 Hai raggiunto il limite di <strong>{{ limite_free }} clienti</strong> del piano Free.
-        Passa a Pro per aggiungere clienti illimitati.
+        Passa a Pro per clienti illimitati.
     </div>
     {% endif %}
 
@@ -197,13 +337,184 @@
     </div>
     {% endif %}
 
-    <div class="plans-grid">
-
-        <!-- Piano Free -->
-        <div class="plan-card {% if piano_corrente == 'free' %}current{% endif %}">
-            {% if piano_corrente == 'free' %}
-            <div class="current-crown">Piano attuale</div>
+    <!-- ═══ HERO: stato piano corrente ═══ -->
+    {% if piano_corrente == 'pro' %}
+    <div class="plan-status pro">
+        <div class="plan-status-left">
+            <div class="plan-badge badge-pro">Pro</div>
+            <div class="plan-status-name">Piano Professionale</div>
+            {% if pro_scadenza %}
+            <div class="plan-status-sub">Attivo — rinnovo il {{ pro_scadenza }}</div>
+            {% else %}
+            <div class="plan-status-sub">Attivo — tutte le funzionalità sbloccate</div>
             {% endif %}
+            <div class="usage-box">
+                <div class="usage-label">
+                    <span>Clienti</span>
+                    <span>{{ n_clienti }} (illimitati)</span>
+                </div>
+                <div class="usage-bar"><div class="usage-fill unlimited"></div></div>
+            </div>
+        </div>
+        <div class="plan-status-right">
+            <a href="/piani/portale" class="btn-manage">⚙️ Gestisci abbonamento</a>
+        </div>
+    </div>
+    {% else %}
+    {% set pct = (n_clienti / limite_free * 100) | int %}
+    <div class="plan-status free">
+        <div class="plan-status-left">
+            <div class="plan-badge badge-free">Free</div>
+            <div class="plan-status-name">Piano Gratuito</div>
+            <div class="plan-status-sub">Alcune funzionalità sono disponibili solo con Pro.</div>
+            <div class="usage-box">
+                <div class="usage-label">
+                    <span>Clienti usati</span>
+                    <span>{{ n_clienti }} di {{ limite_free }}</span>
+                </div>
+                <div class="usage-bar">
+                    <div class="usage-fill {% if pct >= 100 %}full{% elif pct >= 60 %}medium{% else %}low{% endif %}"
+                         style="width: {{ [pct, 100] | min }}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="plan-status-right">
+            {% if stripe_ok and price_id %}
+            <form method="post" action="/piani/checkout">
+                <button type="submit" class="btn-upgrade">Passa a Pro →</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══ CHECKLIST FUNZIONALITÀ ═══ -->
+    <div class="section-title">Cosa include il tuo piano</div>
+    <div class="features-grid">
+
+        <div class="feature-row">
+            <span class="feature-icon">👥</span>
+            <span class="feature-text">
+                {% if piano_corrente == 'pro' %}Clienti illimitati{% else %}Fino a {{ limite_free }} clienti{% endif %}
+            </span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-icon">🛠️</span>
+            <span class="feature-text">Lavori illimitati</span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-icon">📑</span>
+            <span class="feature-text">Preventivi</span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-icon">📦</span>
+            <span class="feature-text">Magazzino materiali</span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-icon">📄</span>
+            <span class="feature-text">PDF preventivi e ricevute</span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-icon">📅</span>
+            <span class="feature-text">Agenda e scadenzario</span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-icon">📊</span>
+            <span class="feature-text">Analisi economica</span>
+            <span class="feature-tag tag-ok">✓</span>
+        </div>
+
+        <div class="feature-row {% if piano_corrente != 'pro' %}locked{% endif %}">
+            <span class="feature-icon">🧾</span>
+            <span class="feature-text">FatturaPA XML</span>
+            {% if piano_corrente == 'pro' %}
+            <span class="feature-tag tag-ok">✓</span>
+            {% else %}
+            <span class="feature-tag tag-pro">Pro</span>
+            {% endif %}
+        </div>
+
+        <div class="feature-row {% if piano_corrente != 'pro' %}locked{% endif %}">
+            <span class="feature-icon">📤</span>
+            <span class="feature-text">Invio fattura via email</span>
+            {% if piano_corrente == 'pro' %}
+            <span class="feature-tag tag-ok">✓</span>
+            {% else %}
+            <span class="feature-tag tag-pro">Pro</span>
+            {% endif %}
+        </div>
+
+        <div class="feature-row {% if piano_corrente != 'pro' %}locked{% endif %}">
+            <span class="feature-icon">📥</span>
+            <span class="feature-text">Export Excel contabile</span>
+            {% if piano_corrente == 'pro' %}
+            <span class="feature-tag tag-ok">✓</span>
+            {% else %}
+            <span class="feature-tag tag-pro">Pro</span>
+            {% endif %}
+        </div>
+
+        <div class="feature-row {% if piano_corrente != 'pro' %}locked{% endif %}">
+            <span class="feature-icon">👥</span>
+            <span class="feature-text">Collaboratori del team</span>
+            {% if piano_corrente == 'pro' %}
+            <span class="feature-tag tag-ok">✓</span>
+            {% else %}
+            <span class="feature-tag tag-pro">Pro</span>
+            {% endif %}
+        </div>
+
+        <div class="feature-row {% if piano_corrente != 'pro' %}locked{% endif %}">
+            <span class="feature-icon">💾</span>
+            <span class="feature-text">Backup automatico dati</span>
+            {% if piano_corrente == 'pro' %}
+            <span class="feature-tag tag-ok">✓</span>
+            {% else %}
+            <span class="feature-tag tag-pro">Pro</span>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- CTA upgrade (solo free) -->
+    {% if piano_corrente == 'free' and stripe_ok and price_id %}
+    <div class="upgrade-card">
+        <div class="upgrade-card-text">
+            <h3>Sblocca tutte le funzionalità con Pro</h3>
+            <p>Clienti illimitati, FatturaPA, export Excel, team e backup — tutto per €9,90/mese.</p>
+        </div>
+        <form method="post" action="/piani/checkout">
+            <button type="submit" class="btn-upgrade">🚀 Passa a Pro — €9,90/mese</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if not stripe_ok and piano_corrente == 'free' %}
+    <div class="alert alert-warn" style="text-align:center;font-weight:500;">
+        ℹ️ I pagamenti online non sono ancora attivi. Contatta il gestore del servizio per attivare il piano Pro.
+    </div>
+    {% endif %}
+
+    <!-- ═══ CONFRONTO PIANI (dettaglio) ═══ -->
+    <hr class="divider">
+    <div class="section-title">Confronto piani</div>
+
+    <div class="plans-grid">
+        <!-- Free -->
+        <div class="plan-card {% if piano_corrente == 'free' %}current{% endif %}">
+            {% if piano_corrente == 'free' %}<div class="current-crown">Piano attuale</div>{% endif %}
             <span class="plan-badge badge-free">Free</span>
             <div class="plan-name">Gratuito</div>
             <div class="plan-price">€0 <span>/ mese</span></div>
@@ -211,24 +522,19 @@
             <ul class="plan-features">
                 <li><span class="check">✓</span> Fino a <strong>{{ limite_free }} clienti</strong></li>
                 <li><span class="check">✓</span> Lavori e preventivi illimitati</li>
-                <li><span class="check">✓</span> Magazzino e materiali</li>
-                <li><span class="check">✓</span> PDF e documenti</li>
+                <li><span class="check">✓</span> Magazzino, PDF, Agenda</li>
                 <li><span class="cross">✗</span> FatturaPA XML</li>
-                <li><span class="cross">✗</span> Export Excel contabile</li>
+                <li><span class="cross">✗</span> Export Excel</li>
                 <li><span class="cross">✗</span> Clienti illimitati</li>
             </ul>
-            {% if piano_corrente == 'free' %}
-            <span class="btn-plan btn-plan-current">Piano attuale</span>
-            {% else %}
-            <span class="btn-plan btn-plan-current">Downgrade non disponibile</span>
-            {% endif %}
+            <span class="btn-plan btn-plan-current">
+                {% if piano_corrente == 'free' %}Piano attuale{% else %}Downgrade non disponibile{% endif %}
+            </span>
         </div>
 
-        <!-- Piano Pro -->
+        <!-- Pro -->
         <div class="plan-card pro-card {% if piano_corrente == 'pro' %}current{% endif %}">
-            {% if piano_corrente == 'pro' %}
-            <div class="current-crown" style="background:#059669;">Piano attivo ✓</div>
-            {% endif %}
+            {% if piano_corrente == 'pro' %}<div class="current-crown" style="background:#059669;">Attivo ✓</div>{% endif %}
             <span class="plan-badge badge-pro">Pro</span>
             <div class="plan-name">Professionale</div>
             <div class="plan-price">€9,90 <span>/ mese</span></div>
@@ -236,8 +542,7 @@
             <ul class="plan-features">
                 <li><span class="check">✓</span> <strong>Clienti illimitati</strong></li>
                 <li><span class="check">✓</span> Lavori e preventivi illimitati</li>
-                <li><span class="check">✓</span> Magazzino e materiali</li>
-                <li><span class="check">✓</span> PDF e documenti</li>
+                <li><span class="check">✓</span> Magazzino, PDF, Agenda</li>
                 <li><span class="check">✓</span> <strong>FatturaPA XML</strong></li>
                 <li><span class="check">✓</span> <strong>Export Excel contabile</strong></li>
                 <li><span class="check">✓</span> <strong>Invio fattura via email</strong></li>
@@ -246,9 +551,6 @@
             <a href="/piani/portale" class="btn-plan btn-plan-upgrade" style="background:#059669;">
                 ⚙️ Gestisci abbonamento
             </a>
-            <div style="text-align:center;margin-top:8px;font-size:11px;color:#64748b;">
-                Modifica, sospendi o cancella dal portale Stripe
-            </div>
             {% elif stripe_ok and price_id %}
             <form method="post" action="/piani/checkout">
                 <button type="submit" class="btn-plan btn-plan-upgrade">
@@ -256,19 +558,10 @@
                 </button>
             </form>
             {% else %}
-            <span class="btn-plan btn-plan-disabled" title="Stripe non configurato">
-                Pagamento non disponibile
-            </span>
+            <span class="btn-plan btn-plan-disabled">Pagamento non disponibile</span>
             {% endif %}
         </div>
-
     </div>
-
-    {% if not stripe_ok %}
-    <div class="alert alert-warn" style="text-align:center;font-weight:500;">
-        ℹ️ I pagamenti online non sono ancora attivi. Contatta il gestore del servizio per attivare il piano Pro.
-    </div>
-    {% endif %}
 
     <hr class="divider">
 
@@ -277,20 +570,19 @@
         <dl>
             <div class="faq-item">
                 <dt>Posso annullare in qualsiasi momento?</dt>
-                <dd>Sì. Il piano Pro è mensile e puoi disdirlo quando vuoi dal portale Stripe. L'account tornerà al piano Free al termine del periodo pagato.</dd>
+                <dd>Sì. Il piano Pro è mensile, disdici quando vuoi dal portale Stripe. L'account torna al piano Free al termine del periodo pagato.</dd>
             </div>
             <div class="faq-item">
                 <dt>I miei dati vengono conservati se torno al piano Free?</dt>
-                <dd>Sì. Tutti i tuoi dati (lavori, fatture, clienti) rimangono salvati. Potrai continuare a visualizzarli ma non aggiungere nuovi clienti oltre il limite.</dd>
+                <dd>Sì. Tutti i tuoi dati (lavori, fatture, clienti) rimangono salvati. Non potrai aggiungere nuovi clienti oltre il limite.</dd>
             </div>
             <div class="faq-item">
                 <dt>Il pagamento è sicuro?</dt>
-                <dd>I pagamenti sono gestiti da <strong>Stripe</strong>, il leader mondiale nei pagamenti online. I dati della carta non transitano mai sui nostri server.</dd>
+                <dd>I pagamenti sono gestiti da <strong>Stripe</strong>. I dati della carta non transitano mai sui nostri server.</dd>
             </div>
         </dl>
     </div>
 
 </div>
-
 </body>
 </html>
