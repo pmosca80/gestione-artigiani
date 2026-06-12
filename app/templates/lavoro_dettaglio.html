@@ -446,6 +446,20 @@
                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
                 <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-hero btn-hero-white">🧾 FatturaPA XML</a>
+                {% if lavoro.stato == "da_fare" %}
+                    <form action="/lavori/{{ lavoro.id }}/cambia-stato" method="post" style="display:inline;">
+                        <input type="hidden" name="nuovo_stato" value="in_corso">
+                        <input type="hidden" name="redirect_to" value="/lavori/{{ lavoro.id }}">
+                        <button class="btn-hero btn-hero-green" style="font-size:15px; font-weight:800;">⚡ Inizia lavoro</button>
+                    </form>
+                {% endif %}
+                {% if lavoro.stato == "in_corso" %}
+                    <form action="/lavori/{{ lavoro.id }}/cambia-stato" method="post" style="display:inline;">
+                        <input type="hidden" name="nuovo_stato" value="completato">
+                        <input type="hidden" name="redirect_to" value="/lavori/{{ lavoro.id }}">
+                        <button class="btn-hero btn-hero-green" style="font-size:15px; font-weight:800;">✓ Completa lavoro</button>
+                    </form>
+                {% endif %}
                 {% if lavoro.stato == "preventivo" %}
                     <form action="/lavori/{{ lavoro.id }}/invia-preventivo" method="post" style="display:inline;">
                         <button class="btn-hero btn-hero-outline">📧 Segna inviato</button>

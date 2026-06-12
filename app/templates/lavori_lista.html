@@ -400,6 +400,19 @@
                         <td>
                             <div class="azioni-cell">
                                 <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋</a>
+                                {% if lavoro.stato == "da_fare" %}
+                                <form method="post" action="/lavori/{{ lavoro.id }}/cambia-stato" style="display:inline;">
+                                    <input type="hidden" name="nuovo_stato" value="in_corso">
+                                    <input type="hidden" name="redirect_to" value="{{ request.url }}">
+                                    <button class="btn-az" style="background:#16a34a; color:white;" title="Segna In corso">⚡</button>
+                                </form>
+                                {% elif lavoro.stato == "in_corso" %}
+                                <form method="post" action="/lavori/{{ lavoro.id }}/cambia-stato" style="display:inline;">
+                                    <input type="hidden" name="nuovo_stato" value="completato">
+                                    <input type="hidden" name="redirect_to" value="{{ request.url }}">
+                                    <button class="btn-az" style="background:#16a34a; color:white;" title="Segna Completato">✓</button>
+                                </form>
+                                {% endif %}
                                 <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-az btn-az-blue">📦</a>
                                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az btn-az-green">💳</a>
                                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az btn-az-red">PDF</a>

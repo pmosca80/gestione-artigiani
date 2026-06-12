@@ -1452,3 +1452,22 @@ def accetta_preventivo(
         f"/lavori/{lavoro_id}",
         status_code=303
     )
+
+@router.post("/{lavoro_id}/cambia-stato")
+def cambia_stato_lavoro(
+    lavoro_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+    nuovo_stato: str = Form(...),
+    redirect_to: str = Form("/lavori/"),
+):
+    _stati_validi = {
+        "preventivo", "preventivo_inviato", "preventivo_accettato",
+        "da_fare", "in_corso", "completato", "annullato",
+    }
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro or nuovo_stato not in _stati_validi:
+        raise HTTPException(status_code=404)
+    lavoro.stato = nuovo_stato
+    db.commit()
+    return RedirectResponse(redirect_to, status_code=303)
