@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ lavoro.titolo }} — Gestionale Artigiani</title>
-    <link rel="stylesheet" href="/static/style.css?v=153">
+    <link rel="stylesheet" href="/static/style.css?v=155">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
         body { font-family: 'DM Sans', sans-serif; }
@@ -43,6 +43,42 @@
         .btn-hero-outline { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.2); }
         .btn-hero-green { background: #16a34a; color: white; }
         .btn-hero-red { background: #dc2626; color: white; }
+
+        /* CTA FATTURA */
+        .cta-fattura {
+            background: linear-gradient(135deg, #4c1d95, #7c3aed);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .cta-fattura-icon { font-size: 36px; flex-shrink: 0; }
+        .cta-fattura-text { flex: 1; min-width: 160px; }
+        .cta-fattura-text strong { display: block; color: white; font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+        .cta-fattura-text span { color: #c4b5fd; font-size: 13px; }
+        .cta-fattura-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: #7c3aed;
+            padding: 13px 22px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: opacity 0.15s, transform 0.1s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .cta-fattura-btn:active { opacity: 0.85; transform: scale(0.97); }
+        @media (max-width: 600px) {
+            .cta-fattura { padding: 16px; }
+            .cta-fattura-btn { width: 100%; justify-content: center; font-size: 16px; padding: 15px; }
+        }
 
         /* STATUS BANNER */
         .status-banner {
@@ -453,6 +489,20 @@
         {% endif %}
         </div>
     </div>
+
+    <!-- CTA FATTURA: appare solo se lavoro operativo e nessuna fattura emessa -->
+    {% if not fattura_emessa and lavoro.stato in ["completato", "in_corso", "da_fare"] %}
+    <div class="cta-fattura">
+        <div class="cta-fattura-icon">🧾</div>
+        <div class="cta-fattura-text">
+            <strong>Emetti la fattura</strong>
+            <span>Genera subito la FatturaPA elettronica per questo lavoro</span>
+        </div>
+        <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="cta-fattura-btn">
+            Genera FatturaPA →
+        </a>
+    </div>
+    {% endif %}
 
     <!-- INFO -->
     <div class="info-grid">
