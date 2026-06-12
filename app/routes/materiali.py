@@ -183,14 +183,27 @@ def salva_carico_materiale(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    materiale = db.query(Materiale).filter(
+        Materiale.id == materiale_id, Materiale.utente_id == user_id
+    ).first()
+    if not materiale:
+        return RedirectResponse(url="/materiali/", status_code=303)
+
+    pa = to_float(prezzo_acquisto)
+    pv = to_float(prezzo_vendita_default)
+    # Se il form semplificato non ha inviato i prezzi, usa quelli già salvati sul materiale
+    if pa == 0:
+        pa = materiale.prezzo_acquisto_scontato or materiale.prezzo_acquisto_pieno or 0
+    if pv == 0:
+        pv = materiale.prezzo_vendita_default or 0
 
     crud.crea_carico_materiale(
         db=db,
         utente_id=user_id,
         materiale_id=materiale_id,
         quantita=to_float(quantita),
-        prezzo_acquisto=to_float(prezzo_acquisto),
-        prezzo_vendita_default=to_float(prezzo_vendita_default),
+        prezzo_acquisto=pa,
+        prezzo_vendita_default=pv,
         note=note
     )
 
