@@ -6,8 +6,24 @@
 <meta name="apple-mobile-web-app-title" content="Artigiani">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <script>
+var _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    _pwaPrompt = e;
+    var btn = document.getElementById('btn-installa-pwa');
+    if (btn) btn.style.display = 'inline-block';
+});
+window.addEventListener('appinstalled', function() {
+    var btn = document.getElementById('btn-installa-pwa');
+    if (btn) btn.style.display = 'none';
+});
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(function(){});
+}
+function _installaPWA() {
+    if (!_pwaPrompt) return;
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(function() { _pwaPrompt = null; });
 }
 </script>
 
@@ -38,6 +54,11 @@ if ('serviceWorker' in navigator) {
     {% if request.session.get('username') == 'admin' %}
     <a href="/impostazioni/admin" style="font-weight:700;color:#dc2626;">🔧 Admin</a>
     {% endif %}
+    <button id="btn-installa-pwa" onclick="_installaPWA()"
+            style="display:none;background:#7c3aed;color:white;border:none;border-radius:8px;
+                   padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+        📲 Installa app
+    </button>
     <a href="/logout">🚪 Logout</a>
 </div>
 
