@@ -401,7 +401,7 @@ th {
     }
 
     .navbar {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         padding: 10px 16px;
         gap: 8px;
         align-items: center;
