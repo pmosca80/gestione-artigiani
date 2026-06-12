@@ -109,6 +109,15 @@ def register(
     db.add(nuovo)
     db.commit()
 
+    from app.services.email import invia_benvenuto
+    import threading
+    threading.Thread(
+        target=invia_benvenuto,
+        args=(username,),
+        kwargs={"piano": "pro" if promo_ok else "free"},
+        daemon=True,
+    ).start()
+
     if promo_ok:
         return RedirectResponse(url="/login?promo=1", status_code=303)
     return RedirectResponse(url="/login", status_code=303)

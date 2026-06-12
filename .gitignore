@@ -21,6 +21,10 @@ build/
 # Upload utenti
 uploads/
 
+# Log applicazione e PDF generati
+logs/
+pdf/
+
 # Claude AI assistant (memoria locale, non va in produzione)
 .claude/
 

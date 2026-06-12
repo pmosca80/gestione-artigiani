@@ -211,6 +211,7 @@ def _attiva_pro(db: Session, user_id: int, customer_id: str | None, subscription
     from app.models import Utente
     u = db.query(Utente).filter(Utente.id == user_id).first()
     if u:
+        era_gia_pro = u.piano == "pro"
         u.piano = "pro"
         u.attivo = 2
         if customer_id:
@@ -218,6 +219,14 @@ def _attiva_pro(db: Session, user_id: int, customer_id: str | None, subscription
         if subscription_id:
             u.stripe_subscription_id = subscription_id
         db.commit()
+        if not era_gia_pro:
+            from app.services.email import invia_conferma_pro
+            import threading
+            threading.Thread(
+                target=invia_conferma_pro,
+                args=(u.username,),
+                daemon=True,
+            ).start()
 
 
 def _revoca_pro(db: Session, customer_id: str):

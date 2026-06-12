@@ -1232,6 +1232,58 @@ def get_dashboard_pro(db: Session, utente_id: int):
         if f.data_emissione and f.data_emissione.startswith(mese_corrente)
     )
 
+    # ── Preventivi (stati preventivo/preventivo_inviato/preventivo_accettato) ──
+    _stati_preventivo = {"preventivo", "preventivo_inviato", "preventivo_accettato"}
+    lavori_preventivi = sum(1 for l in lavori if l.stato in _stati_preventivo)
+
+    # ── Previsione incassi prossimi 30/60/90 giorni ───────────────────────────
+    _d30 = (_today + _td_kpi(days=30)).isoformat()
+    _d60 = (_today + _td_kpi(days=60)).isoformat()
+    _d90 = (_today + _td_kpi(days=90)).isoformat()
+    _oggi_iso = _today.isoformat()
+
+    def _prev_incassi(fine: str) -> float:
+        return sum(
+            l.residuo_pagamento or 0
+            for l in lavori
+            if l.data_scadenza_pagamento
+            and _oggi_iso <= l.data_scadenza_pagamento <= fine
+            and (l.residuo_pagamento or 0) > 0
+        )
+
+    prev_incassi_30g = round(_prev_incassi(_d30), 2)
+    prev_incassi_60g = round(_prev_incassi(_d60), 2)
+    prev_incassi_90g = round(_prev_incassi(_d90), 2)
+
+    # ── Confronto anno corrente vs anno precedente ────────────────────────────
+    _anno_corr = str(_today.year)
+    _anno_prec = str(_today.year - 1)
+    fatturato_anno_corrente = sum(
+        l.totale_documento or 0 for l in lavori
+        if (l.data_creazione or "").startswith(_anno_corr)
+    )
+    fatturato_anno_prec = sum(
+        l.totale_documento or 0 for l in lavori
+        if (l.data_creazione or "").startswith(_anno_prec)
+    )
+    if fatturato_anno_prec > 0:
+        delta_anno_pct = round(
+            (fatturato_anno_corrente - fatturato_anno_prec) / fatturato_anno_prec * 100, 1
+        )
+    elif fatturato_anno_corrente > 0:
+        delta_anno_pct = 100.0
+    else:
+        delta_anno_pct = 0.0
+
+    # ── Grafico 12 mesi anno corrente con obiettivo mensile ───────────────────
+    _mesi_anno = [f"{_anno_corr}-{m:02d}" for m in range(1, 13)]
+    grafico_anno_labels = _mesi_anno
+    grafico_anno_fatturato = [
+        round(sum(l.totale_documento or 0 for l in lavori if (l.data_creazione or "").startswith(m)), 2)
+        for m in _mesi_anno
+    ]
+    grafico_anno_obiettivo = [round(obiettivo_mensile, 2)] * 12
+
     return {
         "lavori_totali": lavori_totali,
         "lavori_da_fare": lavori_da_fare,
@@ -1301,6 +1353,16 @@ def get_dashboard_pro(db: Session, utente_id: int):
         "fatture_anno_count": fatture_anno_count,
         "fatturato_fatturapa_anno": fatturato_fatturapa_anno,
         "fatture_mese_count": fatture_mese_count,
+        "lavori_preventivi": lavori_preventivi,
+        "prev_incassi_30g": prev_incassi_30g,
+        "prev_incassi_60g": prev_incassi_60g,
+        "prev_incassi_90g": prev_incassi_90g,
+        "fatturato_anno_corrente": fatturato_anno_corrente,
+        "fatturato_anno_prec": fatturato_anno_prec,
+        "delta_anno_pct": delta_anno_pct,
+        "grafico_anno_labels": grafico_anno_labels,
+        "grafico_anno_fatturato": grafico_anno_fatturato,
+        "grafico_anno_obiettivo": grafico_anno_obiettivo,
     }
 
 def get_tutti_carichi_disponibili(db: Session, utente_id: int):

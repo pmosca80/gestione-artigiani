@@ -55,6 +55,158 @@ def invia_email(destinatario: str, oggetto: str, corpo: str) -> bool:
         return False
 
 
+def invia_benvenuto(username: str, piano: str = "free") -> None:
+    """Email di benvenuto inviata subito dopo la registrazione. Fire-and-forget."""
+    if "@" not in (username or ""):
+        return
+    cfg = _smtp_settings()
+    if not cfg["user"] or not cfg["password"]:
+        return
+
+    promo_banner = ""
+    if piano == "pro":
+        promo_banner = """
+        <div style="background:#dcfce7;border:1px solid #86efac;border-radius:10px;
+                    padding:14px 18px;margin:20px 0;font-size:14px;color:#166534;">
+            🎁 <strong>Codice promo applicato!</strong> Il tuo account è già attivo su piano
+            <strong>Pro</strong> per 30 giorni.
+        </div>"""
+
+    corpo = f"""<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8">
+<style>
+  body {{ margin:0; padding:0; background:#f1f5f9; font-family:'Segoe UI',Arial,sans-serif; }}
+  .wrap {{ max-width:560px; margin:40px auto; background:white; border-radius:16px;
+           overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }}
+  .header {{ background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+             padding:32px 36px; text-align:center; }}
+  .header h1 {{ color:white; font-size:24px; margin:0; font-weight:700; }}
+  .header p  {{ color:#94a3b8; font-size:14px; margin:8px 0 0; }}
+  .body {{ padding:32px 36px; }}
+  .body h2 {{ font-size:18px; color:#111827; margin:0 0 12px; }}
+  .body p  {{ font-size:14px; color:#374151; line-height:1.7; margin:0 0 16px; }}
+  .feature {{ display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }}
+  .feature span {{ font-size:20px; flex-shrink:0; }}
+  .feature p {{ margin:0; font-size:14px; color:#374151; line-height:1.5; }}
+  .btn {{ display:inline-block; background:#2563eb; color:white; padding:13px 28px;
+          border-radius:10px; font-size:15px; font-weight:700; text-decoration:none;
+          margin-top:8px; }}
+  .footer {{ background:#f8fafc; padding:16px 36px; text-align:center;
+             font-size:12px; color:#9ca3af; border-top:1px solid #f1f5f9; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🔧 Gestionale Artigiani</h1>
+    <p>Il gestionale pensato per chi lavora con le mani</p>
+  </div>
+  <div class="body">
+    <h2>Benvenuto, {username}!</h2>
+    <p>Il tuo account è stato creato con successo. Ecco cosa puoi fare subito:</p>
+    {promo_banner}
+    <div class="feature"><span>👥</span><p><strong>Gestisci i clienti</strong> — rubrica completa con storico lavori</p></div>
+    <div class="feature"><span>🛠️</span><p><strong>Traccia i lavori</strong> — da preventivo a fattura, tutto in un posto</p></div>
+    <div class="feature"><span>📦</span><p><strong>Magazzino</strong> — tieni sotto controllo scorte e materiali</p></div>
+    <div class="feature"><span>🧾</span><p><strong>Documenti PDF e FatturaPA</strong> — genera XML pronto per il commercialista</p></div>
+    <div class="feature"><span>📊</span><p><strong>Dashboard KPI</strong> — fatturato, margini, scadenze, tutto a colpo d'occhio</p></div>
+    <p style="margin-top:24px;">
+      <a href="https://optimistic-courtesy-production.up.railway.app" class="btn">Accedi al gestionale →</a>
+    </p>
+  </div>
+  <div class="footer">© 2026 Gestionale Artigiani · Hai domande? Rispondi a questa email.</div>
+</div>
+</body></html>"""
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Benvenuto su Gestionale Artigiani 🔧"
+        msg["From"] = f"Gestionale Artigiani <{cfg['from']}>"
+        msg["To"] = username
+        msg.attach(MIMEText(corpo, "html", "utf-8"))
+        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
+            s.ehlo(); s.starttls(); s.login(cfg["user"], cfg["password"])
+            s.sendmail(cfg["from"], username, msg.as_string())
+        logger.info(f"Email benvenuto inviata a {username}")
+    except Exception as e:
+        logger.warning(f"Email benvenuto non inviata a {username}: {e}")
+
+
+def invia_conferma_pro(username: str) -> None:
+    """Email di conferma attivazione piano Pro. Fire-and-forget."""
+    if "@" not in (username or ""):
+        return
+    cfg = _smtp_settings()
+    if not cfg["user"] or not cfg["password"]:
+        return
+
+    corpo = f"""<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8">
+<style>
+  body {{ margin:0; padding:0; background:#f1f5f9; font-family:'Segoe UI',Arial,sans-serif; }}
+  .wrap {{ max-width:560px; margin:40px auto; background:white; border-radius:16px;
+           overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }}
+  .header {{ background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 100%);
+             padding:32px 36px; text-align:center; }}
+  .header h1 {{ color:white; font-size:24px; margin:0; font-weight:700; }}
+  .header p  {{ color:#ddd6fe; font-size:14px; margin:8px 0 0; }}
+  .badge {{ display:inline-block; background:white; color:#7c3aed; padding:6px 16px;
+            border-radius:999px; font-weight:700; font-size:13px; margin-top:12px; }}
+  .body {{ padding:32px 36px; }}
+  .body h2 {{ font-size:18px; color:#111827; margin:0 0 12px; }}
+  .body p  {{ font-size:14px; color:#374151; line-height:1.7; margin:0 0 16px; }}
+  .feature {{ display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }}
+  .feature span {{ font-size:20px; flex-shrink:0; }}
+  .feature p {{ margin:0; font-size:14px; color:#374151; line-height:1.5; }}
+  .btn {{ display:inline-block; background:#7c3aed; color:white; padding:13px 28px;
+          border-radius:10px; font-size:15px; font-weight:700; text-decoration:none;
+          margin-top:8px; }}
+  .footer {{ background:#f8fafc; padding:16px 36px; text-align:center;
+             font-size:12px; color:#9ca3af; border-top:1px solid #f1f5f9; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>⭐ Piano Pro attivato!</h1>
+    <p>Hai sbloccato tutte le funzionalità premium</p>
+    <span class="badge">✅ PRO ATTIVO</span>
+  </div>
+  <div class="body">
+    <h2>Ottimo, {username}!</h2>
+    <p>Il tuo abbonamento <strong>Pro</strong> è ora attivo.
+       Hai accesso completo a tutte le funzionalità senza limiti:</p>
+    <div class="feature"><span>👥</span><p><strong>Clienti illimitati</strong></p></div>
+    <div class="feature"><span>📑</span><p><strong>Preventivi illimitati</strong> con firma digitale</p></div>
+    <div class="feature"><span>🧾</span><p><strong>FatturaPA XML</strong> illimitata</p></div>
+    <div class="feature"><span>📊</span><p><strong>Dashboard KPI avanzata</strong> — analisi economica completa</p></div>
+    <div class="feature"><span>📦</span><p><strong>Magazzino illimitato</strong> con storico movimenti</p></div>
+    <div class="feature"><span>💾</span><p><strong>Backup & export</strong> dati completo</p></div>
+    <p>Puoi gestire il tuo abbonamento (fatture, cancellazione) in qualsiasi momento dal menu <strong>Piano Pro</strong>.</p>
+    <p>
+      <a href="https://optimistic-courtesy-production.up.railway.app" class="btn">Vai al gestionale →</a>
+    </p>
+  </div>
+  <div class="footer">© 2026 Gestionale Artigiani · Grazie per aver scelto Pro!</div>
+</div>
+</body></html>"""
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Piano Pro attivato ⭐ — Gestionale Artigiani"
+        msg["From"] = f"Gestionale Artigiani <{cfg['from']}>"
+        msg["To"] = username
+        msg.attach(MIMEText(corpo, "html", "utf-8"))
+        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
+            s.ehlo(); s.starttls(); s.login(cfg["user"], cfg["password"])
+            s.sendmail(cfg["from"], username, msg.as_string())
+        logger.info(f"Email conferma Pro inviata a {username}")
+    except Exception as e:
+        logger.warning(f"Email conferma Pro non inviata a {username}: {e}")
+
+
 def invia_fattura_xml(
     *,
     to_email: str,

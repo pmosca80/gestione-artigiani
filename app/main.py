@@ -218,6 +218,33 @@ def home(
     if classifica_clienti:
         cliente_top = classifica_clienti[0]
 
+    # Calcolo giorni rimasti nel trial (free o promo pro)
+    trial_giorni_rimasti = None
+    trial_tipo = None
+    from app.models import Utente as _Utente
+    utente_obj = db.query(_Utente).filter(_Utente.id == user_id).first()
+    if utente_obj and utente_obj.username != "admin":
+        if piano_corrente == "free" and getattr(utente_obj, "attivo", 1) != 2 and utente_obj.data_registrazione:
+            try:
+                data_reg = datetime.strptime(utente_obj.data_registrazione, "%Y-%m-%d")
+                rimasti = 30 - (datetime.now() - data_reg).days
+                if rimasti > 0:
+                    trial_giorni_rimasti = rimasti
+                    trial_tipo = "free"
+            except Exception:
+                pass
+        elif (piano_corrente == "pro"
+              and getattr(utente_obj, "pro_scadenza", None)
+              and not getattr(utente_obj, "stripe_subscription_id", None)):
+            try:
+                scadenza = datetime.strptime(utente_obj.pro_scadenza, "%Y-%m-%d")
+                rimasti = (scadenza.date() - datetime.now().date()).days
+                if rimasti >= 0:
+                    trial_giorni_rimasti = rimasti
+                    trial_tipo = "promo_pro"
+            except Exception:
+                pass
+
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -231,6 +258,8 @@ def home(
             "piano_corrente": piano_corrente,
             "n_clienti": n_clienti,
             "limite_free": LIMITE_CLIENTI_FREE,
+            "trial_giorni_rimasti": trial_giorni_rimasti,
+            "trial_tipo": trial_tipo,
         }
     )
 

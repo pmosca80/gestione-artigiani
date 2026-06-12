@@ -388,6 +388,36 @@
     {% endif %}
     {% endif %}
 
+    <!-- Banner trial / promo pro -->
+    {% if trial_giorni_rimasti is not none %}
+    {% if trial_tipo == 'free' %}
+    <div style="background:{% if trial_giorni_rimasti <= 5 %}#fef3c7{% else %}#eff6ff{% endif %};border:1px solid {% if trial_giorni_rimasti <= 5 %}#fcd34d{% else %}#bfdbfe{% endif %};border-radius:12px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+            <span style="font-size:13px;font-weight:700;color:{% if trial_giorni_rimasti <= 5 %}#92400e{% else %}#1e40af{% endif %};">
+                {% if trial_giorni_rimasti == 1 %}⏰ Ultimo giorno di prova gratuita!
+                {% elif trial_giorni_rimasti <= 5 %}⏰ Hai ancora {{ trial_giorni_rimasti }} giorni di prova gratuita
+                {% else %}🕐 Periodo di prova: {{ trial_giorni_rimasti }} giorni rimasti{% endif %}
+            </span>
+            <span style="font-size:12px;color:#6b7280;margin-left:8px;">Passa a Pro per non perdere l'accesso.</span>
+        </div>
+        <a href="/piani" style="background:#7c3aed;color:white;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">⭐ Attiva Pro</a>
+    </div>
+    {% elif trial_tipo == 'promo_pro' %}
+    <div style="background:{% if trial_giorni_rimasti <= 5 %}#fef3c7{% else %}#f0fdf4{% endif %};border:1px solid {% if trial_giorni_rimasti <= 5 %}#fcd34d{% else %}#86efac{% endif %};border-radius:12px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+            <span style="font-size:13px;font-weight:700;color:{% if trial_giorni_rimasti <= 5 %}#92400e{% else %}#166534{% endif %};">
+                {% if trial_giorni_rimasti == 0 %}⏰ Il tuo Piano Pro promo scade oggi!
+                {% elif trial_giorni_rimasti == 1 %}⏰ Ultimo giorno del Piano Pro promo
+                {% elif trial_giorni_rimasti <= 5 %}⏰ Piano Pro promo: {{ trial_giorni_rimasti }} giorni rimasti
+                {% else %}🎁 Piano Pro promo attivo — scade tra {{ trial_giorni_rimasti }} giorni{% endif %}
+            </span>
+            <span style="font-size:12px;color:#6b7280;margin-left:8px;">Abbonati per continuare ad usare tutte le funzionalità.</span>
+        </div>
+        <a href="/piani" style="background:#7c3aed;color:white;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">⭐ Rinnova Pro</a>
+    </div>
+    {% endif %}
+    {% endif %}
+
     <!-- ── KPI PRINCIPALI ── -->
     <div class="dash-section">
         <div class="dash-section-title">KPI principali</div>
@@ -670,6 +700,72 @@
         </div>
     </div>
 
+    <!-- ── CONFRONTO ANNO ── -->
+    <div class="dash-section">
+        <div class="dash-section-title">Anno {{ oggi[:4] }} vs anno precedente</div>
+        <div class="kpi-strip">
+
+            <div class="kpi-tile green">
+                <span class="kpi-icon">📅</span>
+                <div class="kpi-label">Fatturato {{ oggi[:4] }}</div>
+                <div class="kpi-val green">€ {{ "%.0f"|format(stats.fatturato_anno_corrente or 0) }}</div>
+                <div class="kpi-sub">Anno in corso</div>
+            </div>
+
+            <div class="kpi-tile gray">
+                <span class="kpi-icon">📅</span>
+                <div class="kpi-label">Fatturato {{ (oggi[:4]|int - 1)|string }}</div>
+                <div class="kpi-val">€ {{ "%.0f"|format(stats.fatturato_anno_prec or 0) }}</div>
+                <div class="kpi-sub">Anno precedente</div>
+            </div>
+
+            <div class="kpi-tile {% if (stats.delta_anno_pct or 0) >= 0 %}green{% else %}red{% endif %}">
+                <span class="kpi-icon">{% if (stats.delta_anno_pct or 0) >= 0 %}▲{% else %}▼{% endif %}</span>
+                <div class="kpi-label">Variazione anno</div>
+                <div class="kpi-val {% if (stats.delta_anno_pct or 0) >= 0 %}green{% else %}red{% endif %}">
+                    {% if (stats.delta_anno_pct or 0) >= 0 %}+{% endif %}{{ stats.delta_anno_pct or 0 }}%
+                </div>
+                <div class="kpi-sub">vs anno precedente</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── PREVISIONE INCASSI ── -->
+    <div class="dash-section">
+        <div class="dash-section-title">Previsione incassi futuri</div>
+        <div class="kpi-strip">
+
+            <div class="kpi-tile blue">
+                <span class="kpi-icon">📆</span>
+                <div class="kpi-label">Prossimi 30 giorni</div>
+                <div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_30g or 0) }}</div>
+                <div class="kpi-sub">Da incassare entro 30 gg</div>
+            </div>
+
+            <div class="kpi-tile blue">
+                <span class="kpi-icon">📆</span>
+                <div class="kpi-label">Prossimi 60 giorni</div>
+                <div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_60g or 0) }}</div>
+                <div class="kpi-sub">Da incassare entro 60 gg</div>
+            </div>
+
+            <div class="kpi-tile blue">
+                <span class="kpi-icon">📆</span>
+                <div class="kpi-label">Prossimi 90 giorni</div>
+                <div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_90g or 0) }}</div>
+                <div class="kpi-sub">Da incassare entro 90 gg</div>
+            </div>
+
+        </div>
+        {% if (stats.prev_incassi_30g or 0) == 0 and (stats.prev_incassi_60g or 0) == 0 %}
+        <div style="margin-top:10px; font-size:13px; color:#9ca3af;">
+            Nessuna scadenza di pagamento impostata nei prossimi 90 giorni.
+            <a href="/lavori/" style="color:#2563eb; font-weight:600;">Imposta le scadenze</a> sui lavori aperti per vedere le previsioni.
+        </div>
+        {% endif %}
+    </div>
+
     <!-- ── GRAFICI ── -->
     <div class="dash-section">
         <div class="dash-section-title">Grafici economici</div>
@@ -686,6 +782,10 @@
                 <h3>Andamento ultimi 6 mesi</h3>
                 <div class="chart-wrap"><canvas id="graficoMensile"></canvas></div>
             </div>
+        </div>
+        <div class="d-card" style="margin-top:18px;">
+            <h3>Obiettivo mensile — andamento {{ oggi[:4] }}</h3>
+            <div class="chart-wrap" style="height:220px;"><canvas id="graficoAnnoObiettivo"></canvas></div>
         </div>
     </div>
 
@@ -1040,6 +1140,46 @@ if (ctxMensile) {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } },
             scales: { y: { grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+        }
+    });
+}
+
+const ctxAnnoObiettivo = document.getElementById('graficoAnnoObiettivo');
+if (ctxAnnoObiettivo) {
+    new Chart(ctxAnnoObiettivo, {
+        type: 'bar',
+        data: {
+            labels: {{ stats.grafico_anno_labels | default([]) | tojson }},
+            datasets: [
+                {
+                    label: 'Fatturato',
+                    data: {{ stats.grafico_anno_fatturato | default([]) | tojson }},
+                    backgroundColor: 'rgba(22,163,74,0.75)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    order: 2
+                },
+                {
+                    label: 'Obiettivo mensile',
+                    data: {{ stats.grafico_anno_obiettivo | default([]) | tojson }},
+                    type: 'line',
+                    borderColor: '#f97316',
+                    borderDash: [6, 4],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } },
+            scales: {
+                y: { grid: { color: '#f1f5f9' }, beginAtZero: true },
+                x: { grid: { display: false } }
+            }
         }
     });
 }
