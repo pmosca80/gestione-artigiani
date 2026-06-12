@@ -114,12 +114,12 @@
         }
         .pay-group textarea { resize: vertical; min-height: 60px; }
         .btn-registra {
-            padding: 10px 22px;
+            padding: 12px 22px;
             background: #16a34a;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
@@ -127,6 +127,11 @@
             white-space: nowrap;
         }
         .btn-registra:hover { background: #15803d; }
+        .pay-form-submit {
+            grid-column: span 4;
+            display: flex;
+            justify-content: flex-end;
+        }
 
         /* TABELLA */
         .section-title {
@@ -170,12 +175,26 @@
         @media (max-width: 900px) {
             .pay-form-grid { grid-template-columns: 1fr 1fr; }
             .pay-group.span2 { grid-column: span 2; }
+            .pay-form-submit { grid-column: span 2; }
             .p-table-wrap { overflow-x: auto; }
             .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .col-note, .col-registrato { display: none; }
         }
         @media (max-width: 500px) {
             .pay-form-grid { grid-template-columns: 1fr; }
             .pay-group.span2 { grid-column: span 1; }
+            .pay-form-submit { grid-column: span 1; }
+            .btn-registra { width: 100%; }
+            .pay-group input,
+            .pay-group select,
+            .pay-group textarea {
+                font-size: 16px;
+                padding: 13px 14px;
+            }
+            .kpi-strip { grid-template-columns: 1fr 1fr; }
+            .kpi-val { font-size: 18px; }
         }
     </style>
 </head>
@@ -268,7 +287,7 @@
                     <label>Note</label>
                     <input type="text" name="note" placeholder="Opzionale">
                 </div>
-                <div style="grid-column: span 4; display:flex; justify-content:flex-end;">
+                <div class="pay-form-submit">
                     <button type="submit" class="btn-registra">💳 Registra pagamento</button>
                 </div>
             </div>
@@ -290,8 +309,8 @@
                     <th>Data</th>
                     <th>Importo</th>
                     <th>Metodo</th>
-                    <th>Note</th>
-                    <th>Registrato il</th>
+                    <th class="col-note">Note</th>
+                    <th class="col-registrato">Registrato il</th>
                     <th>Azioni</th>
                 </tr>
             </thead>
@@ -317,8 +336,8 @@
                             {% elif pagamento.metodo == "assegno" %}📋 Assegno
                             {% else %}{{ pagamento.metodo or '—' }}{% endif %}
                         </td>
-                        <td style="color:#6b7280;">{{ pagamento.note or '—' }}</td>
-                        <td class="data-cell">{{ pagamento.data_creazione }}</td>
+                        <td class="col-note" style="color:#6b7280;">{{ pagamento.note or '—' }}</td>
+                        <td class="col-registrato data-cell">{{ pagamento.data_creazione }}</td>
                         <td>
                             <div class="azioni-cell">
                                 <a href="/lavori/pagamenti/{{ pagamento.id }}/ricevuta"
