@@ -441,6 +441,7 @@
                     <a href="/clienti/{{ lavoro.cliente.id }}" class="btn-hero btn-hero-outline">👤 Cliente</a>
                 {% endif %}
                 <a href="/lavori/{{ lavoro.id }}/modifica" class="btn-hero btn-hero-outline">✏️ Modifica</a>
+                <a href="/lavori/{{ lavoro.id }}/voci" class="btn-hero btn-hero-outline">📋 Voci{% if voci_preventivo %} ({{ voci_preventivo|length }}){% endif %}</a>
                 <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-hero btn-hero-outline">📦 Materiali</a>
                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
@@ -641,6 +642,13 @@
             <a href="/lavori/{{ lavoro.id }}/modifica" class="azione-tile">
                 <div class="azione-icon">✏️</div>
                 <div><h4>Modifica</h4><p>Dati e costi</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/voci" class="azione-tile">
+                <div class="azione-icon">📋</div>
+                <div>
+                    <h4>Voci preventivo</h4>
+                    <p>{% if voci_preventivo %}{{ voci_preventivo|length }} voce/i{% else %}Aggiungi righe al PDF{% endif %}</p>
+                </div>
             </a>
             <a href="/lavori/{{ lavoro.id }}/materiali" class="azione-tile">
                 <div class="azione-icon">📦</div>

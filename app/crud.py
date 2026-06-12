@@ -20,6 +20,7 @@ from app.models import (
     AllegatoLavoro,
     FatturaEmessa,
     TemplatePreventivo,
+    VocePreventivo,
 )
 from app.models import MovimentoMagazzino
 
@@ -2510,3 +2511,43 @@ def elimina_template_preventivo(db: Session, template_id: int, utente_id: int) -
     db.delete(t)
     db.commit()
     return True
+
+
+# ========================
+# VOCI PREVENTIVO
+# ========================
+
+def get_voci_preventivo(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(VocePreventivo)
+        .filter(VocePreventivo.lavoro_id == lavoro_id, VocePreventivo.utente_id == utente_id)
+        .order_by(VocePreventivo.ordine, VocePreventivo.id)
+        .all()
+    )
+
+def get_voce_preventivo(db: Session, voce_id: int, utente_id: int):
+    return db.query(VocePreventivo).filter(VocePreventivo.id == voce_id, VocePreventivo.utente_id == utente_id).first()
+
+def crea_voce_preventivo(db: Session, utente_id: int, lavoro_id: int, descrizione: str, quantita: float, unita_misura: str, prezzo_unitario: float, ordine: int = 0):
+    voce = VocePreventivo(
+        lavoro_id=lavoro_id, utente_id=utente_id,
+        descrizione=descrizione, quantita=quantita,
+        unita_misura=unita_misura, prezzo_unitario=prezzo_unitario,
+        ordine=ordine,
+    )
+    db.add(voce)
+    db.commit()
+    db.refresh(voce)
+    return voce
+
+def elimina_voce_preventivo(db: Session, voce_id: int, utente_id: int) -> bool:
+    voce = get_voce_preventivo(db, voce_id, utente_id)
+    if not voce:
+        return False
+    db.delete(voce)
+    db.commit()
+    return True
+
+def calcola_totale_voci(db: Session, utente_id: int, lavoro_id: int) -> float:
+    voci = get_voci_preventivo(db, utente_id, lavoro_id)
+    return sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)

@@ -317,6 +317,19 @@ class TemplatePreventivo(Base):
     creato_il = Column(String, nullable=True)
 
 
+class VocePreventivo(Base):
+    __tablename__ = "voci_preventivo"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    descrizione = Column(String, nullable=False)
+    quantita = Column(Float, default=1)
+    unita_misura = Column(String, default="")
+    prezzo_unitario = Column(Float, default=0)
+    ordine = Column(Integer, default=0)
+
+
 class InvitoAccount(Base):
     __tablename__ = "inviti_account"
 

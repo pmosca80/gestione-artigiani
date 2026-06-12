@@ -372,6 +372,8 @@ def dettaglio_lavoro(
         if lavoro.fatture_emesse else None
     )
 
+    voci_preventivo = crud.get_voci_preventivo(db, user_id, lavoro_id)
+
     return templates.TemplateResponse(
         request=request,
         name="lavoro_dettaglio.html",
@@ -391,6 +393,7 @@ def dettaglio_lavoro(
             "today": datetime.now().strftime("%Y-%m-%d"),
             "allegati_lavoro": allegati_lavoro,
             "fattura_emessa": fattura_emessa,
+            "voci_preventivo": voci_preventivo,
         }
     )
 
@@ -585,6 +588,43 @@ def elimina_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_d
     crud.elimina_lavoro(db, lavoro_id)
 
     return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
+
+
+@router.get("/{lavoro_id}/voci", response_class=HTMLResponse)
+def form_voci_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404, detail="Lavoro non trovato")
+    voci = crud.get_voci_preventivo(db, user_id, lavoro_id)
+    totale_voci = sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)
+    return templates.TemplateResponse(request=request, name="lavoro_voci.html", context={
+        "lavoro": lavoro, "voci": voci, "totale_voci": totale_voci,
+    })
+
+@router.post("/{lavoro_id}/voci")
+def aggiungi_voce_lavoro(
+    lavoro_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+    descrizione: str = Form(...),
+    quantita: float = Form(1),
+    unita_misura: str = Form(""),
+    prezzo_unitario: float = Form(0),
+):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404, detail="Lavoro non trovato")
+    crud.crea_voce_preventivo(db, user_id, lavoro_id, descrizione, quantita, unita_misura, prezzo_unitario)
+    return RedirectResponse(url=f"/lavori/{lavoro_id}/voci", status_code=303)
+
+@router.post("/voci-preventivo/{voce_id}/elimina")
+def elimina_voce_preventivo(voce_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    voce = crud.get_voce_preventivo(db, voce_id, user_id)
+    lavoro_id = voce.lavoro_id if voce else None
+    crud.elimina_voce_preventivo(db, voce_id, user_id)
+    if lavoro_id:
+        return RedirectResponse(url=f"/lavori/{lavoro_id}/voci", status_code=303)
+    return RedirectResponse(url="/lavori/", status_code=303)
 
 
 @router.get("/{lavoro_id}/materiali", response_class=HTMLResponse)
@@ -962,6 +1002,7 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
     materiali_dict = {m.id: m for m in materiali_magazzino}
     foto_lavoro = crud.get_foto_lavoro(db, user_id, lavoro_id)
     pagamenti_lavoro = crud.get_pagamenti_lavoro(db, user_id, lavoro_id)
+    voci_preventivo = crud.get_voci_preventivo(db, user_id, lavoro_id)
 
     buffer = io.BytesIO()
 
@@ -1031,6 +1072,39 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
     if lavoro.descrizione:
         elements.append(Paragraph(f"<b>Descrizione:</b> {lavoro.descrizione}", styles["Normal"]))
         elements.append(Spacer(1, 12))
+
+    # VOCI PREVENTIVO (se presenti)
+    if voci_preventivo:
+        elements.append(Paragraph("<b>Voci preventivo</b>", styles["Heading2"]))
+        righe_voci = [["Descrizione", "Qtà", "U.M.", "Prezzo unit.", "Totale"]]
+        totale_voci_pdf = 0
+        for v in voci_preventivo:
+            tot_riga = (v.quantita or 0) * (v.prezzo_unitario or 0)
+            totale_voci_pdf += tot_riga
+            righe_voci.append([
+                v.descrizione,
+                f"{v.quantita:g}",
+                v.unita_misura or "",
+                f"EUR {(v.prezzo_unitario or 0):.2f}",
+                f"EUR {tot_riga:.2f}",
+            ])
+        righe_voci.append(["", "", "", "<b>Totale voci</b>", f"<b>EUR {totale_voci_pdf:.2f}</b>"])
+        tabella_voci = Table(righe_voci, colWidths=[200, 40, 40, 90, 80])
+        tabella_voci.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e3a5f")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTNAME", (3, -1), (-1, -1), "Helvetica-Bold"),
+            ("BACKGROUND", (0, 1), (-1, -2), colors.whitesmoke),
+            ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#f0f9ff")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+            ("ALIGN", (0, 0), (0, -1), "LEFT"),
+            ("PADDING", (0, 0), (-1, -1), 7),
+        ]))
+        elements.append(tabella_voci)
+        elements.append(Spacer(1, 16))
 
     # PARTE ECONOMICA
     preventivo = lavoro.importo_preventivato or 0
