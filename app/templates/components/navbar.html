@@ -28,39 +28,61 @@ function _installaPWA() {
 </script>
 
 <div class="navbar">
-    <a href="/">🏠 Dashboard</a>
-    <a href="/clienti/">👥 Clienti</a>
-    <a href="/lavori/">🛠️ Lavori</a>
-    <a href="/lavori/preventivi/dashboard">📑 Preventivi</a>
-    <a href="/materiali/">📦 Magazzino</a>
-    <a href="/lavori/agenda/scadenzario">📅 Agenda</a>
-    <a href="/lavori/analisi/economica">📊 Analisi</a>
-    <a href="/fatture/">🧾 Fatture</a>
-    <a href="/documenti">📄 Archivio PDF</a>
-    <a href="/lavori/allegati/archivio">📎 Allegati</a>
-    <a href="/impostazioni/azienda">⚙️ Impostazioni</a>
-    <a href="/impostazioni/backup/pagina">💾 Backup</a>
-    <a href="/guida">📖 Guida</a>
-    <a href="/piani" style="font-weight:700;color:#7c3aed;">⭐ Piano</a>
+    <button class="navbar-toggle" id="navbar-toggle" aria-label="Menu" aria-expanded="false">☰</button>
 
     <div class="search-wrap">
         <input type="text" id="global-search" placeholder="Cerca clienti, lavori, materiali…" autocomplete="off" spellcheck="false">
         <div id="search-dropdown"></div>
     </div>
 
-    {% if not request.session.get('is_collaboratore') %}
-    <a href="/team">👥 Team</a>
-    {% endif %}
-    {% if request.session.get('username') == 'admin' %}
-    <a href="/impostazioni/admin" style="font-weight:700;color:#dc2626;">🔧 Admin</a>
-    {% endif %}
-    <button id="btn-installa-pwa" onclick="_installaPWA()"
-            style="display:none;background:#7c3aed;color:white;border:none;border-radius:8px;
-                   padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
-        📲 Installa app
-    </button>
-    <a href="/logout">🚪 Logout</a>
+    <div class="navbar-links" id="navbar-links">
+        <a href="/">🏠 Dashboard</a>
+        <a href="/clienti/">👥 Clienti</a>
+        <a href="/lavori/">🛠️ Lavori</a>
+        <a href="/lavori/preventivi/dashboard">📑 Preventivi</a>
+        <a href="/materiali/">📦 Magazzino</a>
+        <a href="/lavori/agenda/scadenzario">📅 Agenda</a>
+        <a href="/lavori/analisi/economica">📊 Analisi</a>
+        <a href="/fatture/">🧾 Fatture</a>
+        <a href="/documenti">📄 Archivio PDF</a>
+        <a href="/lavori/allegati/archivio">📎 Allegati</a>
+        <a href="/impostazioni/azienda">⚙️ Impostazioni</a>
+        <a href="/impostazioni/backup/pagina">💾 Backup</a>
+        <a href="/guida">📖 Guida</a>
+        <a href="/piani" style="font-weight:700;color:#7c3aed;">⭐ Piano</a>
+        {% if not request.session.get('is_collaboratore') %}
+        <a href="/team">👥 Team</a>
+        {% endif %}
+        {% if request.session.get('username') == 'admin' %}
+        <a href="/impostazioni/admin" style="font-weight:700;color:#dc2626;">🔧 Admin</a>
+        {% endif %}
+        <button id="btn-installa-pwa" onclick="_installaPWA()"
+                style="display:none;background:#7c3aed;color:white;border:none;border-radius:8px;
+                       padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            📲 Installa app
+        </button>
+        <a href="/logout">🚪 Logout</a>
+    </div>
 </div>
+
+<script>
+(function () {
+    var toggle = document.getElementById('navbar-toggle');
+    var navbar = toggle.closest('.navbar');
+    toggle.addEventListener('click', function () {
+        var open = navbar.classList.toggle('nav-open');
+        toggle.textContent = open ? '✕' : '☰';
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.querySelectorAll('.navbar-links a').forEach(function (link) {
+        link.addEventListener('click', function () {
+            navbar.classList.remove('nav-open');
+            toggle.textContent = '☰';
+            toggle.setAttribute('aria-expanded', 'false');
+        });
+    });
+})();
+</script>
 
 <!-- Cookie banner GDPR -->
 <div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;color:#e2e8f0;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,0.25);">

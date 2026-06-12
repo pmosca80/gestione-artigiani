@@ -15,6 +15,16 @@ body {
     box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 
+/* Hamburger — visibile solo su mobile */
+.navbar-toggle {
+    display: none;
+}
+
+/* Su desktop i link fluiscono direttamente nel flex container */
+.navbar-links {
+    display: contents;
+}
+
 .navbar a {
     color: #e5e7eb;
     text-decoration: none;
@@ -391,13 +401,66 @@ th {
     }
 
     .navbar {
+        flex-wrap: nowrap;
+        padding: 10px 16px;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .navbar-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: #e5e7eb;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 6px 8px;
+        border-radius: 6px;
+        order: 1;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+
+    .navbar-toggle:hover {
+        background: #1e293b;
+    }
+
+    .navbar-links {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 2px;
+        order: 3;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        margin-top: 2px;
+    }
+
+    .navbar.nav-open .navbar-links {
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+    }
+
+    .navbar-links a,
+    .navbar-links button#btn-installa-pwa {
+        padding: 10px 14px;
+        border-radius: 7px;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: left;
+        margin-right: 0;
+    }
+
+    .search-wrap {
+        order: 2;
+        flex: 1;
+        min-width: 0;
     }
 
     .navbar a {
-        margin-right: 10px;
+        margin-right: 0;
     }
 
     .big-number,
