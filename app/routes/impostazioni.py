@@ -522,26 +522,3 @@ def elimina_utente(utente_id: int, request: Request, db: Session = Depends(get_d
         db.commit()
 
     return RedirectResponse(url="/impostazioni/admin", status_code=303)
-@router.get("/onboarding", response_class=HTMLResponse)
-def onboarding_page(request: Request, user_id: int = Depends(get_current_user)):
-    return templates.TemplateResponse(
-        request=request,
-        name="onboarding.html",
-        context={}
-    )
-
-@router.post("/onboarding")
-def onboarding_salva(
-    request: Request,
-    nome_azienda: str = Form(...),
-    partita_iva: str = Form(""),
-    indirizzo: str = Form(""),
-    telefono: str = Form(""),
-    email: str = Form(...),
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user),
-):
-    crud.salva_impostazioni_azienda(
-        db, user_id, nome_azienda, partita_iva, indirizzo, telefono, email, None
-    )
-    return RedirectResponse(url="/", status_code=303)

@@ -21,6 +21,8 @@ class Utente(Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 
+    onboarding_done = Column(Boolean, nullable=False, default=False)
+
     # Multi-utente: NULL = titolare, impostato = collaboratore
     titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
     ruolo = Column(String, nullable=True, default="titolare")  # "titolare" | "collaboratore"

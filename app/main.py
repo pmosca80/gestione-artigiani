@@ -13,7 +13,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -74,6 +74,8 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE utenti ADD COLUMN titolare_id INTEGER"))
         if "ruolo" not in cols:
             conn.execute(text("ALTER TABLE utenti ADD COLUMN ruolo VARCHAR DEFAULT 'titolare'"))
+        if "onboarding_done" not in cols:
+            conn.execute(text("ALTER TABLE utenti ADD COLUMN onboarding_done BOOLEAN DEFAULT FALSE NOT NULL"))
         # Fatture: reminder_inviato
         fat_cols = [c["name"] for c in insp.get_columns("fatture_emesse")]
         if "reminder_inviato" not in fat_cols:
@@ -126,6 +128,7 @@ app.include_router(documenti.router)
 app.include_router(fatture.router)
 app.include_router(piani.router)
 app.include_router(team.router)
+app.include_router(onboarding.router)
 
 @app.get("/api/cerca")
 def cerca_globale(
@@ -255,8 +258,9 @@ def home(
     user_id = (getattr(_raw_utente, "titolare_id", None) or raw_user_id) if _raw_utente else raw_user_id
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
-    if not azienda or not azienda.nome_azienda:
-        return RedirectResponse(url="/impostazioni/onboarding", status_code=303)
+    if not _raw_utente.onboarding_done and not request.session.get("is_collaboratore"):
+        request.session["onboarding_step"] = 1
+        return RedirectResponse(url="/onboarding", status_code=303)
 
     piano_corrente = get_piano(db, user_id)
     n_clienti = conta_clienti(db, user_id)

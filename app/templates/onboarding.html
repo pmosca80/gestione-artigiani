@@ -3,199 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Benvenuto — Gestionale Artigiani</title>
+    <title>Configurazione iniziale — Gestionale Artigiani</title>
+    <link rel="manifest" href="/static/manifest.json">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'DM Sans', Arial, sans-serif;
+            background: #0f172a;
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f172a, #1e3a5f);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 24px;
         }
 
-        .card {
+        .wizard {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-            padding: 40px;
+            padding: 40px 36px;
+            max-width: 500px;
             width: 100%;
-            max-width: 560px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.35);
         }
 
-        .welcome-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .welcome-icon {
-            font-size: 40px;
-            margin-bottom: 12px;
-        }
-        .welcome-header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 8px;
-        }
-        .welcome-header p {
-            font-size: 14px;
-            color: #6b7280;
-            line-height: 1.5;
-        }
-
-        .step-indicator {
+        /* Indicatore di progresso */
+        .steps {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin-bottom: 28px;
+            margin-bottom: 36px;
         }
         .step-dot {
-            width: 8px;
-            height: 8px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
         }
-        .step-dot.active {
-            background: #2563eb;
-            width: 24px;
-            border-radius: 4px;
-        }
+        .step-dot.done   { background: #dcfce7; color: #16a34a; }
+        .step-dot.active { background: #7c3aed; color: white; box-shadow: 0 0 0 4px rgba(124,58,237,0.18); }
+        .step-dot.next   { background: #f1f5f9; color: #94a3b8; }
+        .step-line       { height: 2px; width: 52px; background: #e2e8f0; flex-shrink: 0; }
+        .step-line.done  { background: #86efac; }
 
-        .form-section-title {
+        /* Header del passo */
+        .step-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .step-label {
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #9ca3af;
-            margin: 20px 0 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #f1f5f9;
+            color: #7c3aed;
+            margin-bottom: 8px;
         }
-        .form-section-title:first-child { margin-top: 0; }
+        .step-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        .step-header p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.5;
+        }
 
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group.span2 { grid-column: span 2; }
-
+        /* Campi */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
         .form-group label {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             color: #374151;
             text-transform: uppercase;
             letter-spacing: 0.4px;
         }
-        .form-group input {
-            padding: 10px 14px;
+        .form-group input,
+        .form-group textarea {
+            padding: 11px 14px;
             border: 1.5px solid #e5e7eb;
             border-radius: 9px;
             font-size: 14px;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'DM Sans', Arial, sans-serif;
             color: #111827;
             outline: none;
             background: #f9fafb;
             transition: border-color 0.2s, box-shadow 0.2s;
+            resize: none;
         }
-        .form-group input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
             background: white;
         }
-
-        .required-note {
-            font-size: 12px;
-            color: #9ca3af;
-            margin-top: 16px;
-            text-align: center;
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
-        .required-note span { color: #ef4444; }
 
-        .btn-continua {
-            width: 100%;
-            padding: 13px;
-            background: #2563eb;
+        /* Azioni */
+        .actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn-salta {
+            font-size: 13px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .btn-salta:hover { color: #64748b; }
+        .btn-avanti {
+            padding: 11px 28px;
+            background: #7c3aed;
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 9px;
+            font-size: 14px;
             font-weight: 700;
             cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            margin-top: 24px;
+            font-family: 'DM Sans', Arial, sans-serif;
             transition: background 0.15s;
         }
-        .btn-continua:hover { background: #1d4ed8; }
+        .btn-avanti:hover { background: #6d28d9; }
 
-        .skip-link {
-            display: block;
-            text-align: center;
-            margin-top: 14px;
-            font-size: 13px;
-            color: #9ca3af;
-            text-decoration: none;
-        }
-        .skip-link:hover { color: #6b7280; }
-
-        @media (max-width: 520px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .form-group.span2 { grid-column: span 1; }
-            .card { padding: 28px 20px; }
+        @media (max-width: 480px) {
+            .wizard  { padding: 28px 20px; }
+            .form-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+<div class="wizard">
 
-<div class="card">
-
-    <div class="welcome-header">
-        <div class="welcome-icon">👋</div>
-        <h1>Benvenuto nel gestionale!</h1>
-        <p>Prima di iniziare, inserisci i dati della tua azienda.<br>
-        Appariranno sui PDF e nei documenti generati.</p>
+    <!-- Indicatore di progresso -->
+    <div class="steps">
+        <div class="step-dot {% if step == 1 %}active{% elif step > 1 %}done{% else %}next{% endif %}">
+            {% if step > 1 %}✓{% else %}1{% endif %}
+        </div>
+        <div class="step-line {% if step > 1 %}done{% endif %}"></div>
+        <div class="step-dot {% if step == 2 %}active{% elif step > 2 %}done{% else %}next{% endif %}">
+            {% if step > 2 %}✓{% else %}2{% endif %}
+        </div>
+        <div class="step-line {% if step > 2 %}done{% endif %}"></div>
+        <div class="step-dot {% if step == 3 %}active{% else %}next{% endif %}">3</div>
     </div>
 
-    <div class="step-indicator">
-        <div class="step-dot active"></div>
-        <div class="step-dot"></div>
-        <div class="step-dot"></div>
+    <!-- STEP 1 — Dati azienda -->
+    {% if step == 1 %}
+    <div class="step-header">
+        <div class="step-label">Passo 1 di 3</div>
+        <h2>Benvenuto! 👋</h2>
+        <p>Inserisci i dati della tua azienda.<br>Appariranno sui PDF e sulle fatture generate.</p>
     </div>
-
-    <form method="post" action="/onboarding">
-
-        <div class="form-section-title">Dati azienda</div>
-        <div class="form-grid">
-            <div class="form-group span2">
-                <label>Nome azienda <span style="color:#ef4444">*</span></label>
-                <input type="text" name="nome_azienda"
-                       placeholder="Es. Idraulica Rossi di Mario Rossi"
-                       required autofocus>
-            </div>
+    <form method="post" action="/onboarding/azienda">
+        <div class="form-group">
+            <label>Nome azienda</label>
+            <input type="text" name="nome_azienda"
+                   placeholder="Es. Idraulica Rossi di Mario Rossi" autofocus>
+        </div>
+        <div class="form-row">
             <div class="form-group">
                 <label>Partita IVA</label>
-                <input type="text" name="partita_iva"
-                       placeholder="Es. 01234567890">
+                <input type="text" name="partita_iva" placeholder="01234567890" maxlength="11">
             </div>
             <div class="form-group">
                 <label>Telefono</label>
-                <input type="text" name="telefono"
-                       placeholder="Es. 333 1234567">
-            </div>
-            <div class="form-group span2">
-                <label>Indirizzo</label>
-                <input type="text" name="indirizzo"
-                       placeholder="Via, numero civico, città">
-            </div>
-            <div class="form-group span2">
-                <label>Email notifiche <span style="color:#ef4444">*</span></label>
-                <input type="email" name="email"
-                       placeholder="La tua email per ricevere i promemoria"
-                       required>
+                <input type="text" name="telefono" placeholder="333 1234567">
             </div>
         </div>
+        <div class="actions">
+            <a href="/onboarding/salta" class="btn-salta">Salta tutto →</a>
+            <button type="submit" class="btn-avanti">Avanti →</button>
+        </div>
+    </form>
 
-        <p class="required-note"><span>*</span> Campi obbligatori</p>
+    <!-- STEP 2 — Primo cliente -->
+    {% elif step == 2 %}
+    <div class="step-header">
+        <div class="step-label">Passo 2 di 3</div>
+        <h2>Il tuo primo cliente</h2>
+        <p>Aggiungi subito un cliente da seguire. Potrai inserirne altri in qualsiasi momento.</p>
+    </div>
+    <form method="post" action="/onboarding/cliente">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nome</label>
+                <input type="text" name="nome" placeholder="Mario" autofocus>
+            </div>
+            <div class="form-group">
+                <label>Cognome</label>
+                <input type="text" name="cognome" placeholder="Rossi">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Telefono</label>
+            <input type="text" name="telefono" placeholder="333 1234567">
+        </div>
+        <div class="actions">
+            <a href="/onboarding/salta" class="btn-salta">Salta →</a>
+            <button type="submit" class="btn-avanti">Avanti →</button>
+        </div>
+    </form>
+
+    <!-- STEP 3 — Primo lavoro -->
+    {% elif step == 3 %}
+    <div class="step-header">
+        <div class="step-label">Passo 3 di 3</div>
+        <h2>Il tuo primo lavoro</h2>
+        <p>Crea subito il primo intervento da seguire.</p>
+    </div>
+    <form method="post" action="/onboarding/lavoro">
+        <div class="form-group">
+            <label>Titolo del lavoro</label>
+            <input type="text" name="titolo"
+                   placeholder="Es. Riparazione perdita bagno" autofocus>
+        </div>
+        <div class="form-group">
+            <label>Note (opzionale)</label>
+            <textarea name="descrizione" rows="3"
+                      placeholder="Dettagli sull'intervento…"></textarea>
+        </div>
+        <div class="actions">
+            <a href="/onboarding/salta" class="btn-salta">Salta →</a>
+            <button type="submit" class="btn-avanti">Inizia →</button>
+        </div>
+    </form>
+    {% endif %}
+
+</div>
+</body>
+</html>
