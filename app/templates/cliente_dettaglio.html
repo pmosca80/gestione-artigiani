@@ -228,8 +228,19 @@
         <div class="info-item">
             <span class="info-label">Indirizzo</span>
             <span class="info-val">
-                {{ cliente.indirizzo or '—' }}{% if cliente.citta %}, {{ cliente.citta }}{% endif %}
-                {% if cliente.cap %} {{ cliente.cap }}{% endif %}
+                {% if cliente.indirizzo %}
+                {% set maps_q = cliente.indirizzo %}
+                {% if cliente.citta %}{% set maps_q = maps_q ~ ', ' ~ cliente.citta %}{% endif %}
+                {% if cliente.cap %}{% set maps_q = maps_q ~ ' ' ~ cliente.cap %}{% endif %}
+                {% if cliente.provincia %}{% set maps_q = maps_q ~ ', ' ~ cliente.provincia %}{% endif %}
+                <a href="https://maps.google.com/?q={{ maps_q | replace(' ', '+') }}"
+                   target="_blank" rel="noopener"
+                   style="color:inherit; text-decoration:none; border-bottom:1px dashed #9ca3af;">
+                    📍 {{ cliente.indirizzo }}{% if cliente.citta %}, {{ cliente.citta }}{% endif %}{% if cliente.cap %} {{ cliente.cap }}{% endif %}
+                </a>
+                {% else %}
+                —
+                {% endif %}
             </span>
         </div>
         <div class="info-item">
