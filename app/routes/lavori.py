@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 import re
 
@@ -226,6 +226,62 @@ def agenda_scadenzario(
             "filtro": filtro
         }
     )
+
+@router.get("/agenda/settimana", response_class=HTMLResponse)
+def agenda_settimana(
+    request: Request,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    oggi = datetime.now().date()
+    lunedi = oggi - timedelta(days=oggi.weekday()) + timedelta(weeks=offset)
+
+    from app.models import Lavoro as LavoroModel
+    lavori_tutti = (
+        db.query(LavoroModel)
+        .filter(LavoroModel.utente_id == user_id)
+        .all()
+    )
+
+    mesi = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+            "luglio","agosto","settembre","ottobre","novembre","dicembre"]
+    nomi = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
+    brevi = ["LUN","MAR","MER","GIO","VEN","SAB","DOM"]
+
+    giorni = []
+    for i in range(7):
+        d = lunedi + timedelta(days=i)
+        ds = d.strftime("%Y-%m-%d")
+        lavori_giorno = [l for l in lavori_tutti if l.data_lavoro == ds]
+        aperti = [l for l in lavori_giorno if l.stato not in ("completato", "annullato")]
+        giorni.append({
+            "data": d,
+            "data_str": ds,
+            "giorno": d.day,
+            "nome": nomi[i],
+            "breve": brevi[i],
+            "oggi": d == oggi,
+            "lavori": lavori_giorno,
+            "n_aperti": len(aperti),
+        })
+
+    domenica = lunedi + timedelta(days=6)
+    if lunedi.month == domenica.month:
+        titolo = f"{lunedi.day}–{domenica.day} {mesi[domenica.month-1]} {domenica.year}"
+    else:
+        titolo = f"{lunedi.day} {mesi[lunedi.month-1]} – {domenica.day} {mesi[domenica.month-1]} {domenica.year}"
+
+    return templates.TemplateResponse(
+        request=request,
+        name="agenda_settimana.html",
+        context={
+            "giorni": giorni,
+            "offset": offset,
+            "titolo_settimana": titolo,
+        }
+    )
+
 
 @router.get("/analisi/economica", response_class=HTMLResponse)
 def analisi_economica(

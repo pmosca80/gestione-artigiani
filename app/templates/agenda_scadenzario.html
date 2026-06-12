@@ -169,6 +169,25 @@
             .a-table-wrap { overflow-x: auto; }
             .agenda-kpi { grid-template-columns: repeat(2, 1fr); }
         }
+
+        .vista-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .vtab {
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1.5px solid transparent;
+            transition: all 0.15s;
+        }
+        .vtab:hover { background: #e5e7eb; }
+        .vtab.active { background: #111827; color: white; border-color: #111827; }
     </style>
 </head>
 <body>
@@ -183,6 +202,12 @@
             <h1>📅 Agenda e scadenzario</h1>
             <p>Lavori aperti, attività di oggi e pagamenti da controllare</p>
         </div>
+    </div>
+
+    <!-- VISTA TABS -->
+    <div class="vista-tabs">
+        <a href="/lavori/agenda/scadenzario" class="vtab active">📅 Scadenzario</a>
+        <a href="/lavori/agenda/settimana" class="vtab">📆 Settimana</a>
     </div>
 
     <!-- TAB FILTRI -->
