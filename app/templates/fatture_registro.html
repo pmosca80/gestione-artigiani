@@ -221,6 +221,13 @@
         Per abilitare il bottone "Invia email", imposta <code>MAIL_USERNAME</code> e <code>MAIL_PASSWORD</code> nelle variabili d'ambiente.
     </div>
     {% endif %}
+    {% if not pec_ok %}
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:13px;color:#166534;">
+        📤 <strong>Invio diretto a SDI non configurato.</strong>
+        <a href="/impostazioni/azienda#pec" style="color:#166534;font-weight:700;">Configura la PEC in Impostazioni →</a>
+        per abilitare il bottone "Invia SDI".
+    </div>
+    {% endif %}
 
     <!-- Filtro anno + export -->
     <div class="anno-bar">
@@ -339,12 +346,21 @@
                             <span class="btn-az btn-az-gray" style="opacity:0.45;cursor:not-allowed;" title="Cliente senza email">📧</span>
                             {% endif %}
                             {% if f.stato != "inviata_sdi" %}
-                            <form class="stato-form" method="post"
-                                  action="/fatture/{{ f.id }}/stato">
-                                <button type="submit" name="stato" value="inviata_sdi"
-                                        class="btn-az btn-az-green"
-                                        title="Segna come inviata al SDI">✓ SDI</button>
-                            </form>
+                                {% if pec_ok %}
+                                <form class="stato-form" method="post"
+                                      action="/fatture/{{ f.id }}/invia-sdi"
+                                      onsubmit="return confirm('Inviare la fattura {{ f.anno }}/{{ \"%03d\"|format(f.numero) }} a SDI tramite PEC?')">
+                                    <button type="submit" class="btn-az btn-az-green"
+                                            title="Invia XML a SDI tramite PEC">📤 Invia SDI</button>
+                                </form>
+                                {% else %}
+                                <form class="stato-form" method="post"
+                                      action="/fatture/{{ f.id }}/stato">
+                                    <button type="submit" name="stato" value="inviata_sdi"
+                                            class="btn-az btn-az-green"
+                                            title="Segna manualmente come inviata a SDI">✓ SDI</button>
+                                </form>
+                                {% endif %}
                             {% else %}
                             <form class="stato-form" method="post"
                                   action="/fatture/{{ f.id }}/stato">

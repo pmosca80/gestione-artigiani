@@ -737,6 +737,10 @@ def salva_impostazioni_azienda(
     cap: str = "",
     citta: str = "",
     provincia: str = "",
+    pec_indirizzo: str = "",
+    pec_smtp_host: str = "",
+    pec_smtp_port: int = 465,
+    pec_smtp_password: str = "",
 ):
     azienda = db.query(ImpostazioniAzienda).filter(
         ImpostazioniAzienda.utente_id == utente_id
@@ -759,6 +763,15 @@ def salva_impostazioni_azienda(
 
     if logo_path:
         azienda.logo_path = logo_path
+
+    if pec_indirizzo is not None:
+        azienda.pec_indirizzo = pec_indirizzo.strip() or None
+    if pec_smtp_host is not None:
+        azienda.pec_smtp_host = pec_smtp_host.strip() or None
+    if pec_smtp_port:
+        azienda.pec_smtp_port = int(pec_smtp_port)
+    if pec_smtp_password is not None:
+        azienda.pec_smtp_password = pec_smtp_password.strip() or None
 
     db.commit()
     db.refresh(azienda)

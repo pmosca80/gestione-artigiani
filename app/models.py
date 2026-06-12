@@ -207,6 +207,12 @@ class ImpostazioniAzienda(Base):
     obiettivo_mensile = Column(Float, default=5000)
     logo_path = Column(String, nullable=True)
 
+    # PEC per invio diretto a SDI
+    pec_indirizzo = Column(String, nullable=True)
+    pec_smtp_host = Column(String, nullable=True)
+    pec_smtp_port = Column(Integer, nullable=True, default=465)
+    pec_smtp_password = Column(String, nullable=True)
+
 class DocumentoPDF(Base):
     __tablename__ = "documenti_pdf"
 

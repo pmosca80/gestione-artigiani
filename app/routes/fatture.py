@@ -27,6 +27,7 @@ def registro_fatture(
     user_id: int = Depends(get_current_user),
 ):
     from app.services.email import smtp_configurato
+    from app.services.sdi import pec_configurata
 
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
@@ -37,12 +38,16 @@ def registro_fatture(
     tot_iva = sum(f.importo_iva or 0 for f in fatture)
     tot_totale = sum(f.importo_totale or 0 for f in fatture)
 
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+
     _ERRORI = {
-        "email_mancante":      "Il cliente non ha un indirizzo email — aggiornalo nella scheda cliente.",
+        "email_mancante":       "Il cliente non ha un indirizzo email — aggiornalo nella scheda cliente.",
         "smtp_non_configurato": "Email non configurata. Imposta MAIL_USERNAME e MAIL_PASSWORD nelle variabili d'ambiente.",
-        "fattura_non_trovata": "Fattura non trovata.",
-        "lavoro_non_trovato":  "Lavoro collegato non trovato.",
-        "invio_fallito":       f"Invio fallito: {msg or 'errore sconosciuto'}",
+        "pec_non_configurata":  "PEC non configurata. Vai a Impostazioni › Azienda e inserisci i dati PEC.",
+        "fattura_non_trovata":  "Fattura non trovata.",
+        "lavoro_non_trovato":   "Lavoro collegato non trovato.",
+        "invio_fallito":        f"Invio fallito: {msg or 'errore sconosciuto'}",
+        "sdi_fallito":          f"Invio a SDI fallito: {msg or 'errore sconosciuto'}",
     }
 
     return templates.TemplateResponse(
@@ -56,6 +61,7 @@ def registro_fatture(
             "tot_iva": tot_iva,
             "tot_totale": tot_totale,
             "smtp_ok": smtp_configurato(),
+            "pec_ok": pec_configurata(azienda) if azienda else False,
             "flash_ok": inviata,
             "flash_err": _ERRORI.get(errore) if errore else None,
         },
@@ -289,6 +295,50 @@ def invia_fattura_email(
         msg = urllib.parse.quote(str(exc)[:120])
         return RedirectResponse(
             f"/fatture/?anno={fattura.anno}&errore=invio_fallito&msg={msg}",
+            status_code=303,
+        )
+
+
+@router.post("/{fattura_id}/invia-sdi")
+def invia_fattura_sdi(
+    fattura_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.models import FatturaEmessa
+    from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa
+    from app.services.sdi import invia_xml_a_sdi, pec_configurata
+    import urllib.parse
+
+    fattura = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id,
+        FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura:
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
+
+    lav = fattura.lavoro
+    if not lav:
+        return RedirectResponse("/fatture/?errore=lavoro_non_trovato", status_code=303)
+
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    if not azienda or not pec_configurata(azienda):
+        return RedirectResponse("/fatture/?errore=pec_non_configurata", status_code=303)
+
+    try:
+        xml_bytes = genera_xml_fatturapa(lav, lav.cliente, azienda)
+        nome_file = fattura.nome_file or nome_file_fatturapa(azienda, lav)
+        invia_xml_a_sdi(xml_bytes, nome_file, azienda)
+        fattura.stato = "inviata_sdi"
+        db.commit()
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&inviata={fattura_id}",
+            status_code=303,
+        )
+    except Exception as exc:
+        msg = urllib.parse.quote(str(exc)[:120])
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&errore=sdi_fallito&msg={msg}",
             status_code=303,
         )
 

@@ -78,6 +78,16 @@ def _run_migrations():
         fat_cols = [c["name"] for c in insp.get_columns("fatture_emesse")]
         if "reminder_inviato" not in fat_cols:
             conn.execute(text("ALTER TABLE fatture_emesse ADD COLUMN reminder_inviato INTEGER DEFAULT 0"))
+        # Impostazioni azienda: PEC per invio SDI
+        imp_cols = [c["name"] for c in insp.get_columns("impostazioni_azienda")]
+        for col, defn in [
+            ("pec_indirizzo",    "VARCHAR"),
+            ("pec_smtp_host",    "VARCHAR"),
+            ("pec_smtp_port",    "INTEGER DEFAULT 465"),
+            ("pec_smtp_password","VARCHAR"),
+        ]:
+            if col not in imp_cols:
+                conn.execute(text(f"ALTER TABLE impostazioni_azienda ADD COLUMN {col} {defn}"))
         conn.commit()
 _run_migrations()
 

@@ -51,6 +51,10 @@ def salva_impostazioni_azienda(
     provincia: str = Form(""),
     telefono: str = Form(""),
     email: str = Form(""),
+    pec_indirizzo: str = Form(""),
+    pec_smtp_host: str = Form(""),
+    pec_smtp_port: int = Form(465),
+    pec_smtp_password: str = Form(""),
     logo: UploadFile = File(None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -74,6 +78,10 @@ def salva_impostazioni_azienda(
         cap=cap,
         citta=citta,
         provincia=provincia,
+        pec_indirizzo=pec_indirizzo,
+        pec_smtp_host=pec_smtp_host,
+        pec_smtp_port=pec_smtp_port,
+        pec_smtp_password=pec_smtp_password,
     )
     return RedirectResponse(url="/impostazioni/azienda", status_code=303)
 
