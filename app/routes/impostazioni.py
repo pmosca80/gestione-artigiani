@@ -83,7 +83,7 @@ def salva_impostazioni_azienda(
         pec_smtp_port=pec_smtp_port,
         pec_smtp_password=pec_smtp_password,
     )
-    return RedirectResponse(url="/impostazioni/azienda", status_code=303)
+    return RedirectResponse(url="/impostazioni/azienda?salvato=1", status_code=303)
 
 @router.get("/backup")
 def crea_backup_database(request: Request, user_id: int = Depends(get_current_user)):

@@ -1120,7 +1120,7 @@
         <div class="foto-grid">
             {% for foto in foto_lavoro %}
             <div class="foto-item">
-                <img src="/{{ foto.percorso_file.replace('\\', '/') }}"
+                <img src="{{ foto.percorso_file if foto.percorso_file.startswith('http') else '/' + foto.percorso_file.replace('\\', '/') }}"
                      alt="{{ foto.descrizione or 'Foto lavoro' }}"
                      data-desc="{{ foto.descrizione or '' }}"
                      class="foto-thumb">

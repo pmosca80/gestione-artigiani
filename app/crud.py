@@ -1442,7 +1442,11 @@ def elimina_foto_lavoro(db: Session, foto_id: int, utente_id: int):
     foto = db.query(FotoLavoro).filter(FotoLavoro.id == foto_id, FotoLavoro.utente_id == utente_id).first()
     if foto:
         try:
-            Path(foto.percorso_file).unlink(missing_ok=True)
+            if foto.percorso_file and foto.percorso_file.startswith("http"):
+                from app.services.cloudinary_service import elimina_immagine
+                elimina_immagine(foto.percorso_file)
+            else:
+                Path(foto.percorso_file).unlink(missing_ok=True)
         except Exception:
             pass
         db.delete(foto)

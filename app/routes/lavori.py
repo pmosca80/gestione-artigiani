@@ -500,19 +500,24 @@ async def carica_foto_lavoro(
         raise HTTPException(status_code=400, detail="Formato immagine non valido")
 
     nome_file = f"lavoro_{lavoro_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{estensione}"
-    percorso_file = uploads_dir / nome_file
 
     contenuto = await foto.read()
 
-    with open(percorso_file, "wb") as f:
-        f.write(contenuto)
+    from app.services.cloudinary_service import cloudinary_configurato, carica_immagine
+    if cloudinary_configurato():
+        percorso_salvato = carica_immagine(contenuto, nome_file, folder=f"lavori/{lavoro_id}")
+    else:
+        percorso_file = uploads_dir / nome_file
+        with open(percorso_file, "wb") as f:
+            f.write(contenuto)
+        percorso_salvato = str(percorso_file)
 
     crud.salva_foto_lavoro(
         db=db,
         utente_id=user_id,
         lavoro_id=lavoro_id,
         nome_file=nome_file,
-        percorso_file=str(percorso_file),
+        percorso_file=percorso_salvato,
         descrizione=descrizione
     )
 
@@ -1345,14 +1350,24 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
         elements.append(Spacer(1, 8))
 
         for foto in foto_lavoro:
-            percorso = Path(foto.percorso_file)
+            img_source = None
+            if foto.percorso_file and foto.percorso_file.startswith("http"):
+                try:
+                    import urllib.request
+                    with urllib.request.urlopen(foto.percorso_file, timeout=10) as resp:
+                        img_source = io.BytesIO(resp.read())
+                except Exception:
+                    pass
+            else:
+                percorso = Path(foto.percorso_file)
+                if percorso.exists():
+                    img_source = str(percorso)
 
-            if percorso.exists():
+            if img_source is not None:
                 if foto.descrizione:
                     elements.append(Paragraph(f"<b>{foto.descrizione}</b>", styles["Normal"]))
                     elements.append(Spacer(1, 4))
-
-                img = Image(str(percorso))
+                img = Image(img_source)
                 img._restrictSize(420, 300)
                 elements.append(img)
                 elements.append(Spacer(1, 12))
