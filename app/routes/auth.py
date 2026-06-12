@@ -68,6 +68,7 @@ def login(
 
 
 @router.get("/register", response_class=HTMLResponse)
+@router.get("/registrati", response_class=HTMLResponse)
 def register_page(request: Request):
     return templates.TemplateResponse(
         request=request,
