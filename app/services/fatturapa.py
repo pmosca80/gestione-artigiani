@@ -126,6 +126,20 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         f"        </DatiBollo>\n"
     ) if bollo > 0 else ""
 
+    # Ritenuta d'acconto (art. 25 DPR 600/73) — sottratta da ImportoTotaleDocumento e ImportoPagamento
+    applica_ritenuta = bool(getattr(lavoro, "ritenuta_acconto", False))
+    aliquota_rit = float(getattr(lavoro, "aliquota_ritenuta", None) or 20.0)
+    importo_ritenuta = round(imponibile * aliquota_rit / 100, 2) if applica_ritenuta else 0.0
+    totale_netto = round(totale_con_bollo - importo_ritenuta, 2)
+    dati_ritenuta_block = (
+        f"        <DatiRitenuta>\n"
+        f"          <TipoRitenuta>RT01</TipoRitenuta>\n"
+        f"          <ImportoRitenuta>{importo_ritenuta:.2f}</ImportoRitenuta>\n"
+        f"          <AliquotaRitenuta>{aliquota_rit:.2f}</AliquotaRitenuta>\n"
+        f"          <CausalePagamento>A</CausalePagamento>\n"
+        f"        </DatiRitenuta>\n"
+    ) if applica_ritenuta else ""
+
     # ── Documento ────────────────────────────────────────────────────────────
     num_fattura  = getattr(lavoro, "numero_fattura", None) or lavoro.id
     data_fattura = getattr(lavoro, "data_fattura", None) or lavoro.data_lavoro
@@ -198,7 +212,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         "      <DettaglioPagamento>\n"
         "        <ModalitaPagamento>MP05</ModalitaPagamento>\n"
         + scad_tag
-        + f"        <ImportoPagamento>{totale_con_bollo:.2f}</ImportoPagamento>\n"
+        + f"        <ImportoPagamento>{totale_netto:.2f}</ImportoPagamento>\n"
         "      </DettaglioPagamento>\n"
         "    </DatiPagamento>\n"
     )
@@ -264,8 +278,9 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         "        <Divisa>EUR</Divisa>\n"
         f"        <Data>{data_fattura}</Data>\n"
         f"        <Numero>{numero_formattato}</Numero>\n"
-        f"        <ImportoTotaleDocumento>{totale_con_bollo:.2f}</ImportoTotaleDocumento>\n"
+        f"        <ImportoTotaleDocumento>{totale_netto:.2f}</ImportoTotaleDocumento>\n"
         + dati_bollo_block
+        + dati_ritenuta_block
         + "      </DatiGeneraliDocumento>\n"
         "    </DatiGenerali>\n"
         "    <DatiBeniServizi>\n"

@@ -337,6 +337,8 @@ def aggiorna_lavoro(
     note_consuntivo: str = "",
     numero_fattura: int | None = None,
     data_fattura: str = "",
+    ritenuta_acconto: bool = False,
+    aliquota_ritenuta: float = 20.0,
 ):
     lavoro = db.query(Lavoro).filter(
         Lavoro.id == lavoro_id,
@@ -367,6 +369,8 @@ def aggiorna_lavoro(
             lavoro.numero_fattura = numero_fattura
         if data_fattura:
             lavoro.data_fattura = data_fattura
+        lavoro.ritenuta_acconto = ritenuta_acconto
+        lavoro.aliquota_ritenuta = aliquota_ritenuta
 
         # calcoli automatici
         lavoro.totale_manodopera = ore_lavoro * costo_orario

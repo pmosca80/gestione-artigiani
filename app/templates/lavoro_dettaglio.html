@@ -756,6 +756,12 @@
                 <div class="kpi-label">Totale documento</div>
                 <div class="kpi-val green importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</div>
             </div>
+            {% if lavoro.ritenuta_acconto %}
+            <div class="kpi-tile" style="background:#fef9c3; border-color:#ca8a04;">
+                <div class="kpi-label" style="color:#92400e;">Ritenuta d'acconto ({{ lavoro.aliquota_ritenuta or 20 }}%)</div>
+                <div class="kpi-val importo" style="color:#92400e;">− € {{ "%.2f"|format((lavoro.importo_consuntivo or 0) * (lavoro.aliquota_ritenuta or 20) / 100) }}</div>
+            </div>
+            {% endif %}
             <div class="kpi-tile green">
                 <div class="kpi-label">Pagato</div>
                 <div class="kpi-val green importo">€ {{ "%.2f"|format(lavoro.importo_pagato or 0) }}</div>

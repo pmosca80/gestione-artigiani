@@ -604,6 +604,8 @@ def modifica_lavoro(
     note_consuntivo: str = Form(""),
     numero_fattura: str = Form(""),
     data_fattura: str = Form(""),
+    ritenuta_acconto: str = Form("0"),
+    aliquota_ritenuta: str = Form("20"),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
@@ -631,6 +633,8 @@ def modifica_lavoro(
             note_consuntivo=note_consuntivo,
             numero_fattura=int(numero_fattura) if numero_fattura.strip() else None,
             data_fattura=data_fattura,
+            ritenuta_acconto=ritenuta_acconto == "1",
+            aliquota_ritenuta=to_float(aliquota_ritenuta, default=20.0),
         )
 
         calcola_totali_lavoro(db, lavoro_id)

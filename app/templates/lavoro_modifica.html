@@ -298,6 +298,27 @@
                             <input type="number" step="0.01" name="sconto"
                                    value="{{ lavoro.sconto or 0 }}">
                         </div>
+                        <div class="form-group span2" style="flex-direction:column; gap:8px;">
+                            <label style="font-weight:600; color:#374151;">Ritenuta d'acconto</label>
+                            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                <label style="display:flex; align-items:center; gap:6px; font-weight:400; cursor:pointer;">
+                                    <input type="checkbox" name="ritenuta_acconto" value="1"
+                                           {% if lavoro.ritenuta_acconto %}checked{% endif %}
+                                           onchange="toggleRitenuta(this.checked)">
+                                    Applica ritenuta d'acconto (art. 25 DPR 600/73)
+                                </label>
+                                <div id="ritenuta-aliquota-box" style="display:flex; align-items:center; gap:6px;" {% if not lavoro.ritenuta_acconto %}hidden{% endif %}>
+                                    <span style="font-size:13px; color:#6b7280;">Aliquota:</span>
+                                    <input type="number" step="0.01" name="aliquota_ritenuta"
+                                           value="{{ lavoro.aliquota_ritenuta or 20 }}"
+                                           style="width:80px;">
+                                    <span style="font-size:13px; color:#6b7280;">%</span>
+                                </div>
+                            </div>
+                            <p style="font-size:12px; color:#9ca3af; margin:0;">
+                                Calcola e aggiunge <code>&lt;DatiRitenuta&gt;</code> nella FatturaPA. Il cliente versa la ritenuta all'Erario, tu ricevi il netto.
+                            </p>
+                        </div>
                         <div class="form-group">
                             <label>Importo pagato (€)</label>
                             <input type="number" step="0.01"
@@ -452,5 +473,11 @@
 
 </div>
 
+<script>
+function toggleRitenuta(checked) {
+    var box = document.getElementById('ritenuta-aliquota-box');
+    if (checked) { box.removeAttribute('hidden'); } else { box.setAttribute('hidden', ''); }
+}
+</script>
 </body>
 </html>

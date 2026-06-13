@@ -116,6 +116,9 @@ class Lavoro(Base):
 
     note_consuntivo = Column(Text, nullable=True)
 
+    ritenuta_acconto = Column(Boolean, nullable=False, default=False)
+    aliquota_ritenuta = Column(Float, nullable=True, default=20.0)
+
     token_firma = Column(String, nullable=True)
     firma_nome_cliente = Column(String, nullable=True)
     firma_ip = Column(String, nullable=True)
