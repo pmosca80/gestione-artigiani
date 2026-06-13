@@ -180,12 +180,17 @@
             .kpi-strip { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 600px) {
-            .col-note, .col-registrato { display: none; }
+            .p-table-wrap { display: none; }
+            .pay-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        }
+        @media (min-width: 601px) {
+            .pay-cards { display: none; }
+            .col-note, .col-registrato { display: table-cell; }
         }
         @media (max-width: 500px) {
             .pay-form-grid { grid-template-columns: 1fr; }
             .pay-group.span2 { grid-column: span 1; }
-            .pay-form-submit { grid-column: span 1; }
+            .pay-form-submit { grid-column: span 1; justify-content: stretch; }
             .btn-registra { width: 100%; }
             .pay-group input,
             .pay-group select,
@@ -195,6 +200,63 @@
             }
             .kpi-strip { grid-template-columns: 1fr 1fr; }
             .kpi-val { font-size: 18px; }
+        }
+
+        /* Card layout mobile per storico pagamenti */
+        .pay-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .pay-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .pay-card-ricevuta {
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            color: #111827;
+            font-size: 13px;
+        }
+        .pay-card-importo {
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            font-size: 15px;
+            color: #16a34a;
+        }
+        .pay-card-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .pay-card-note {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+        }
+        .pay-card-azioni {
+            display: flex;
+            gap: 8px;
+        }
+        .pay-card-azioni .btn-az {
+            flex: 1;
+            text-align: center;
+        }
+        .pay-cards-empty {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -292,6 +354,42 @@
                 </div>
             </div>
         </form>
+    </div>
+
+    <!-- CARD MOBILE STORICO PAGAMENTI (visibile solo <600px) -->
+    <div class="pay-cards">
+        {% if pagamenti %}
+            {% for pagamento in pagamenti %}
+            <div class="pay-card">
+                <div class="pay-card-head">
+                    <span class="pay-card-ricevuta">#{{ "%04d"|format(pagamento.numero_ricevuta or pagamento.id) }}</span>
+                    <span class="pay-card-importo">€ {{ "%.2f"|format(pagamento.importo or 0) }}</span>
+                </div>
+                <div class="pay-card-meta">
+                    <span>📅 {{ pagamento.data_pagamento }}</span>
+                    {% if pagamento.metodo == "contanti" %}<span>💵 Contanti</span>
+                    {% elif pagamento.metodo == "bonifico" %}<span>🏦 Bonifico</span>
+                    {% elif pagamento.metodo == "carta" %}<span>💳 Carta</span>
+                    {% elif pagamento.metodo == "assegno" %}<span>📋 Assegno</span>
+                    {% elif pagamento.metodo %}<span>{{ pagamento.metodo }}</span>{% endif %}
+                </div>
+                {% if pagamento.note %}
+                <div class="pay-card-note">{{ pagamento.note }}</div>
+                {% endif %}
+                <div class="pay-card-azioni">
+                    <a href="/lavori/pagamenti/{{ pagamento.id }}/ricevuta" target="_blank"
+                       class="btn-az btn-az-blue">🧾 Ricevuta</a>
+                    <form method="post" action="/lavori/pagamenti/{{ pagamento.id }}/elimina"
+                          onsubmit="return confirm('Eliminare il pagamento?')"
+                          style="flex:1;display:flex;">
+                        <button class="btn-az btn-az-red" style="flex:1;">🗑 Elimina</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="pay-cards-empty">Nessun pagamento registrato.</div>
+        {% endif %}
     </div>
 
     <!-- PDF LINK -->
