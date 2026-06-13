@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import FatturaEmessa, ImpostazioniAzienda, Utente
 from app.services.email import invia_email
+from app.services.push import invia_push
 from app.logger import get_logger
 
 logger = get_logger("reminder_fatture")
@@ -99,6 +100,14 @@ def _esegui(db: Session) -> None:
         corpo = _componi_email(voci, azienda.nome_azienda or "")
         if invia_email(email_dest, oggetto, corpo):
             email_inviate += 1
+
+        n = len(voci)
+        invia_push(
+            db, utente_id,
+            titolo=f"{n} fattur{'a non pagata' if n == 1 else 'e non pagate'}",
+            corpo=", ".join(f"{v['numero']}/{v['anno']} · {v['cliente']}" for v in voci[:3]),
+            url="/fatture/",
+        )
 
     # Aggiorna reminder_inviato solo dopo aver inviato le email
     for fattura, livello in aggiornamenti:

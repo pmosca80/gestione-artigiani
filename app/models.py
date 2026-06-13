@@ -393,6 +393,16 @@ class VocePrimaNota(Base):
     data_creazione = Column(String, nullable=False)
 
 
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    endpoint = Column(Text, nullable=False)
+    subscription_json = Column(Text, nullable=False)
+    creata_il = Column(String, nullable=False)
+
+
 class InvitoAccount(Base):
     __tablename__ = "inviti_account"
 

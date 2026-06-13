@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Garanzia, ImpostazioniAzienda
 from app.services.email import invia_email
+from app.services.push import invia_push
 from app.logger import get_logger
 
 logger = get_logger("garanzie_reminder")
@@ -78,6 +79,12 @@ def _esegui(db: Session) -> None:
         corpo = _componi_email(voci, azienda.nome_azienda or "", "30 giorni")
         if invia_email(email_dest, oggetto, corpo):
             email_inviate += 1
+        invia_push(
+            db, utente_id,
+            titolo=f"{n} garanzi{'a' if n == 1 else 'e'} in scadenza (30g)",
+            corpo=", ".join(v["descrizione"] for v in voci[:3]),
+            url="/garanzie/",
+        )
 
     for utente_id, voci in da_notificare_7.items():
         azienda = db.query(ImpostazioniAzienda).filter(
@@ -91,6 +98,12 @@ def _esegui(db: Session) -> None:
         corpo = _componi_email(voci, azienda.nome_azienda or "", "7 giorni")
         if invia_email(email_dest, oggetto, corpo):
             email_inviate += 1
+        invia_push(
+            db, utente_id,
+            titolo=f"Urgente: {n} garanzi{'a' if n == 1 else 'e'} scade questa settimana",
+            corpo=", ".join(v["descrizione"] for v in voci[:3]),
+            url="/garanzie/",
+        )
 
     for g in aggiornamenti_30:
         g.reminder_30g_inviato = 1

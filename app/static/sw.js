@@ -24,6 +24,31 @@ self.addEventListener('activate', e => {
   );
 });
 
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (_) {}
+  const title = data.titolo || 'Gestionale Artigiani';
+  const options = {
+    body: data.corpo || '',
+    icon: '/static/icons/icon-192.png',
+    badge: '/static/icons/icon-192.png',
+    data: { url: data.url || '/' },
+    vibrate: [200, 100, 200],
+  };
+  e.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) ? e.notification.data.url : '/';
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(cs) {
+    for (var c of cs) {
+      if (c.url.includes(url) && 'focus' in c) return c.focus();
+    }
+    if (clients.openWindow) return clients.openWindow(url);
+  }));
+});
+
 self.addEventListener('fetch', e => {
   const { request } = e;
   if (request.method !== 'GET') return;

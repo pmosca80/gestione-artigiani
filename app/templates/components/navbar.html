@@ -1,4 +1,5 @@
 <link rel="manifest" href="/static/manifest.json">
+<meta name="vapid-public-key" content="{{ VAPID_PUBLIC_KEY }}">
 <meta name="theme-color" content="#7c3aed">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -79,6 +80,11 @@ function _installaPWA() {
                 style="display:none;background:#7c3aed;color:white;border:none;border-radius:8px;
                        padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
             📲 Installa app
+        </button>
+        <button id="btn-push-notifiche" onclick="_togglePush()"
+                style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;
+                       padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            🔔 Abilita notifiche
         </button>
         <a href="/logout" class="nav-logout-btn">🚪 Esci / Logout</a>
     </div>
@@ -204,6 +210,107 @@ function _installaPWA() {
             btn.setAttribute('aria-expanded', 'false');
         }
     });
+})();
+</script>
+
+<!-- Push notifications -->
+<script>
+(function () {
+    var btn = document.getElementById('btn-push-notifiche');
+    if (!btn) return;
+
+    var vapidKey = (document.querySelector('meta[name="vapid-public-key"]') || {}).content || '';
+
+    function urlB64ToUint8Array(base64String) {
+        var padding = '='.repeat((4 - base64String.length % 4) % 4);
+        var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        var raw = atob(base64);
+        var arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return arr;
+    }
+
+    function aggiornaBottone(subscribed) {
+        if (subscribed) {
+            btn.textContent = '🔔 Notifiche attive ✓';
+            btn.style.background = '#dcfce7';
+            btn.style.color = '#16a34a';
+            btn.style.borderColor = '#bbf7d0';
+        } else {
+            btn.textContent = '🔔 Abilita notifiche';
+            btn.style.background = '#f3f4f6';
+            btn.style.color = '#374151';
+            btn.style.borderColor = '#e5e7eb';
+        }
+    }
+
+    function controllaStato() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !vapidKey) {
+            btn.style.display = 'none';
+            return;
+        }
+        navigator.serviceWorker.ready.then(function (reg) {
+            reg.pushManager.getSubscription().then(function (sub) {
+                aggiornaBottone(!!sub);
+            });
+        });
+    }
+
+    window._togglePush = function () {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Il tuo browser non supporta le notifiche push.');
+            return;
+        }
+        navigator.serviceWorker.ready.then(function (reg) {
+            reg.pushManager.getSubscription().then(function (sub) {
+                if (sub) {
+                    // disabilita
+                    sub.unsubscribe().then(function () {
+                        fetch('/notifiche/push/unsubscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ endpoint: sub.endpoint }),
+                        });
+                        aggiornaBottone(false);
+                    });
+                } else {
+                    // abilita
+                    Notification.requestPermission().then(function (perm) {
+                        if (perm !== 'granted') return;
+                        reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlB64ToUint8Array(vapidKey),
+                        }).then(function (newSub) {
+                            fetch('/notifiche/push/subscribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(newSub.toJSON()),
+                            });
+                            aggiornaBottone(true);
+                        }).catch(function (e) {
+                            console.warn('Push subscribe error:', e);
+                        });
+                    });
+                }
+            });
+        });
+    };
+
+    // Auto-prompt una sola volta
+    if (localStorage.getItem('push_asked') !== '1' && ('PushManager' in window) && vapidKey) {
+        localStorage.setItem('push_asked', '1');
+        setTimeout(function () {
+            navigator.serviceWorker.ready.then(function (reg) {
+                reg.pushManager.getSubscription().then(function (sub) {
+                    if (!sub && Notification.permission === 'default') {
+                        window._togglePush();
+                    }
+                });
+            });
+        }, 4000);
+    }
+
+    controllaStato();
 })();
 </script>
 

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Lavoro, Utente, ImpostazioniAzienda
 from app.services.email import invia_email
+from app.services.push import invia_push
 from app.logger import get_logger
 
 logger = get_logger("notifiche")
@@ -103,6 +104,19 @@ def controlla_scadenze():
             inviata = invia_email(email_utente, oggetto, corpo)
             if inviata:
                 contatore += 1
+
+            if giorni_mancanti > 0:
+                push_titolo = f"Pagamento in scadenza tra {giorni_mancanti}g"
+            elif giorni_mancanti == 0:
+                push_titolo = "Pagamento scade oggi!"
+            else:
+                push_titolo = f"Pagamento scaduto da {abs(giorni_mancanti)}g"
+            invia_push(
+                db, lavoro.utente_id,
+                titolo=push_titolo,
+                corpo=f"{nome_cliente} — {lavoro.titolo} · € {lavoro.residuo_pagamento:.2f}",
+                url=f"/lavori/{lavoro.id}",
+            )
 
         logger.info(f"Controllo scadenze completato. Email inviate: {contatore}")
 
