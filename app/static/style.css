@@ -487,6 +487,9 @@ th {
         padding-top: 8px;
         border-top: 1px solid rgba(255,255,255,0.08);
         margin-top: 2px;
+        max-height: calc(100dvh - 64px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .navbar.nav-open .navbar-links {
