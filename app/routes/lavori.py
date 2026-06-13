@@ -1501,6 +1501,44 @@ def converti_preventivo(
         url=f"/lavori/{lavoro_id}",
         status_code=303
     )
+@router.post("/{lavoro_id}/converti-in-fattura")
+def converti_in_fattura(
+    lavoro_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404, detail="Lavoro non trovato")
+
+    # Copia importo preventivo → consuntivo se non già valorizzato
+    if not lavoro.importo_consuntivo and lavoro.importo_preventivato:
+        lavoro.importo_consuntivo = lavoro.importo_preventivato
+        # Ricalcola IVA e totale documento coerentemente
+        aliquota = lavoro.aliquota_iva or 0
+        regime = (crud.get_impostazioni_azienda(db, user_id).regime_fiscale or "RF01").strip().upper()
+        from app.services.fatturapa import _REGIMI_SENZA_IVA
+        if regime in _REGIMI_SENZA_IVA or aliquota == 0:
+            lavoro.totale_iva = 0
+            lavoro.totale_documento = lavoro.importo_consuntivo
+        else:
+            lavoro.totale_iva = round(lavoro.importo_consuntivo * aliquota / 100, 2)
+            lavoro.totale_documento = round(lavoro.importo_consuntivo + lavoro.totale_iva, 2)
+
+    # Porta il lavoro in completato
+    lavoro.stato = "completato"
+    if not lavoro.data_accettazione_preventivo:
+        lavoro.data_accettazione_preventivo = datetime.now().strftime("%Y-%m-%d")
+
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/documenti/lavori/{lavoro_id}/fattura-xml",
+        status_code=303,
+    )
+
+
 @router.post("/{lavoro_id}/invia-preventivo")
 def invia_preventivo(
     lavoro_id: int,

@@ -657,6 +657,22 @@
     </div>
     {% endif %}
 
+    <!-- CTA CONVERTI IN FATTURA: preventivo accettato senza fattura ancora -->
+    {% if not fattura_emessa and lavoro.stato == "preventivo_accettato" and lavoro.importo_preventivato %}
+    <div class="cta-fattura" style="border-color:#16a34a; background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+        <div class="cta-fattura-icon">🧾</div>
+        <div class="cta-fattura-text">
+            <strong>Converti in fattura</strong>
+            <span>Il preventivo è accettato — emetti subito la FatturaPA (€ {{ "%.2f"|format(lavoro.importo_preventivato) }})</span>
+        </div>
+        <form action="/lavori/{{ lavoro.id }}/converti-in-fattura" method="post" style="flex-shrink:0;">
+            <button type="submit" class="cta-fattura-btn" style="background:#16a34a;">
+                ✅ 1 click →
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- CTA FATTURA: appare solo se lavoro operativo e nessuna fattura emessa -->
     {% if not fattura_emessa and lavoro.stato in ["completato", "in_corso", "da_fare"] %}
     <div class="cta-fattura">
