@@ -83,6 +83,7 @@ def login(
     request.session["username"] = user.username
     request.session["is_collaboratore"] = bool(getattr(user, "titolare_id", None))
     request.session["piano"] = getattr(user, "piano", None) or "free"
+    request.session["last_activity"] = datetime.now().isoformat()
 
     return RedirectResponse(url="/", status_code=303)
 

@@ -1,8 +1,10 @@
 from fastapi import Request, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.database import get_db
+
+SESSION_TIMEOUT_ORE = 8  # logout automatico dopo 8h di inattività
 
 
 class NotAuthenticated(Exception):
@@ -58,6 +60,19 @@ def verifica_account(request: Request, db: Session) -> int:
     user_id = request.session.get("user_id")
     if not user_id:
         raise NotAuthenticated()
+
+    # Timeout inattività: se l'ultima attività è > SESSION_TIMEOUT_ORE, fa logout
+    last_activity = request.session.get("last_activity")
+    if last_activity:
+        try:
+            if datetime.now() - datetime.fromisoformat(last_activity) > timedelta(hours=SESSION_TIMEOUT_ORE):
+                request.session.clear()
+                raise NotAuthenticated()
+        except NotAuthenticated:
+            raise
+        except Exception:
+            pass
+    request.session["last_activity"] = datetime.now().isoformat()
 
     utente = db.query(Utente).filter(Utente.id == user_id).first()
     if not utente:

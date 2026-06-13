@@ -136,6 +136,56 @@ body {
     text-align: center;
 }
 
+/* ── RICERCA MOBILE (dentro hamburger) ── */
+.nav-search-mobile {
+    display: none; /* nascosta su desktop */
+    position: relative;
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 4px;
+}
+.nav-search-mobile input {
+    width: 100%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+    padding: 10px 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+.nav-search-mobile input::placeholder { color: #9ca3af; }
+#search-dropdown-mobile {
+    display: none;
+    position: absolute;
+    top: calc(100% - 4px);
+    left: 14px;
+    right: 14px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    z-index: 9999;
+    overflow: hidden;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* ── LOGOUT BUTTON STILE ── */
+.nav-logout-btn {
+    color: #f87171 !important;
+    font-weight: 700 !important;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    margin-top: 4px;
+    padding-top: 12px !important;
+}
+.nav-logout-btn:hover {
+    background: rgba(220,38,38,0.15) !important;
+    color: #fca5a5 !important;
+}
+
 .container {
     width: 90%;
     max-width: 1300px;
@@ -454,9 +504,11 @@ th {
     }
 
     .search-wrap {
-        order: 2;
-        flex: 1;
-        min-width: 0;
+        display: none; /* nascosta dalla top-bar su mobile */
+    }
+
+    .nav-search-mobile {
+        display: block; /* visibile solo nel menu hamburger aperto */
     }
 
     .navbar a {

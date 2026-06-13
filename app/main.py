@@ -123,7 +123,10 @@ app.state.limiter = limiter
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SECRET_KEY
+    secret_key=SECRET_KEY,
+    max_age=86400 * 30,
+    same_site="lax",
+    https_only=False,
 )
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -9,15 +9,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Artigiani">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-    <link rel="stylesheet" href="/static/style.css?v=156">
+    <link rel="stylesheet" href="/static/style.css?v=160">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* ── FONT ── */
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
-
         body { font-family: 'DM Sans', sans-serif; }
 
-        /* ── HERO HEADER ── */
         .dash-hero {
             background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
             padding: 28px 36px;
@@ -28,231 +25,105 @@
             gap: 16px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .dash-hero-left h1 {
-            color: white;
-            font-size: 22px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.3px;
-        }
-        .dash-hero-left p {
-            color: #94a3b8;
-            font-size: 13px;
-            margin: 4px 0 0 0;
-        }
-        .dash-hero-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .dash-date {
-            background: rgba(255,255,255,0.08);
-            color: #e2e8f0;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
+        .dash-hero-left h1 { color: white; font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.3px; }
+        .dash-hero-left p { color: #94a3b8; font-size: 13px; margin: 4px 0 0 0; }
+        .dash-hero-right { display: flex; align-items: center; gap: 12px; }
+        .dash-date { background: rgba(255,255,255,0.08); color: #e2e8f0; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); }
 
-        /* ── ALERT BANNER ── */
-        .dash-alert-bar {
-            padding: 12px 36px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            background: #f8fafc;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .dash-alert-item {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            padding: 7px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-        }
+        .dash-alert-bar { padding: 12px 36px; display: flex; gap: 10px; flex-wrap: wrap; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .dash-alert-item { display: flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; }
         .dash-alert-item.danger { background: #fee2e2; color: #991b1b; }
         .dash-alert-item.warning { background: #fef3c7; color: #92400e; }
         .dash-alert-item.success { background: #dcfce7; color: #166534; }
 
-        /* ── LAYOUT ── */
-        .dash-body {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 28px 28px 60px;
+        /* ── TAB ── */
+        .dash-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 4px;
         }
-
-        /* ── SEZIONI ── */
-        .dash-section {
-            margin-bottom: 36px;
+        .dash-tab {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: #6b7280;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.18s, color 0.18s;
+            white-space: nowrap;
         }
-        .dash-section-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #94a3b8;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        /* ── KPI STRIP ── */
-        .kpi-strip {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 14px;
-        }
-        .kpi-tile {
+        .dash-tab.active {
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 20px 22px;
-            position: relative;
-            overflow: hidden;
-            transition: box-shadow 0.2s;
+            color: #111827;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
-        .kpi-tile:hover {
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        .dash-tab-pane { display: none; }
+        .dash-tab-pane.active { display: block; }
+        @media (max-width: 480px) {
+            .dash-tab { font-size: 12px; padding: 9px 8px; }
         }
-        .kpi-tile::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            border-radius: 14px 14px 0 0;
-        }
+
+        .dash-body { max-width: 1400px; margin: 0 auto; padding: 28px 28px 60px; }
+        .dash-section { margin-bottom: 36px; }
+        .dash-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #94a3b8; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; }
+
+        .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+        .kpi-tile { background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px 22px; position: relative; overflow: hidden; transition: box-shadow 0.2s; }
+        .kpi-tile:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+        .kpi-tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
         .kpi-tile.blue::before { background: #2563eb; }
         .kpi-tile.green::before { background: #16a34a; }
         .kpi-tile.red::before { background: #dc2626; }
         .kpi-tile.orange::before { background: #f97316; }
         .kpi-tile.purple::before { background: #7c3aed; }
         .kpi-tile.gray::before { background: #6b7280; }
-        .kpi-icon {
-            font-size: 20px;
-            margin-bottom: 10px;
-            display: block;
-        }
-        .kpi-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .kpi-val {
-            font-size: 28px;
-            font-weight: 700;
-            color: #111827;
-            line-height: 1.2;
-            margin: 6px 0 4px;
-            font-family: 'DM Mono', monospace;
-        }
+        .kpi-icon { font-size: 20px; margin-bottom: 10px; display: block; }
+        .kpi-label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-val { font-size: 28px; font-weight: 700; color: #111827; line-height: 1.2; margin: 6px 0 4px; font-family: 'DM Mono', monospace; }
         .kpi-val.green { color: #16a34a; }
         .kpi-val.red { color: #dc2626; }
-        .kpi-sub {
-            font-size: 12px;
-            color: #9ca3af;
-        }
+        .kpi-sub { font-size: 12px; color: #9ca3af; }
 
-        /* ── GRID 2 COL ── */
-        .dash-grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 18px;
-        }
-        .dash-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
-        }
+        .dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .dash-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         @media (max-width: 900px) {
             .dash-grid-2, .dash-grid-3 { grid-template-columns: 1fr; }
             .dash-body { padding: 16px; }
             .dash-hero { padding: 20px 16px; }
         }
 
-        /* ── CARD ── */
-        .d-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 22px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-        }
-        .d-card h3 {
-            font-size: 14px;
-            font-weight: 700;
-            color: #374151;
-            margin: 0 0 16px 0;
-        }
+        .d-card { background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .d-card h3 { font-size: 14px; font-weight: 700; color: #374151; margin: 0 0 16px 0; }
 
-        /* ── HEALTH BAR ── */
-        .health-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 18px;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 14px;
-        }
+        .health-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; }
         .health-pill.good { background: #dcfce7; color: #166534; }
         .health-pill.warning { background: #fef3c7; color: #92400e; }
         .health-pill.bad { background: #fee2e2; color: #991b1b; }
         .health-pill.neutral { background: #e0f2fe; color: #075985; }
 
-        /* ── PROGRESS BAR ── */
         .prog-row { margin-bottom: 14px; }
-        .prog-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #374151;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-        .prog-track {
-            height: 8px;
-            background: #f1f5f9;
-            border-radius: 999px;
-            overflow: hidden;
-        }
-        .prog-fill {
-            height: 100%;
-            border-radius: 999px;
-            transition: width 0.6s ease;
-        }
+        .prog-label { display: flex; justify-content: space-between; font-size: 13px; color: #374151; margin-bottom: 6px; font-weight: 500; }
+        .prog-track { height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+        .prog-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
         .prog-fill.blue { background: #2563eb; }
         .prog-fill.green { background: #16a34a; }
         .prog-fill.orange { background: #f97316; }
         .prog-fill.purple { background: #7c3aed; }
         .prog-fill.red { background: #dc2626; }
 
-        /* ── TABELLA ── */
         .d-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .d-table th {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #9ca3af;
-            padding: 8px 12px;
-            border-bottom: 1px solid #f1f5f9;
-            text-align: left;
-        }
-        .d-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #f8fafc;
-            color: #374151;
-            vertical-align: middle;
-        }
+        .d-table th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; padding: 8px 12px; border-bottom: 1px solid #f1f5f9; text-align: left; }
+        .d-table td { padding: 10px 12px; border-bottom: 1px solid #f8fafc; color: #374151; vertical-align: middle; }
         .d-table tr:last-child td { border-bottom: none; }
         .d-table tr:hover td { background: #fafafa; }
 
-        /* ── BADGE ── */
         .db { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
         .db-green { background: #dcfce7; color: #166534; }
         .db-red { background: #fee2e2; color: #991b1b; }
@@ -260,254 +131,68 @@
         .db-orange { background: #ffedd5; color: #9a3412; }
         .db-gray { background: #f3f4f6; color: #374151; }
 
-        /* ── BTN ── */
-        .d-btn {
-            display: inline-flex;
-            align-items: center;
-            padding: 5px 12px;
-            border-radius: 7px;
-            font-size: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: opacity 0.15s;
-        }
+        .d-btn { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; text-decoration: none; transition: opacity 0.15s; }
         .d-btn:hover { opacity: 0.85; }
         .d-btn-blue { background: #2563eb; color: white; }
         .d-btn-red { background: #dc2626; color: white; }
         .d-btn-gray { background: #f3f4f6; color: #374151; }
 
         /* ── OGGI ── */
-        .oggi-panel {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-top: 4px solid #2563eb;
-            border-radius: 14px;
-            overflow: hidden;
-            margin-bottom: 18px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .oggi-panel.no-jobs {
-            border-top-color: #d1d5db;
-        }
-        .oggi-head {
-            padding: 14px 20px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .oggi-section-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #2563eb;
-        }
-        .oggi-count {
-            font-size: 22px;
-            font-weight: 700;
-            color: #111827;
-            font-family: 'DM Mono', monospace;
-            line-height: 1;
-        }
-        .oggi-link-all {
-            font-size: 12px;
-            font-weight: 700;
-            color: #2563eb;
-            text-decoration: none;
-            white-space: nowrap;
-        }
-        .oggi-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 13px 20px;
-            border-bottom: 1px solid #f8fafc;
-            text-decoration: none;
-            transition: background 0.12s;
-        }
+        .oggi-panel { background: white; border: 1px solid #e5e7eb; border-top: 4px solid #2563eb; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .oggi-panel.no-jobs { border-top-color: #d1d5db; }
+        .oggi-head { padding: 14px 20px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid #f1f5f9; }
+        .oggi-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #2563eb; }
+        .oggi-count { font-size: 22px; font-weight: 700; color: #111827; font-family: 'DM Mono', monospace; line-height: 1; }
+        .oggi-link-all { font-size: 12px; font-weight: 700; color: #2563eb; text-decoration: none; white-space: nowrap; }
+        .oggi-row { display: flex; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid #f8fafc; text-decoration: none; transition: background 0.12s; }
         .oggi-row:last-child { border-bottom: none; }
         .oggi-row:hover { background: #f9fafb; }
-        .oggi-stato {
-            flex-shrink: 0;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
+        .oggi-stato { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
         .oggi-stato.in-corso { background: #f97316; box-shadow: 0 0 0 3px #ffedd5; }
         .oggi-stato.da-fare   { background: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
         .oggi-info { flex: 1; min-width: 0; }
-        .oggi-client {
-            font-size: 14px;
-            font-weight: 700;
-            color: #111827;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .oggi-titolo {
-            font-size: 12px;
-            color: #6b7280;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-top: 1px;
-        }
-        .oggi-addr {
-            font-size: 11px;
-            color: #9ca3af;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-top: 2px;
-        }
-        .oggi-badge {
-            flex-shrink: 0;
-            padding: 3px 10px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
+        .oggi-client { font-size: 14px; font-weight: 700; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .oggi-titolo { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+        .oggi-addr { font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .oggi-badge { flex-shrink: 0; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
         .oggi-badge.in-corso { background: #fff7ed; color: #c2410c; }
         .oggi-badge.da-fare  { background: #eff6ff; color: #1d4ed8; }
-        .oggi-empty {
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .oggi-empty { padding: 18px 20px; display: flex; align-items: center; gap: 12px; }
         .oggi-empty-icon { font-size: 22px; flex-shrink: 0; }
         .oggi-empty strong { display: block; font-size: 14px; color: #374151; }
         .oggi-empty span { font-size: 12px; color: #9ca3af; }
 
         /* ── CHI MI DEVE? ── */
-        .crediti-panel {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            overflow: hidden;
-            margin-bottom: 28px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
+        .crediti-panel { background: white; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; margin-bottom: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .crediti-panel.has-overdue { border-top: 4px solid #dc2626; }
         .crediti-panel.has-pending { border-top: 4px solid #f97316; }
         .crediti-panel.all-clear   { border-top: 4px solid #16a34a; }
-        .crediti-head {
-            padding: 18px 22px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            background: #fafafa;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .crediti-section-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #6b7280;
-            margin-bottom: 5px;
-        }
-        .crediti-total-val {
-            font-size: 34px;
-            font-weight: 700;
-            color: #dc2626;
-            font-family: 'DM Mono', monospace;
-            line-height: 1;
-        }
+        .crediti-head { padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: #fafafa; border-bottom: 1px solid #f1f5f9; }
+        .crediti-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 5px; }
+        .crediti-total-val { font-size: 34px; font-weight: 700; color: #dc2626; font-family: 'DM Mono', monospace; line-height: 1; }
         .crediti-meta { font-size: 12px; color: #9ca3af; margin-top: 5px; }
-        .crediti-link-all {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 9px 18px;
-            border-radius: 9px;
-            font-size: 13px;
-            font-weight: 700;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: opacity 0.15s;
-        }
+        .crediti-link-all { display: inline-flex; align-items: center; gap: 6px; background: #fee2e2; color: #991b1b; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; transition: opacity 0.15s; }
         .crediti-link-all:hover { opacity: 0.85; }
-        .crediti-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 13px 22px;
-            border-bottom: 1px solid #f8fafc;
-            flex-wrap: wrap;
-        }
+        .crediti-row { display: flex; align-items: center; gap: 12px; padding: 13px 22px; border-bottom: 1px solid #f8fafc; flex-wrap: wrap; }
         .crediti-row:last-child { border-bottom: none; }
         .crediti-row:hover { background: #fafafa; }
         .crediti-client { flex: 1; min-width: 120px; }
         .crediti-client-name { font-size: 14px; font-weight: 700; color: #111827; }
-        .crediti-badge-scaduto {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 999px; font-size: 11px; font-weight: 700;
-            background: #fee2e2; color: #991b1b; white-space: nowrap; margin-top: 3px;
-        }
-        .crediti-badge-aperto {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 999px; font-size: 11px; font-weight: 600;
-            background: #fff7ed; color: #9a3412; white-space: nowrap; margin-top: 3px;
-        }
-        .crediti-amount {
-            font-size: 17px;
-            font-weight: 700;
-            color: #dc2626;
-            font-family: 'DM Mono', monospace;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-        .crediti-btn-incassa {
-            display: inline-flex; align-items: center;
-            padding: 7px 16px; border-radius: 8px;
-            font-size: 13px; font-weight: 700;
-            background: #16a34a; color: white;
-            text-decoration: none; white-space: nowrap;
-            transition: opacity 0.15s; flex-shrink: 0;
-        }
+        .crediti-badge-scaduto { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #fee2e2; color: #991b1b; white-space: nowrap; margin-top: 3px; }
+        .crediti-badge-aperto { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #fff7ed; color: #9a3412; white-space: nowrap; margin-top: 3px; }
+        .crediti-amount { font-size: 17px; font-weight: 700; color: #dc2626; font-family: 'DM Mono', monospace; white-space: nowrap; flex-shrink: 0; }
+        .crediti-btn-incassa { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; background: #16a34a; color: white; text-decoration: none; white-space: nowrap; transition: opacity 0.15s; flex-shrink: 0; }
         .crediti-btn-incassa:hover { opacity: 0.85; }
-        .crediti-all-clear {
-            display: flex; align-items: center; gap: 14px;
-            padding: 22px; background: #f0fdf4;
-        }
+        .crediti-all-clear { display: flex; align-items: center; gap: 14px; padding: 22px; background: #f0fdf4; }
         .crediti-all-clear-icon { font-size: 28px; }
         .crediti-all-clear strong { display: block; color: #166534; font-size: 16px; font-weight: 700; }
         .crediti-all-clear span { color: #6b7280; font-size: 13px; }
-        @media (max-width: 600px) {
-            .crediti-total-val { font-size: 28px; }
-            .crediti-row { padding: 12px 16px; }
-            .crediti-head { padding: 14px 16px; }
-        }
+        @media (max-width: 600px) { .crediti-total-val { font-size: 28px; } .crediti-row { padding: 12px 16px; } .crediti-head { padding: 14px 16px; } }
 
         /* ── AZIONI RAPIDE ── */
-        .action-grid-new {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-        }
-        .action-tile {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 18px 16px;
-            text-decoration: none;
-            color: inherit;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        .action-tile:hover {
-            border-color: #2563eb;
-            box-shadow: 0 4px 14px rgba(37,99,235,0.12);
-            transform: translateY(-2px);
-        }
+        .action-grid-new { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+        .action-tile { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 16px; text-decoration: none; color: inherit; text-align: center; transition: all 0.2s; }
+        .action-tile:hover { border-color: #2563eb; box-shadow: 0 4px 14px rgba(37,99,235,0.12); transform: translateY(-2px); }
         .action-tile .at-icon { font-size: 26px; display: block; margin-bottom: 8px; }
         .action-tile .at-label { font-size: 13px; font-weight: 600; color: #374151; }
 
@@ -515,30 +200,10 @@
         .chart-wrap { position: relative; height: 200px; }
 
         /* ── OBIETTIVO ── */
-        .obiettivo-wrap {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .obiettivo-circle {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            flex-shrink: 0;
-        }
+        .obiettivo-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .obiettivo-circle { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
         .obiettivo-circle svg { transform: rotate(-90deg); }
-        .obiettivo-pct {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 700;
-            color: #111827;
-            font-family: 'DM Mono', monospace;
-        }
+        .obiettivo-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #111827; font-family: 'DM Mono', monospace; }
         .obiettivo-info { flex: 1; min-width: 160px; }
         .obiettivo-info p { margin: 0 0 6px; font-size: 13px; color: #6b7280; }
         .obiettivo-info strong { color: #111827; }
@@ -562,23 +227,15 @@
 <!-- ALERT BAR -->
 <div class="dash-alert-bar">
     {% if stats.lavori_scaduti|length > 0 %}
-        <div class="dash-alert-item danger">
-            ⚠️ {{ stats.lavori_scaduti|length }} pagamento/i scaduto/i — € {{ "%.2f"|format(stats.totale_scaduti or 0) }}
-        </div>
+        <div class="dash-alert-item danger">⚠️ {{ stats.lavori_scaduti|length }} pagamento/i scaduto/i — € {{ "%.2f"|format(stats.totale_scaduti or 0) }}</div>
     {% else %}
-        <div class="dash-alert-item success">
-            ✅ Nessun pagamento scaduto
-        </div>
+        <div class="dash-alert-item success">✅ Nessun pagamento scaduto</div>
     {% endif %}
     {% if stats.materiali_scorte_basse %}
-        <div class="dash-alert-item warning">
-            📦 {{ stats.materiali_scorte_basse|length }} materiale/i sotto scorta
-        </div>
+        <div class="dash-alert-item warning">📦 {{ stats.materiali_scorte_basse|length }} materiale/i sotto scorta</div>
     {% endif %}
     {% if cliente_top %}
-        <div class="dash-alert-item success">
-            🏆 Top cliente: <strong style="margin-left:4px;">{{ cliente_top.cliente.nome }} {{ cliente_top.cliente.cognome }}</strong> &nbsp;— € {{ "%.2f"|format(cliente_top.totale or 0) }}
-        </div>
+        <div class="dash-alert-item success">🏆 Top cliente: <strong style="margin-left:4px;">{{ cliente_top.cliente.nome }} {{ cliente_top.cliente.cognome }}</strong> &nbsp;— € {{ "%.2f"|format(cliente_top.totale or 0) }}</div>
     {% endif %}
 </div>
 
@@ -591,11 +248,8 @@
     <div style="background:{% if pct_clienti >= 100 %}#fee2e2{% elif pct_clienti >= 80 %}#fef3c7{% else %}#eff6ff{% endif %};border:1px solid {% if pct_clienti >= 100 %}#fca5a5{% elif pct_clienti >= 80 %}#fcd34d{% else %}#bfdbfe{% endif %};border-radius:12px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:200px;">
             <span style="font-size:13px;font-weight:700;color:{% if pct_clienti >= 100 %}#991b1b{% elif pct_clienti >= 80 %}#92400e{% else %}#1e40af{% endif %};">
-                {% if pct_clienti >= 100 %}
-                🚫 Limite raggiunto — {{ n_clienti }}/{{ limite_free }} clienti (Piano Free)
-                {% else %}
-                ⚠️ {{ n_clienti }}/{{ limite_free }} clienti usati — Piano Free
-                {% endif %}
+                {% if pct_clienti >= 100 %}🚫 Limite raggiunto — {{ n_clienti }}/{{ limite_free }} clienti (Piano Free)
+                {% else %}⚠️ {{ n_clienti }}/{{ limite_free }} clienti usati — Piano Free{% endif %}
             </span>
             <span style="font-size:12px;color:#6b7280;margin-left:8px;">Passa a Pro per clienti illimitati.</span>
         </div>
@@ -604,7 +258,6 @@
     {% endif %}
     {% endif %}
 
-    <!-- Banner trial / promo pro -->
     {% if trial_giorni_rimasti is not none %}
     {% if trial_tipo == 'free' %}
     <div style="background:{% if trial_giorni_rimasti <= 5 %}#fef3c7{% else %}#eff6ff{% endif %};border:1px solid {% if trial_giorni_rimasti <= 5 %}#fcd34d{% else %}#bfdbfe{% endif %};border-radius:12px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -634,880 +287,550 @@
     {% endif %}
     {% endif %}
 
-    <!-- ── OGGI ── -->
-    <div class="oggi-panel {% if not stats.lavori_oggi %}no-jobs{% endif %}">
-        <div class="oggi-head">
-            <div>
-                <div class="oggi-section-label">🗓️ Oggi</div>
-                {% if stats.lavori_oggi %}
-                <div class="oggi-count">{{ stats.lavori_oggi | length }} lavoro{% if stats.lavori_oggi | length != 1 %}i{% endif %}</div>
-                {% endif %}
-            </div>
-            <a href="/lavori/?stato=in_corso&stato=da_fare" class="oggi-link-all">Tutti i lavori →</a>
-        </div>
-
-        {% if stats.lavori_oggi %}
-        {% for lavoro in stats.lavori_oggi %}
-        {% set cl = lavoro.cliente %}
-        {% set maps_q = '' %}
-        {% if cl and cl.indirizzo %}
-            {% set maps_q = cl.indirizzo %}
-            {% if cl.citta %}{% set maps_q = maps_q ~ ', ' ~ cl.citta %}{% endif %}
-        {% endif %}
-        <a href="/lavori/{{ lavoro.id }}" class="oggi-row">
-            <div class="oggi-stato {% if lavoro.stato == 'in_corso' %}in-corso{% else %}da-fare{% endif %}"></div>
-            <div class="oggi-info">
-                <div class="oggi-client">
-                    {% if cl %}
-                        {% if cl.ragione_sociale %}{{ cl.ragione_sociale }}
-                        {% else %}{{ cl.nome or '' }} {{ cl.cognome or '' }}{% endif %}
-                    {% else %}—{% endif %}
-                </div>
-                <div class="oggi-titolo">{{ lavoro.titolo }}</div>
-                {% if maps_q %}
-                <div class="oggi-addr">📍 {{ cl.indirizzo }}{% if cl.citta %}, {{ cl.citta }}{% endif %}</div>
-                {% endif %}
-            </div>
-            <span class="oggi-badge {% if lavoro.stato == 'in_corso' %}in-corso{% else %}da-fare{% endif %}">
-                {% if lavoro.stato == 'in_corso' %}⚡ In corso{% else %}📝 Da fare{% endif %}
-            </span>
-        </a>
-        {% endfor %}
-
-        {% else %}
-        <div class="oggi-empty">
-            <div class="oggi-empty-icon">✅</div>
-            <div>
-                <strong>Nessun lavoro programmato per oggi</strong>
-                <span>Libero, o non hai ancora assegnato la data ai lavori</span>
-            </div>
-        </div>
-        {% endif %}
+    <!-- ── TAB BUTTONS ── -->
+    <div class="dash-tabs">
+        <button class="dash-tab" data-tab="operativo">📋 Operativo</button>
+        <button class="dash-tab" data-tab="numeri">💰 Numeri</button>
+        <button class="dash-tab" data-tab="analisi">📊 Analisi</button>
     </div>
 
-    <!-- ── CHI MI DEVE? ── -->
-    {% set ns = namespace(scaduti_ids=[]) %}
-    {% for s in stats.clienti_da_sollecitare %}
-        {% set ns.scaduti_ids = ns.scaduti_ids + [s.cliente.id] %}
-    {% endfor %}
+    <!-- ══ TAB: OPERATIVO ══ -->
+    <div class="dash-tab-pane" id="pane-operativo">
 
-    <div class="crediti-panel {% if stats.clienti_da_sollecitare %}has-overdue{% elif stats.top_clienti_residuo %}has-pending{% else %}all-clear{% endif %}">
-        {% if stats.top_clienti_residuo %}
-
-        <div class="crediti-head">
-            <div>
-                <div class="crediti-section-label">💰 Chi mi deve pagare</div>
-                <div class="crediti-total-val">€ {{ "%.2f"|format(stats.totale_da_incassare or 0) }}</div>
-                <div class="crediti-meta">
-                    {{ stats.clienti_con_residuo or 0 }} client{% if (stats.clienti_con_residuo or 0) == 1 %}e{% else %}i{% endif %} con residuo aperto
-                    {% if stats.lavori_scaduti|length > 0 %}
-                        · <strong style="color:#dc2626;">{{ stats.lavori_scaduti|length }} scadut{% if stats.lavori_scaduti|length == 1 %}o{% else %}i{% endif %}</strong>
-                    {% endif %}
+        <!-- OGGI -->
+        <div class="oggi-panel {% if not stats.lavori_oggi %}no-jobs{% endif %}">
+            <div class="oggi-head">
+                <div>
+                    <div class="oggi-section-label">🗓️ Oggi</div>
+                    {% if stats.lavori_oggi %}<div class="oggi-count">{{ stats.lavori_oggi | length }} lavoro{% if stats.lavori_oggi | length != 1 %}i{% endif %}</div>{% endif %}
                 </div>
+                <a href="/lavori/?stato=in_corso&stato=da_fare" class="oggi-link-all">Tutti i lavori →</a>
             </div>
-            <a href="/lavori/?pagamento=da_incassare" class="crediti-link-all">Vedi tutti →</a>
-        </div>
-
-        {% for item in stats.top_clienti_residuo %}
-        <div class="crediti-row">
-            <div class="crediti-client">
-                <div class="crediti-client-name">
-                    {% if item.cliente.ragione_sociale %}{{ item.cliente.ragione_sociale }}
-                    {% else %}{{ item.cliente.nome or '' }} {{ item.cliente.cognome or '' }}{% endif %}
+            {% if stats.lavori_oggi %}
+            {% for lavoro in stats.lavori_oggi %}
+            {% set cl = lavoro.cliente %}
+            <a href="/lavori/{{ lavoro.id }}" class="oggi-row">
+                <div class="oggi-stato {% if lavoro.stato == 'in_corso' %}in-corso{% else %}da-fare{% endif %}"></div>
+                <div class="oggi-info">
+                    <div class="oggi-client">{% if cl %}{% if cl.ragione_sociale %}{{ cl.ragione_sociale }}{% else %}{{ cl.nome or '' }} {{ cl.cognome or '' }}{% endif %}{% else %}—{% endif %}</div>
+                    <div class="oggi-titolo">{{ lavoro.titolo }}</div>
+                    {% if cl and cl.indirizzo %}<div class="oggi-addr">📍 {{ cl.indirizzo }}{% if cl.citta %}, {{ cl.citta }}{% endif %}</div>{% endif %}
                 </div>
-                {% if item.cliente.id in ns.scaduti_ids %}
-                    <span class="crediti-badge-scaduto">⚠️ Scaduto</span>
-                {% else %}
-                    <span class="crediti-badge-aperto">⏳ Aperto</span>
-                {% endif %}
-            </div>
-            <div class="crediti-amount">€ {{ "%.2f"|format(item.residuo) }}</div>
-            <a href="/lavori/?cliente_id={{ item.cliente.id }}&pagamento=da_incassare" class="crediti-btn-incassa">Incassa</a>
-        </div>
-        {% endfor %}
-
-        {% if (stats.clienti_con_residuo or 0) > 5 %}
-        <div style="text-align:center; padding:10px 22px; color:#9ca3af; font-size:12px; border-top:1px solid #f1f5f9;">
-            + altri {{ (stats.clienti_con_residuo or 0) - 5 }} clienti —
-            <a href="/lavori/?pagamento=da_incassare" style="color:#2563eb; font-weight:600;">vedi tutti</a>
-        </div>
-        {% endif %}
-
-        {% else %}
-        <div class="crediti-all-clear">
-            <div class="crediti-all-clear-icon">✅</div>
-            <div>
-                <strong>Tutto incassato</strong>
-                <span>Nessun importo in sospeso — ottimo lavoro!</span>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- ── KPI PRINCIPALI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">KPI principali</div>
-        <div class="kpi-strip">
-
-            <div class="kpi-tile green">
-                <span class="kpi-icon">💰</span>
-                <div class="kpi-label">Fatturato totale</div>
-                <div class="kpi-val green">€ {{ "%.0f"|format(stats.totale_documenti or 0) }}</div>
-                <div class="kpi-sub">Totale documenti emessi</div>
-            </div>
-
-            <div class="kpi-tile blue">
-                <span class="kpi-icon">📈</span>
-                <div class="kpi-label">Margine totale</div>
-                <div class="kpi-val {% if (stats.margine_totale or 0) >= 0 %}green{% else %}red{% endif %}">
-                    € {{ "%.0f"|format(stats.margine_totale or 0) }}
-                </div>
-                <div class="kpi-sub">Guadagno reale</div>
-            </div>
-
-            <div class="kpi-tile red">
-                <span class="kpi-icon">⏳</span>
-                <div class="kpi-label">Da incassare</div>
-                <div class="kpi-val red">€ {{ "%.0f"|format(stats.totale_da_incassare or 0) }}</div>
-                <div class="kpi-sub">Residui aperti</div>
-            </div>
-
-            <div class="kpi-tile orange">
-                <span class="kpi-icon">🛠️</span>
-                <div class="kpi-label">Lavori attivi</div>
-                <div class="kpi-val">{{ (stats.lavori_da_fare or 0) + (stats.lavori_in_corso or 0) }}</div>
-                <div class="kpi-sub">Da fare + in corso</div>
-            </div>
-
-            <div class="kpi-tile purple">
-                <span class="kpi-icon">👥</span>
-                <div class="kpi-label">Clienti totali</div>
-                <div class="kpi-val">{{ stats.clienti_totali or 0 }}</div>
-                <div class="kpi-sub">{{ stats.clienti_con_residuo or 0 }} con residuo</div>
-            </div>
-
-            <div class="kpi-tile gray">
-                <span class="kpi-icon">📄</span>
-                <div class="kpi-label">PDF generati</div>
-                <div class="kpi-val">{{ stats.numero_documenti_pdf or 0 }}</div>
-                <div class="kpi-sub">Documenti archivio</div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ── STATO SALUTE ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Stato salute attività</div>
-        <div class="d-card" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-            {% if (stats.margine_totale or 0) > 0 and (stats.totale_da_incassare or 0) == 0 and stats.lavori_scaduti|length == 0 %}
-                <span class="health-pill good">✅ Situazione ottima — nessuna criticità</span>
-            {% elif stats.lavori_scaduti|length > 0 %}
-                <span class="health-pill bad">🔴 Attenzione: pagamenti scaduti da recuperare</span>
-            {% elif (stats.totale_da_incassare or 0) > 0 %}
-                <span class="health-pill warning">🟡 Da monitorare: importi ancora da incassare</span>
+                <span class="oggi-badge {% if lavoro.stato == 'in_corso' %}in-corso{% else %}da-fare{% endif %}">
+                    {% if lavoro.stato == 'in_corso' %}⚡ In corso{% else %}📝 Da fare{% endif %}
+                </span>
+            </a>
+            {% endfor %}
             {% else %}
-                <span class="health-pill neutral">🔵 Situazione regolare</span>
-            {% endif %}
-
-            {% if stats.lavori_scaduti|length > 0 %}
-                <a href="/lavori/?pagamento=scaduti" class="d-btn d-btn-red">Vedi scaduti</a>
-            {% endif %}
-            {% if (stats.totale_da_incassare or 0) > 0 %}
-                <a href="/lavori/?pagamento=da_incassare" class="d-btn d-btn-blue">Apri incassi</a>
+            <div class="oggi-empty">
+                <div class="oggi-empty-icon">✅</div>
+                <div><strong>Nessun lavoro programmato per oggi</strong><span>Libero, o non hai ancora assegnato la data ai lavori</span></div>
+            </div>
             {% endif %}
         </div>
-    </div>
 
-    <!-- ── MESE CORRENTE ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Mese corrente</div>
-        <div class="dash-grid-3">
-
-            <div class="d-card">
-                <h3>📊 Fatturato mese</h3>
-                <div style="font-size:30px; font-weight:700; color:#16a34a; font-family:'DM Mono',monospace;">
-                    € {{ "%.0f"|format(stats.totale_documenti_mese or 0) }}
+        <!-- CHI MI DEVE? -->
+        {% set ns = namespace(scaduti_ids=[]) %}
+        {% for s in stats.clienti_da_sollecitare %}{% set ns.scaduti_ids = ns.scaduti_ids + [s.cliente.id] %}{% endfor %}
+        <div class="crediti-panel {% if stats.clienti_da_sollecitare %}has-overdue{% elif stats.top_clienti_residuo %}has-pending{% else %}all-clear{% endif %}">
+            {% if stats.top_clienti_residuo %}
+            <div class="crediti-head">
+                <div>
+                    <div class="crediti-section-label">💰 Chi mi deve pagare</div>
+                    <div class="crediti-total-val">€ {{ "%.2f"|format(stats.totale_da_incassare or 0) }}</div>
+                    <div class="crediti-meta">{{ stats.clienti_con_residuo or 0 }} client{% if (stats.clienti_con_residuo or 0) == 1 %}e{% else %}i{% endif %} con residuo aperto{% if stats.lavori_scaduti|length > 0 %} · <strong style="color:#dc2626;">{{ stats.lavori_scaduti|length }} scadut{% if stats.lavori_scaduti|length == 1 %}o{% else %}i{% endif %}</strong>{% endif %}</div>
                 </div>
-                <div style="font-size:13px; color:#6b7280; margin-top:6px; display:flex; align-items:center; gap:8px;">
-                    <span>{{ stats.lavori_mese_count or 0 }} lavori</span>
-                    {% if stats.totale_documenti_mese_prec is defined and stats.totale_documenti_mese_prec > 0 %}
-                        {% if (stats.delta_fatturato_pct or 0) >= 0 %}
-                            <span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px;">
-                                ▲ +{{ stats.delta_fatturato_pct }}% vs mese prec.
-                            </span>
-                        {% else %}
-                            <span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px;">
-                                ▼ {{ stats.delta_fatturato_pct }}% vs mese prec.
-                            </span>
-                        {% endif %}
-                    {% elif stats.totale_documenti_mese_prec is defined %}
-                        <span style="background:#f3f4f6;color:#6b7280;padding:2px 7px;border-radius:20px;font-size:11px;">
-                            Mese prec.: € {{ "%.0f"|format(stats.totale_documenti_mese_prec or 0) }}
-                        </span>
-                    {% endif %}
+                <a href="/lavori/?pagamento=da_incassare" class="crediti-link-all">Vedi tutti →</a>
+            </div>
+            {% for item in stats.top_clienti_residuo %}
+            <div class="crediti-row">
+                <div class="crediti-client">
+                    <div class="crediti-client-name">{% if item.cliente.ragione_sociale %}{{ item.cliente.ragione_sociale }}{% else %}{{ item.cliente.nome or '' }} {{ item.cliente.cognome or '' }}{% endif %}</div>
+                    {% if item.cliente.id in ns.scaduti_ids %}<span class="crediti-badge-scaduto">⚠️ Scaduto</span>{% else %}<span class="crediti-badge-aperto">⏳ Aperto</span>{% endif %}
                 </div>
+                <div class="crediti-amount">€ {{ "%.2f"|format(item.residuo) }}</div>
+                <a href="/lavori/?cliente_id={{ item.cliente.id }}&pagamento=da_incassare" class="crediti-btn-incassa">Incassa</a>
             </div>
-
-            <div class="d-card">
-                <h3>💸 Costi mese</h3>
-                <div style="font-size:30px; font-weight:700; color:#dc2626; font-family:'DM Mono',monospace;">
-                    € {{ "%.0f"|format(stats.costi_mese or 0) }}
-                </div>
-                <div style="font-size:13px; color:#6b7280; margin-top:6px;">Materiali + manodopera</div>
+            {% endfor %}
+            {% if (stats.clienti_con_residuo or 0) > 5 %}
+            <div style="text-align:center;padding:10px 22px;color:#9ca3af;font-size:12px;border-top:1px solid #f1f5f9;">+ altri {{ (stats.clienti_con_residuo or 0) - 5 }} clienti — <a href="/lavori/?pagamento=da_incassare" style="color:#2563eb;font-weight:600;">vedi tutti</a></div>
+            {% endif %}
+            {% else %}
+            <div class="crediti-all-clear">
+                <div class="crediti-all-clear-icon">✅</div>
+                <div><strong>Tutto incassato</strong><span>Nessun importo in sospeso — ottimo lavoro!</span></div>
             </div>
-
-            <div class="d-card">
-                <h3>📈 Margine mese</h3>
-                <div class="kpi-val {% if (stats.margine_mese or 0) >= 0 %}green{% else %}red{% endif %}" style="font-size:30px;">
-                    € {{ "%.0f"|format(stats.margine_mese or 0) }}
-                </div>
-                <div style="font-size:13px; color:#6b7280; margin-top:6px;">
-                    Mese prec.: € {{ "%.0f"|format(stats.margine_mese_prec or 0) }}
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ── FATTURAPA + INCASSI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Fatturazione e incassi</div>
-        <div class="kpi-strip">
-
-            <div class="kpi-tile purple">
-                <span class="kpi-icon">🧾</span>
-                <div class="kpi-label">Fatture emesse {{ oggi[:4] }}</div>
-                <div class="kpi-val" style="color:#7c3aed;">{{ stats.fatture_anno_count or 0 }}</div>
-                <div class="kpi-sub">{{ stats.fatture_mese_count or 0 }} questo mese · <a href="/fatture/" style="color:#7c3aed;">Registro</a></div>
-            </div>
-
-            <div class="kpi-tile green">
-                <span class="kpi-icon">💶</span>
-                <div class="kpi-label">Fatturato FPA {{ oggi[:4] }}</div>
-                <div class="kpi-val green">€ {{ "%.0f"|format(stats.fatturato_fatturapa_anno or 0) }}</div>
-                <div class="kpi-sub">Totale FatturaPA anno</div>
-            </div>
-
-            <div class="kpi-tile green">
-                <span class="kpi-icon">✅</span>
-                <div class="kpi-label">Pagati</div>
-                <div class="kpi-val green">{{ stats.pct_pagato_val or 0 }}%</div>
-                <div class="kpi-sub">{{ stats.lavori_pagati or 0 }} lavori pagati</div>
-            </div>
-
-            <div class="kpi-tile orange">
-                <span class="kpi-icon">🔄</span>
-                <div class="kpi-label">Acconto</div>
-                <div class="kpi-val" style="color:#f97316;">{{ stats.pct_parziale_val or 0 }}%</div>
-                <div class="kpi-sub">{{ stats.lavori_acconto or 0 }} lavori parziali</div>
-            </div>
-
-            <div class="kpi-tile red">
-                <span class="kpi-icon">⏳</span>
-                <div class="kpi-label">Da pagare</div>
-                <div class="kpi-val red">{{ stats.pct_da_pagare_val or 0 }}%</div>
-                <div class="kpi-sub">{{ stats.lavori_da_pagare or 0 }} lavori aperti</div>
-            </div>
-
+            {% endif %}
         </div>
 
-        <!-- Barra progress incassi -->
-        <div class="d-card" style="margin-top:14px;">
-            <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
-                Distribuzione stati pagamento
-            </div>
-            <div style="display:flex;height:12px;border-radius:999px;overflow:hidden;gap:2px;">
-                <div style="background:#16a34a;width:{{ stats.pct_pagato_val or 0 }}%;transition:width 0.6s;"></div>
-                <div style="background:#f97316;width:{{ stats.pct_parziale_val or 0 }}%;transition:width 0.6s;"></div>
-                <div style="background:#dc2626;width:{{ stats.pct_da_pagare_val or 0 }}%;transition:width 0.6s;"></div>
-            </div>
-            <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:#6b7280;">
-                <span style="color:#16a34a;">■ Pagato {{ stats.pct_pagato_val or 0 }}%</span>
-                <span style="color:#f97316;">■ Acconto {{ stats.pct_parziale_val or 0 }}%</span>
-                <span style="color:#dc2626;">■ Da pagare {{ stats.pct_da_pagare_val or 0 }}%</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── SCADENZE QUESTA SETTIMANA ── -->
-    {% if stats.lavori_scadenza_settimana %}
-    <div class="dash-section">
-        <div class="dash-section-title">⚡ Scadenze questa settimana (prossimi 7 giorni)</div>
-        <div class="d-card" style="border-left:4px solid #f97316;">
-            <table class="d-table">
-                <tr>
-                    <th>Lavoro</th><th>Cliente</th>
-                    <th>Scadenza</th><th>Residuo</th><th></th>
-                </tr>
-                {% for lavoro in stats.lavori_scadenza_settimana %}
-                <tr>
-                    <td><strong>{{ lavoro.titolo }}</strong></td>
-                    <td>{% if lavoro.cliente %}{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}{% else %}—{% endif %}</td>
-                    <td>
-                        <span class="db {% if lavoro.data_scadenza_pagamento == oggi %}db-red{% else %}db-orange{% endif %}">
-                            {{ lavoro.data_scadenza_pagamento }}
-                        </span>
-                    </td>
-                    <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
-                    <td><a href="/lavori/{{ lavoro.id }}/pagamenti" class="d-btn d-btn-blue">Incassa</a></td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- ── OBIETTIVO + PERFORMANCE ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Obiettivo e performance</div>
-        <div class="dash-grid-2">
-
-            <div class="d-card">
-                <h3>🎯 Obiettivo mensile</h3>
-                <div class="obiettivo-wrap">
-                    <div class="obiettivo-circle">
-                        <svg width="100" height="100" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"/>
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="#16a34a" stroke-width="10"
-                                stroke-dasharray="{{ [stats.percentuale_obiettivo_mese or 0, 100]|min * 2.51327 }} 251.327"
-                                stroke-linecap="round"/>
-                        </svg>
-                        <div class="obiettivo-pct">{{ stats.percentuale_obiettivo_mese or 0 }}%</div>
-                    </div>
-                    <div class="obiettivo-info">
-                        <p>Obiettivo: <strong>€ {{ "%.2f"|format(stats.obiettivo_mensile or 0) }}</strong></p>
-                        <p>Fatturato: <strong>€ {{ "%.2f"|format(stats.totale_documenti_mese or 0) }}</strong></p>
-                        <p style="font-size:12px; color:#9ca3af;">Impostabile in ⚙️ Impostazioni</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="d-card">
-                <h3>⚡ Performance</h3>
-                <div class="prog-row">
-                    <div class="prog-label">
-                        <span>Completamento lavori</span>
-                        <span>{{ stats.percentuale_completati or 0 }}%</span>
-                    </div>
-                    <div class="prog-track"><div class="prog-fill green" style="width:{{ stats.percentuale_completati or 0 }}%"></div></div>
-                </div>
-                <div class="prog-row">
-                    {% set pct_incasso = 0 %}
-                    {% if (stats.totale_documenti or 0) > 0 %}
-                        {% set pct_incasso = ((stats.totale_incassato or 0) / (stats.totale_documenti or 1) * 100) %}
-                    {% endif %}
-                    <div class="prog-label">
-                        <span>Incassato su fatturato</span>
-                        <span>{{ "%.1f"|format(pct_incasso) }}%</span>
-                    </div>
-                    <div class="prog-track"><div class="prog-fill blue" style="width:{{ pct_incasso }}%"></div></div>
-                </div>
-                <div class="prog-row">
-                    {% set pct_margine = 0 %}
-                    {% if (stats.totale_documenti or 0) > 0 %}
-                        {% set pct_margine = ((stats.margine_totale or 0) / (stats.totale_documenti or 1) * 100) %}
-                    {% endif %}
-                    <div class="prog-label">
-                        <span>Margine su fatturato</span>
-                        <span>{{ "%.1f"|format(pct_margine) }}%</span>
-                    </div>
-                    <div class="prog-track"><div class="prog-fill purple" style="width:{{ [pct_margine, 100]|max if pct_margine < 0 else pct_margine }}%"></div></div>
-                </div>
-                <div class="prog-row">
-                    <div class="prog-label">
-                        <span>Valore medio lavoro</span>
-                        <span>€ {{ "%.0f"|format(stats.valore_medio_lavoro or 0) }}</span>
-                    </div>
-                    <div class="prog-track"><div class="prog-fill orange" style="width:60%"></div></div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ── CONFRONTO ANNO ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Anno {{ oggi[:4] }} vs anno precedente</div>
-        <div class="kpi-strip">
-
-            <div class="kpi-tile green">
-                <span class="kpi-icon">📅</span>
-                <div class="kpi-label">Fatturato {{ oggi[:4] }}</div>
-                <div class="kpi-val green">€ {{ "%.0f"|format(stats.fatturato_anno_corrente or 0) }}</div>
-                <div class="kpi-sub">Anno in corso</div>
-            </div>
-
-            <div class="kpi-tile gray">
-                <span class="kpi-icon">📅</span>
-                <div class="kpi-label">Fatturato {{ (oggi[:4]|int - 1)|string }}</div>
-                <div class="kpi-val">€ {{ "%.0f"|format(stats.fatturato_anno_prec or 0) }}</div>
-                <div class="kpi-sub">Anno precedente</div>
-            </div>
-
-            <div class="kpi-tile {% if (stats.delta_anno_pct or 0) >= 0 %}green{% else %}red{% endif %}">
-                <span class="kpi-icon">{% if (stats.delta_anno_pct or 0) >= 0 %}▲{% else %}▼{% endif %}</span>
-                <div class="kpi-label">Variazione anno</div>
-                <div class="kpi-val {% if (stats.delta_anno_pct or 0) >= 0 %}green{% else %}red{% endif %}">
-                    {% if (stats.delta_anno_pct or 0) >= 0 %}+{% endif %}{{ stats.delta_anno_pct or 0 }}%
-                </div>
-                <div class="kpi-sub">vs anno precedente</div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ── PREVISIONE INCASSI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Previsione incassi futuri</div>
-        <div class="kpi-strip">
-
-            <div class="kpi-tile blue">
-                <span class="kpi-icon">📆</span>
-                <div class="kpi-label">Prossimi 30 giorni</div>
-                <div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_30g or 0) }}</div>
-                <div class="kpi-sub">Da incassare entro 30 gg</div>
-            </div>
-
-            <div class="kpi-tile blue">
-                <span class="kpi-icon">📆</span>
-                <div class="kpi-label">Prossimi 60 giorni</div>
-                <div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_60g or 0) }}</div>
-                <div class="kpi-sub">Da incassare entro 60 gg</div>
-            </div>
-
-            <div class="kpi-tile blue">
-                <span class="kpi-icon">📆</span>
-                <div class="kpi-label">Prossimi 90 giorni</div>
-                <div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_90g or 0) }}</div>
-                <div class="kpi-sub">Da incassare entro 90 gg</div>
-            </div>
-
-        </div>
-        {% if (stats.prev_incassi_30g or 0) == 0 and (stats.prev_incassi_60g or 0) == 0 %}
-        <div style="margin-top:10px; font-size:13px; color:#9ca3af;">
-            Nessuna scadenza di pagamento impostata nei prossimi 90 giorni.
-            <a href="/lavori/" style="color:#2563eb; font-weight:600;">Imposta le scadenze</a> sui lavori aperti per vedere le previsioni.
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- ── GRAFICI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Grafici economici</div>
-        <div class="dash-grid-3">
-            <div class="d-card">
-                <h3>Fatturato / Costi / Margine</h3>
-                <div class="chart-wrap"><canvas id="graficoEconomico"></canvas></div>
-            </div>
-            <div class="d-card">
-                <h3>Stato lavori</h3>
-                <div class="chart-wrap"><canvas id="graficoLavori"></canvas></div>
-            </div>
-            <div class="d-card">
-                <h3>Andamento ultimi 6 mesi</h3>
-                <div class="chart-wrap"><canvas id="graficoMensile"></canvas></div>
-            </div>
-        </div>
-        <div class="d-card" style="margin-top:18px;">
-            <h3>Obiettivo mensile — andamento {{ oggi[:4] }}</h3>
-            <div class="chart-wrap" style="height:220px;"><canvas id="graficoAnnoObiettivo"></canvas></div>
-        </div>
-    </div>
-
-    <!-- ── SCADENZE ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Scadenze e pagamenti urgenti</div>
-        <div class="dash-grid-2">
-
-            <div class="d-card">
-                <h3>⏰ Prossime scadenze</h3>
-                {% if stats.lavori_urgenti %}
+        <!-- SCADENZE SETTIMANA -->
+        {% if stats.lavori_scadenza_settimana %}
+        <div class="dash-section">
+            <div class="dash-section-title">⚡ Scadenze questa settimana (prossimi 7 giorni)</div>
+            <div class="d-card" style="border-left:4px solid #f97316;">
                 <table class="d-table">
                     <tr><th>Lavoro</th><th>Cliente</th><th>Scadenza</th><th>Residuo</th><th></th></tr>
-                    {% for lavoro in stats.lavori_urgenti %}
+                    {% for lavoro in stats.lavori_scadenza_settimana %}
                     <tr>
                         <td><strong>{{ lavoro.titolo }}</strong></td>
                         <td>{% if lavoro.cliente %}{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}{% else %}—{% endif %}</td>
-                        <td>
-                            {% if lavoro.data_scadenza_pagamento %}
-                                {% if lavoro.data_scadenza_pagamento < oggi %}
-                                    <span class="db db-red">{{ lavoro.data_scadenza_pagamento }}</span>
-                                {% else %}
-                                    <span class="db db-orange">{{ lavoro.data_scadenza_pagamento }}</span>
-                                {% endif %}
-                            {% else %}—{% endif %}
-                        </td>
+                        <td><span class="db {% if lavoro.data_scadenza_pagamento == oggi %}db-red{% else %}db-orange{% endif %}">{{ lavoro.data_scadenza_pagamento }}</span></td>
                         <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
                         <td><a href="/lavori/{{ lavoro.id }}/pagamenti" class="d-btn d-btn-blue">Incassa</a></td>
                     </tr>
                     {% endfor %}
                 </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessuna scadenza urgente.</p>
-                {% endif %}
-            </div>
-
-            <div class="d-card">
-                <h3>🔴 Clienti da sollecitare</h3>
-                {% if stats.clienti_da_sollecitare %}
-                <table class="d-table">
-                    <tr><th>Cliente</th><th>Lavori</th><th>Totale</th><th></th></tr>
-                    {% for item in stats.clienti_da_sollecitare %}
-                    <tr>
-                        <td><strong>{{ item.cliente.nome }} {{ item.cliente.cognome }}</strong></td>
-                        <td>{{ item.numero_lavori }}</td>
-                        <td><span class="db db-red">€ {{ "%.2f"|format(item.totale or 0) }}</span></td>
-                        <td><a href="/clienti/{{ item.cliente.id }}" class="d-btn d-btn-gray">Apri</a></td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun cliente da sollecitare.</p>
-                {% endif %}
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ── STATO LAVORI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Stato lavori</div>
-        <div class="kpi-strip">
-            <div class="kpi-tile gray">
-                <span class="kpi-icon">📋</span>
-                <div class="kpi-label">Totali</div>
-                <div class="kpi-val">{{ stats.lavori_totali or 0 }}</div>
-            </div>
-            <div class="kpi-tile blue">
-                <span class="kpi-icon">📝</span>
-                <div class="kpi-label">Da fare</div>
-                <div class="kpi-val">{{ stats.lavori_da_fare or 0 }}</div>
-            </div>
-            <div class="kpi-tile orange">
-                <span class="kpi-icon">🔨</span>
-                <div class="kpi-label">In corso</div>
-                <div class="kpi-val">{{ stats.lavori_in_corso or 0 }}</div>
-            </div>
-            <div class="kpi-tile green">
-                <span class="kpi-icon">✅</span>
-                <div class="kpi-label">Completati</div>
-                <div class="kpi-val">{{ stats.lavori_completati or 0 }}</div>
-                <div class="kpi-sub">{{ stats.percentuale_completati or 0 }}% del totale</div>
-            </div>
-            <div class="kpi-tile red">
-                <span class="kpi-icon">❌</span>
-                <div class="kpi-label">Annullati</div>
-                <div class="kpi-val">{{ stats.lavori_annullati or 0 }}</div>
-            </div>
-            <div class="kpi-tile purple">
-                <span class="kpi-icon">📑</span>
-                <div class="kpi-label">Preventivi</div>
-                <div class="kpi-val">{{ stats.lavori_preventivi or 0 }}</div>
             </div>
         </div>
-    </div>
+        {% endif %}
 
-    <!-- ── CLASSIFICA CLIENTI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Clienti</div>
-        <div class="dash-grid-2">
-
-            <div class="d-card">
-                <h3>🏆 Top clienti per fatturato</h3>
-                {% if stats.top_clienti %}
-                <table class="d-table">
-                    <tr><th>#</th><th>Cliente</th><th>Fatturato</th><th></th></tr>
-                    {% for item in stats.top_clienti %}
-                    <tr>
-                        <td style="color:#9ca3af; font-weight:700;">{{ loop.index }}</td>
-                        <td><strong>{{ item.cliente.nome }} {{ item.cliente.cognome }}</strong></td>
-                        <td>€ {{ "%.2f"|format(item.totale or 0) }}</td>
-                        <td><a href="/clienti/{{ item.cliente.id }}" class="d-btn d-btn-gray">Apri</a></td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun cliente disponibile.</p>
-                {% endif %}
+        <!-- KPI PRINCIPALI -->
+        <div class="dash-section">
+            <div class="dash-section-title">KPI principali</div>
+            <div class="kpi-strip">
+                <div class="kpi-tile green"><span class="kpi-icon">💰</span><div class="kpi-label">Fatturato totale</div><div class="kpi-val green">€ {{ "%.0f"|format(stats.totale_documenti or 0) }}</div><div class="kpi-sub">Totale documenti emessi</div></div>
+                <div class="kpi-tile blue"><span class="kpi-icon">📈</span><div class="kpi-label">Margine totale</div><div class="kpi-val {% if (stats.margine_totale or 0) >= 0 %}green{% else %}red{% endif %}">€ {{ "%.0f"|format(stats.margine_totale or 0) }}</div><div class="kpi-sub">Guadagno reale</div></div>
+                <div class="kpi-tile red"><span class="kpi-icon">⏳</span><div class="kpi-label">Da incassare</div><div class="kpi-val red">€ {{ "%.0f"|format(stats.totale_da_incassare or 0) }}</div><div class="kpi-sub">Residui aperti</div></div>
+                <div class="kpi-tile orange"><span class="kpi-icon">🛠️</span><div class="kpi-label">Lavori attivi</div><div class="kpi-val">{{ (stats.lavori_da_fare or 0) + (stats.lavori_in_corso or 0) }}</div><div class="kpi-sub">Da fare + in corso</div></div>
+                <div class="kpi-tile purple"><span class="kpi-icon">👥</span><div class="kpi-label">Clienti totali</div><div class="kpi-val">{{ stats.clienti_totali or 0 }}</div><div class="kpi-sub">{{ stats.clienti_con_residuo or 0 }} con residuo</div></div>
+                <div class="kpi-tile gray"><span class="kpi-icon">📄</span><div class="kpi-label">PDF generati</div><div class="kpi-val">{{ stats.numero_documenti_pdf or 0 }}</div><div class="kpi-sub">Documenti archivio</div></div>
             </div>
-
-            <div class="d-card">
-                <h3>💸 Top clienti con residuo</h3>
-                {% if stats.top_clienti_residuo %}
-                <table class="d-table">
-                    <tr><th>Cliente</th><th>Residuo</th><th></th></tr>
-                    {% for item in stats.top_clienti_residuo %}
-                    <tr>
-                        <td><strong>{{ item.cliente.nome }} {{ item.cliente.cognome }}</strong></td>
-                        <td><span class="db db-red">€ {{ "%.2f"|format(item.residuo or 0) }}</span></td>
-                        <td><a href="/lavori/?cliente_id={{ item.cliente.id }}&pagamento=da_incassare" class="d-btn d-btn-red">Incassi</a></td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun residuo aperto.</p>
-                {% endif %}
-            </div>
-
         </div>
-    </div>
 
-    <!-- ── ANALISI LAVORI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Analisi lavori</div>
-        <div class="dash-grid-2">
-
-            <div class="d-card">
-                <h3>🥇 Migliori per margine</h3>
-                {% if stats.lavori_migliori %}
-                <table class="d-table">
-                    <tr><th>Lavoro</th><th>Margine</th></tr>
-                    {% for lavoro in stats.lavori_migliori %}
-                    <tr>
-                        <td>{{ lavoro.titolo }}</td>
-                        <td><span class="db db-green">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </table>
+        <!-- STATO SALUTE -->
+        <div class="dash-section">
+            <div class="dash-section-title">Stato salute attività</div>
+            <div class="d-card" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                {% if (stats.margine_totale or 0) > 0 and (stats.totale_da_incassare or 0) == 0 and stats.lavori_scaduti|length == 0 %}
+                    <span class="health-pill good">✅ Situazione ottima — nessuna criticità</span>
+                {% elif stats.lavori_scaduti|length > 0 %}
+                    <span class="health-pill bad">🔴 Attenzione: pagamenti scaduti da recuperare</span>
+                {% elif (stats.totale_da_incassare or 0) > 0 %}
+                    <span class="health-pill warning">🟡 Da monitorare: importi ancora da incassare</span>
                 {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun dato disponibile.</p>
+                    <span class="health-pill neutral">🔵 Situazione regolare</span>
                 {% endif %}
+                {% if stats.lavori_scaduti|length > 0 %}<a href="/lavori/?pagamento=scaduti" class="d-btn d-btn-red">Vedi scaduti</a>{% endif %}
+                {% if (stats.totale_da_incassare or 0) > 0 %}<a href="/lavori/?pagamento=da_incassare" class="d-btn d-btn-blue">Apri incassi</a>{% endif %}
             </div>
-
-            <div class="d-card">
-                <h3>📉 Peggiori per margine</h3>
-                {% if stats.lavori_peggiori %}
-                <table class="d-table">
-                    <tr><th>Lavoro</th><th>Margine</th></tr>
-                    {% for lavoro in stats.lavori_peggiori %}
-                    <tr>
-                        <td>{{ lavoro.titolo }}</td>
-                        <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun dato disponibile.</p>
-                {% endif %}
-            </div>
-
         </div>
-    </div>
 
-    <!-- ── MAGAZZINO ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Magazzino</div>
-        <div class="dash-grid-2">
+        <!-- AZIONI RAPIDE -->
+        <div class="dash-section">
+            <div class="dash-section-title">Azioni rapide</div>
+            <div class="action-grid-new">
+                <a class="action-tile" href="/clienti/"><span class="at-icon">👥</span><span class="at-label">Clienti</span></a>
+                <a class="action-tile" href="/lavori/"><span class="at-icon">🛠️</span><span class="at-label">Lavori</span></a>
+                <a class="action-tile" href="/materiali/"><span class="at-icon">📦</span><span class="at-label">Magazzino</span></a>
+                <a class="action-tile" href="/documenti"><span class="at-icon">📄</span><span class="at-label">Archivio PDF</span></a>
+                <a class="action-tile" href="/lavori/?stato=in_corso"><span class="at-icon">🔥</span><span class="at-label">In corso</span></a>
+                <a class="action-tile" href="/lavori/?pagamento=scaduti"><span class="at-icon">⏰</span><span class="at-label">Scaduti</span></a>
+                <a class="action-tile" href="/lavori/?pagamento=da_incassare"><span class="at-icon">💸</span><span class="at-label">Da incassare</span></a>
+                <a class="action-tile" href="/lavori/preventivi/dashboard"><span class="at-icon">📑</span><span class="at-label">Preventivi</span></a>
+                <a class="action-tile" href="/impostazioni/azienda"><span class="at-icon">⚙️</span><span class="at-label">Impostazioni</span></a>
+            </div>
+        </div>
 
-            <div class="kpi-strip" style="grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr);">
-                <div class="kpi-tile gray">
-                    <span class="kpi-icon">📦</span>
-                    <div class="kpi-label">Materiali</div>
-                    <div class="kpi-val">{{ stats.materiali_totali or 0 }}</div>
+    </div><!-- fine pane-operativo -->
+
+    <!-- ══ TAB: NUMERI ══ -->
+    <div class="dash-tab-pane" id="pane-numeri">
+
+        <!-- MESE CORRENTE -->
+        <div class="dash-section">
+            <div class="dash-section-title">Mese corrente</div>
+            <div class="dash-grid-3">
+                <div class="d-card">
+                    <h3>📊 Fatturato mese</h3>
+                    <div style="font-size:30px;font-weight:700;color:#16a34a;font-family:'DM Mono',monospace;">€ {{ "%.0f"|format(stats.totale_documenti_mese or 0) }}</div>
+                    <div style="font-size:13px;color:#6b7280;margin-top:6px;display:flex;align-items:center;gap:8px;">
+                        <span>{{ stats.lavori_mese_count or 0 }} lavori</span>
+                        {% if stats.totale_documenti_mese_prec is defined and stats.totale_documenti_mese_prec > 0 %}
+                            {% if (stats.delta_fatturato_pct or 0) >= 0 %}<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px;">▲ +{{ stats.delta_fatturato_pct }}% vs mese prec.</span>
+                            {% else %}<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px;">▼ {{ stats.delta_fatturato_pct }}% vs mese prec.</span>{% endif %}
+                        {% elif stats.totale_documenti_mese_prec is defined %}
+                            <span style="background:#f3f4f6;color:#6b7280;padding:2px 7px;border-radius:20px;font-size:11px;">Mese prec.: € {{ "%.0f"|format(stats.totale_documenti_mese_prec or 0) }}</span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="kpi-tile green">
-                    <span class="kpi-icon">💵</span>
-                    <div class="kpi-label">Valore magazzino</div>
-                    <div class="kpi-val green">€ {{ "%.0f"|format(stats.valore_magazzino or 0) }}</div>
+                <div class="d-card">
+                    <h3>💸 Costi mese</h3>
+                    <div style="font-size:30px;font-weight:700;color:#dc2626;font-family:'DM Mono',monospace;">€ {{ "%.0f"|format(stats.costi_mese or 0) }}</div>
+                    <div style="font-size:13px;color:#6b7280;margin-top:6px;">Materiali + manodopera</div>
                 </div>
-                <div class="kpi-tile red">
-                    <span class="kpi-icon">⚠️</span>
-                    <div class="kpi-label">Sotto scorta</div>
-                    <div class="kpi-val red">{{ stats.materiali_scorte_basse|length }}</div>
-                    <div class="kpi-sub"><a href="/materiali/" style="color:#dc2626;">Controlla</a></div>
+                <div class="d-card">
+                    <h3>📈 Margine mese</h3>
+                    <div class="kpi-val {% if (stats.margine_mese or 0) >= 0 %}green{% else %}red{% endif %}" style="font-size:30px;">€ {{ "%.0f"|format(stats.margine_mese or 0) }}</div>
+                    <div style="font-size:13px;color:#6b7280;margin-top:6px;">Mese prec.: € {{ "%.0f"|format(stats.margine_mese_prec or 0) }}</div>
                 </div>
             </div>
+        </div>
 
+        <!-- FATTURAZIONE E INCASSI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Fatturazione e incassi</div>
+            <div class="kpi-strip">
+                <div class="kpi-tile purple"><span class="kpi-icon">🧾</span><div class="kpi-label">Fatture emesse {{ oggi[:4] }}</div><div class="kpi-val" style="color:#7c3aed;">{{ stats.fatture_anno_count or 0 }}</div><div class="kpi-sub">{{ stats.fatture_mese_count or 0 }} questo mese · <a href="/fatture/" style="color:#7c3aed;">Registro</a></div></div>
+                <div class="kpi-tile green"><span class="kpi-icon">💶</span><div class="kpi-label">Fatturato FPA {{ oggi[:4] }}</div><div class="kpi-val green">€ {{ "%.0f"|format(stats.fatturato_fatturapa_anno or 0) }}</div><div class="kpi-sub">Totale FatturaPA anno</div></div>
+                <div class="kpi-tile green"><span class="kpi-icon">✅</span><div class="kpi-label">Pagati</div><div class="kpi-val green">{{ stats.pct_pagato_val or 0 }}%</div><div class="kpi-sub">{{ stats.lavori_pagati or 0 }} lavori pagati</div></div>
+                <div class="kpi-tile orange"><span class="kpi-icon">🔄</span><div class="kpi-label">Acconto</div><div class="kpi-val" style="color:#f97316;">{{ stats.pct_parziale_val or 0 }}%</div><div class="kpi-sub">{{ stats.lavori_acconto or 0 }} lavori parziali</div></div>
+                <div class="kpi-tile red"><span class="kpi-icon">⏳</span><div class="kpi-label">Da pagare</div><div class="kpi-val red">{{ stats.pct_da_pagare_val or 0 }}%</div><div class="kpi-sub">{{ stats.lavori_da_pagare or 0 }} lavori aperti</div></div>
+            </div>
+            <div class="d-card" style="margin-top:14px;">
+                <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Distribuzione stati pagamento</div>
+                <div style="display:flex;height:12px;border-radius:999px;overflow:hidden;gap:2px;">
+                    <div style="background:#16a34a;width:{{ stats.pct_pagato_val or 0 }}%;transition:width 0.6s;"></div>
+                    <div style="background:#f97316;width:{{ stats.pct_parziale_val or 0 }}%;transition:width 0.6s;"></div>
+                    <div style="background:#dc2626;width:{{ stats.pct_da_pagare_val or 0 }}%;transition:width 0.6s;"></div>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:#6b7280;">
+                    <span style="color:#16a34a;">■ Pagato {{ stats.pct_pagato_val or 0 }}%</span>
+                    <span style="color:#f97316;">■ Acconto {{ stats.pct_parziale_val or 0 }}%</span>
+                    <span style="color:#dc2626;">■ Da pagare {{ stats.pct_da_pagare_val or 0 }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- OBIETTIVO E PERFORMANCE -->
+        <div class="dash-section">
+            <div class="dash-section-title">Obiettivo e performance</div>
+            <div class="dash-grid-2">
+                <div class="d-card">
+                    <h3>🎯 Obiettivo mensile</h3>
+                    <div class="obiettivo-wrap">
+                        <div class="obiettivo-circle">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#16a34a" stroke-width="10"
+                                    stroke-dasharray="{{ [stats.percentuale_obiettivo_mese or 0, 100]|min * 2.51327 }} 251.327"
+                                    stroke-linecap="round"/>
+                            </svg>
+                            <div class="obiettivo-pct">{{ stats.percentuale_obiettivo_mese or 0 }}%</div>
+                        </div>
+                        <div class="obiettivo-info">
+                            <p>Obiettivo: <strong>€ {{ "%.2f"|format(stats.obiettivo_mensile or 0) }}</strong></p>
+                            <p>Fatturato: <strong>€ {{ "%.2f"|format(stats.totale_documenti_mese or 0) }}</strong></p>
+                            <p style="font-size:12px;color:#9ca3af;">Impostabile in ⚙️ Impostazioni</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-card">
+                    <h3>⚡ Performance</h3>
+                    <div class="prog-row">
+                        <div class="prog-label"><span>Completamento lavori</span><span>{{ stats.percentuale_completati or 0 }}%</span></div>
+                        <div class="prog-track"><div class="prog-fill green" style="width:{{ stats.percentuale_completati or 0 }}%"></div></div>
+                    </div>
+                    <div class="prog-row">
+                        {% set pct_incasso = 0 %}{% if (stats.totale_documenti or 0) > 0 %}{% set pct_incasso = ((stats.totale_incassato or 0) / (stats.totale_documenti or 1) * 100) %}{% endif %}
+                        <div class="prog-label"><span>Incassato su fatturato</span><span>{{ "%.1f"|format(pct_incasso) }}%</span></div>
+                        <div class="prog-track"><div class="prog-fill blue" style="width:{{ pct_incasso }}%"></div></div>
+                    </div>
+                    <div class="prog-row">
+                        {% set pct_margine = 0 %}{% if (stats.totale_documenti or 0) > 0 %}{% set pct_margine = ((stats.margine_totale or 0) / (stats.totale_documenti or 1) * 100) %}{% endif %}
+                        <div class="prog-label"><span>Margine su fatturato</span><span>{{ "%.1f"|format(pct_margine) }}%</span></div>
+                        <div class="prog-track"><div class="prog-fill purple" style="width:{{ [pct_margine, 100]|max if pct_margine < 0 else pct_margine }}%"></div></div>
+                    </div>
+                    <div class="prog-row">
+                        <div class="prog-label"><span>Valore medio lavoro</span><span>€ {{ "%.0f"|format(stats.valore_medio_lavoro or 0) }}</span></div>
+                        <div class="prog-track"><div class="prog-fill orange" style="width:60%"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANNO vs ANNO PREC + PREVISIONE -->
+        <div class="dash-section">
+            <div class="dash-section-title">Anno {{ oggi[:4] }} e previsioni</div>
+            <div class="kpi-strip" style="margin-bottom:14px;">
+                <div class="kpi-tile green"><span class="kpi-icon">📅</span><div class="kpi-label">Fatturato {{ oggi[:4] }}</div><div class="kpi-val green">€ {{ "%.0f"|format(stats.fatturato_anno_corrente or 0) }}</div><div class="kpi-sub">Anno in corso</div></div>
+                <div class="kpi-tile gray"><span class="kpi-icon">📅</span><div class="kpi-label">Fatturato {{ (oggi[:4]|int - 1)|string }}</div><div class="kpi-val">€ {{ "%.0f"|format(stats.fatturato_anno_prec or 0) }}</div><div class="kpi-sub">Anno precedente</div></div>
+                <div class="kpi-tile {% if (stats.delta_anno_pct or 0) >= 0 %}green{% else %}red{% endif %}"><span class="kpi-icon">{% if (stats.delta_anno_pct or 0) >= 0 %}▲{% else %}▼{% endif %}</span><div class="kpi-label">Variazione anno</div><div class="kpi-val {% if (stats.delta_anno_pct or 0) >= 0 %}green{% else %}red{% endif %}">{% if (stats.delta_anno_pct or 0) >= 0 %}+{% endif %}{{ stats.delta_anno_pct or 0 }}%</div><div class="kpi-sub">vs anno precedente</div></div>
+                <div class="kpi-tile blue"><span class="kpi-icon">📆</span><div class="kpi-label">Prossimi 30 gg</div><div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_30g or 0) }}</div><div class="kpi-sub">Da incassare entro 30 gg</div></div>
+                <div class="kpi-tile blue"><span class="kpi-icon">📆</span><div class="kpi-label">Prossimi 60 gg</div><div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_60g or 0) }}</div><div class="kpi-sub">Da incassare entro 60 gg</div></div>
+                <div class="kpi-tile blue"><span class="kpi-icon">📆</span><div class="kpi-label">Prossimi 90 gg</div><div class="kpi-val" style="color:#2563eb;">€ {{ "%.0f"|format(stats.prev_incassi_90g or 0) }}</div><div class="kpi-sub">Da incassare entro 90 gg</div></div>
+            </div>
+        </div>
+
+        <!-- GRAFICI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Grafici economici</div>
+            <div class="dash-grid-3">
+                <div class="d-card"><h3>Fatturato / Costi / Margine</h3><div class="chart-wrap"><canvas id="graficoEconomico"></canvas></div></div>
+                <div class="d-card"><h3>Stato lavori</h3><div class="chart-wrap"><canvas id="graficoLavori"></canvas></div></div>
+                <div class="d-card"><h3>Andamento ultimi 6 mesi</h3><div class="chart-wrap"><canvas id="graficoMensile"></canvas></div></div>
+            </div>
+            <div class="d-card" style="margin-top:18px;">
+                <h3>Obiettivo mensile — andamento {{ oggi[:4] }}</h3>
+                <div class="chart-wrap" style="height:220px;"><canvas id="graficoAnnoObiettivo"></canvas></div>
+            </div>
+        </div>
+
+    </div><!-- fine pane-numeri -->
+
+    <!-- ══ TAB: ANALISI ══ -->
+    <div class="dash-tab-pane" id="pane-analisi">
+
+        <!-- SCADENZE URGENTI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Scadenze e pagamenti urgenti</div>
+            <div class="dash-grid-2">
+                <div class="d-card">
+                    <h3>⏰ Prossime scadenze</h3>
+                    {% if stats.lavori_urgenti %}
+                    <table class="d-table">
+                        <tr><th>Lavoro</th><th>Cliente</th><th>Scadenza</th><th>Residuo</th><th></th></tr>
+                        {% for lavoro in stats.lavori_urgenti %}
+                        <tr>
+                            <td><strong>{{ lavoro.titolo }}</strong></td>
+                            <td>{% if lavoro.cliente %}{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}{% else %}—{% endif %}</td>
+                            <td>{% if lavoro.data_scadenza_pagamento %}{% if lavoro.data_scadenza_pagamento < oggi %}<span class="db db-red">{{ lavoro.data_scadenza_pagamento }}</span>{% else %}<span class="db db-orange">{{ lavoro.data_scadenza_pagamento }}</span>{% endif %}{% else %}—{% endif %}</td>
+                            <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
+                            <td><a href="/lavori/{{ lavoro.id }}/pagamenti" class="d-btn d-btn-blue">Incassa</a></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <p style="color:#6b7280;font-size:13px;">Nessuna scadenza urgente.</p>
+                    {% endif %}
+                </div>
+                <div class="d-card">
+                    <h3>🔴 Clienti da sollecitare</h3>
+                    {% if stats.clienti_da_sollecitare %}
+                    <table class="d-table">
+                        <tr><th>Cliente</th><th>Lavori</th><th>Totale</th><th></th></tr>
+                        {% for item in stats.clienti_da_sollecitare %}
+                        <tr>
+                            <td><strong>{{ item.cliente.nome }} {{ item.cliente.cognome }}</strong></td>
+                            <td>{{ item.numero_lavori }}</td>
+                            <td><span class="db db-red">€ {{ "%.2f"|format(item.totale or 0) }}</span></td>
+                            <td><a href="/clienti/{{ item.cliente.id }}" class="d-btn d-btn-gray">Apri</a></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <p style="color:#6b7280;font-size:13px;">Nessun cliente da sollecitare.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- STATO LAVORI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Stato lavori</div>
+            <div class="kpi-strip">
+                <div class="kpi-tile gray"><span class="kpi-icon">📋</span><div class="kpi-label">Totali</div><div class="kpi-val">{{ stats.lavori_totali or 0 }}</div></div>
+                <div class="kpi-tile blue"><span class="kpi-icon">📝</span><div class="kpi-label">Da fare</div><div class="kpi-val">{{ stats.lavori_da_fare or 0 }}</div></div>
+                <div class="kpi-tile orange"><span class="kpi-icon">🔨</span><div class="kpi-label">In corso</div><div class="kpi-val">{{ stats.lavori_in_corso or 0 }}</div></div>
+                <div class="kpi-tile green"><span class="kpi-icon">✅</span><div class="kpi-label">Completati</div><div class="kpi-val">{{ stats.lavori_completati or 0 }}</div><div class="kpi-sub">{{ stats.percentuale_completati or 0 }}% del totale</div></div>
+                <div class="kpi-tile red"><span class="kpi-icon">❌</span><div class="kpi-label">Annullati</div><div class="kpi-val">{{ stats.lavori_annullati or 0 }}</div></div>
+                <div class="kpi-tile purple"><span class="kpi-icon">📑</span><div class="kpi-label">Preventivi</div><div class="kpi-val">{{ stats.lavori_preventivi or 0 }}</div></div>
+            </div>
+        </div>
+
+        <!-- CLIENTI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Clienti</div>
+            <div class="dash-grid-2">
+                <div class="d-card">
+                    <h3>🏆 Top clienti per fatturato</h3>
+                    {% if stats.top_clienti %}
+                    <table class="d-table">
+                        <tr><th>#</th><th>Cliente</th><th>Fatturato</th><th></th></tr>
+                        {% for item in stats.top_clienti %}
+                        <tr>
+                            <td style="color:#9ca3af;font-weight:700;">{{ loop.index }}</td>
+                            <td><strong>{{ item.cliente.nome }} {{ item.cliente.cognome }}</strong></td>
+                            <td>€ {{ "%.2f"|format(item.totale or 0) }}</td>
+                            <td><a href="/clienti/{{ item.cliente.id }}" class="d-btn d-btn-gray">Apri</a></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <p style="color:#6b7280;font-size:13px;">Nessun cliente disponibile.</p>
+                    {% endif %}
+                </div>
+                <div class="d-card">
+                    <h3>💸 Top clienti con residuo</h3>
+                    {% if stats.top_clienti_residuo %}
+                    <table class="d-table">
+                        <tr><th>Cliente</th><th>Residuo</th><th></th></tr>
+                        {% for item in stats.top_clienti_residuo %}
+                        <tr>
+                            <td><strong>{{ item.cliente.nome }} {{ item.cliente.cognome }}</strong></td>
+                            <td><span class="db db-red">€ {{ "%.2f"|format(item.residuo or 0) }}</span></td>
+                            <td><a href="/lavori/?cliente_id={{ item.cliente.id }}&pagamento=da_incassare" class="d-btn d-btn-red">Incassi</a></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <p style="color:#6b7280;font-size:13px;">Nessun residuo aperto.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALISI LAVORI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Analisi lavori</div>
+            <div class="dash-grid-2">
+                <div class="d-card">
+                    <h3>🥇 Migliori per margine</h3>
+                    {% if stats.lavori_migliori %}
+                    <table class="d-table">
+                        <tr><th>Lavoro</th><th>Margine</th></tr>
+                        {% for lavoro in stats.lavori_migliori %}
+                        <tr><td>{{ lavoro.titolo }}</td><td><span class="db db-green">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}<p style="color:#6b7280;font-size:13px;">Nessun dato disponibile.</p>{% endif %}
+                </div>
+                <div class="d-card">
+                    <h3>📉 Peggiori per margine</h3>
+                    {% if stats.lavori_peggiori %}
+                    <table class="d-table">
+                        <tr><th>Lavoro</th><th>Margine</th></tr>
+                        {% for lavoro in stats.lavori_peggiori %}
+                        <tr><td>{{ lavoro.titolo }}</td><td><span class="db db-red">€ {{ "%.2f"|format(lavoro.margine or 0) }}</span></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}<p style="color:#6b7280;font-size:13px;">Nessun dato disponibile.</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- MAGAZZINO -->
+        <div class="dash-section">
+            <div class="dash-section-title">Magazzino</div>
+            <div class="kpi-strip" style="margin-bottom:14px;">
+                <div class="kpi-tile gray"><span class="kpi-icon">📦</span><div class="kpi-label">Materiali</div><div class="kpi-val">{{ stats.materiali_totali or 0 }}</div></div>
+                <div class="kpi-tile green"><span class="kpi-icon">💵</span><div class="kpi-label">Valore magazzino</div><div class="kpi-val green">€ {{ "%.0f"|format(stats.valore_magazzino or 0) }}</div></div>
+                <div class="kpi-tile red"><span class="kpi-icon">⚠️</span><div class="kpi-label">Sotto scorta</div><div class="kpi-val red">{{ stats.materiali_scorte_basse|length }}</div><div class="kpi-sub"><a href="/materiali/" style="color:#dc2626;">Controlla</a></div></div>
+            </div>
             {% if stats.materiali_scorte_basse %}
-            <div class="d-card" style="grid-column: 1 / -1;">
+            <div class="d-card">
                 <h3>⚠️ Materiali sotto scorta minima</h3>
                 <table class="d-table">
                     <tr><th>Materiale</th><th>Disponibile</th><th>Scorta minima</th><th></th></tr>
                     {% for m in stats.materiali_scorte_basse %}
-                    <tr>
-                        <td>{{ m.nome }}</td>
-                        <td><span class="db db-red">{{ m.quantita }} {{ m.unita_misura }}</span></td>
-                        <td>{{ m.scorta_minima }} {{ m.unita_misura }}</td>
-                        <td><a href="/materiali/" class="d-btn d-btn-blue">Riordina</a></td>
-                    </tr>
+                    <tr><td>{{ m.nome }}</td><td><span class="db db-red">{{ m.quantita }} {{ m.unita_misura }}</span></td><td>{{ m.scorta_minima }} {{ m.unita_misura }}</td><td><a href="/materiali/" class="d-btn d-btn-blue">Riordina</a></td></tr>
                     {% endfor %}
                 </table>
             </div>
             {% endif %}
-
         </div>
-    </div>
 
-    <!-- ── ULTIMI MOVIMENTI ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Ultimi movimenti</div>
-        <div class="dash-grid-2">
-
-            <div class="d-card">
-                <h3>💳 Ultimi pagamenti</h3>
-                {% if stats.ultimi_pagamenti %}
-                <table class="d-table">
-                    <tr><th>Data</th><th>Importo</th><th>Metodo</th></tr>
-                    {% for p in stats.ultimi_pagamenti %}
-                    <tr>
-                        <td>{{ p.data_pagamento }}</td>
-                        <td><span class="db db-green">€ {{ "%.2f"|format(p.importo or 0) }}</span></td>
-                        <td>{{ p.metodo or "—" }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun pagamento registrato.</p>
-                {% endif %}
+        <!-- ULTIMI MOVIMENTI -->
+        <div class="dash-section">
+            <div class="dash-section-title">Ultimi movimenti</div>
+            <div class="dash-grid-2">
+                <div class="d-card">
+                    <h3>💳 Ultimi pagamenti</h3>
+                    {% if stats.ultimi_pagamenti %}
+                    <table class="d-table">
+                        <tr><th>Data</th><th>Importo</th><th>Metodo</th></tr>
+                        {% for p in stats.ultimi_pagamenti %}
+                        <tr><td>{{ p.data_pagamento }}</td><td><span class="db db-green">€ {{ "%.2f"|format(p.importo or 0) }}</span></td><td>{{ p.metodo or "—" }}</td></tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}<p style="color:#6b7280;font-size:13px;">Nessun pagamento registrato.</p>{% endif %}
+                </div>
+                <div class="d-card">
+                    <h3>🔄 Ultimi movimenti magazzino</h3>
+                    {% if stats.ultimi_movimenti_magazzino %}
+                    <table class="d-table">
+                        <tr><th>Tipo</th><th>Quantità</th><th>Data</th></tr>
+                        {% for m in stats.ultimi_movimenti_magazzino %}
+                        <tr><td>{% if m.tipo == "carico" %}<span class="db db-green">Carico</span>{% else %}<span class="db db-red">Scarico</span>{% endif %}</td><td>{{ m.quantita }}</td><td>{{ m.data_movimento }}</td></tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}<p style="color:#6b7280;font-size:13px;">Nessun movimento registrato.</p>{% endif %}
+                </div>
             </div>
-
-            <div class="d-card">
-                <h3>🔄 Ultimi movimenti magazzino</h3>
-                {% if stats.ultimi_movimenti_magazzino %}
-                <table class="d-table">
-                    <tr><th>Tipo</th><th>Quantità</th><th>Data</th></tr>
-                    {% for m in stats.ultimi_movimenti_magazzino %}
-                    <tr>
-                        <td>{% if m.tipo == "carico" %}<span class="db db-green">Carico</span>{% else %}<span class="db db-red">Scarico</span>{% endif %}</td>
-                        <td>{{ m.quantita }}</td>
-                        <td>{{ m.data_movimento }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                {% else %}
-                <p style="color:#6b7280; font-size:13px;">Nessun movimento registrato.</p>
-                {% endif %}
-            </div>
-
         </div>
-    </div>
 
-    <!-- ── AZIONI RAPIDE ── -->
-    <div class="dash-section">
-        <div class="dash-section-title">Azioni rapide</div>
-        <div class="action-grid-new">
-            <a class="action-tile" href="/clienti/"><span class="at-icon">👥</span><span class="at-label">Clienti</span></a>
-            <a class="action-tile" href="/lavori/"><span class="at-icon">🛠️</span><span class="at-label">Lavori</span></a>
-            <a class="action-tile" href="/materiali/"><span class="at-icon">📦</span><span class="at-label">Magazzino</span></a>
-            <a class="action-tile" href="/documenti"><span class="at-icon">📄</span><span class="at-label">Archivio PDF</span></a>
-            <a class="action-tile" href="/lavori/?stato=in_corso"><span class="at-icon">🔥</span><span class="at-label">In corso</span></a>
-            <a class="action-tile" href="/lavori/?pagamento=scaduti"><span class="at-icon">⏰</span><span class="at-label">Scaduti</span></a>
-            <a class="action-tile" href="/lavori/?pagamento=da_incassare"><span class="at-icon">💸</span><span class="at-label">Da incassare</span></a>
-            <a class="action-tile" href="/lavori/preventivi/dashboard"><span class="at-icon">📑</span><span class="at-label">Preventivi</span></a>
-            <a class="action-tile" href="/impostazioni/azienda"><span class="at-icon">⚙️</span><span class="at-label">Impostazioni</span></a>
-        </div>
-    </div>
+    </div><!-- fine pane-analisi -->
 
-</div>
+</div><!-- fine dash-body -->
 
 <script>
-Chart.defaults.font.family = 'DM Sans, sans-serif';
-Chart.defaults.color = '#6b7280';
+// ── TAB SWITCHING ──
+(function () {
+    var tabs = document.querySelectorAll('.dash-tab');
+    var panes = document.querySelectorAll('.dash-tab-pane');
+    var chartsInited = false;
 
-new Chart(document.getElementById('graficoEconomico'), {
-    type: 'bar',
-    data: {
-        labels: ['Fatturato', 'Costi', 'Margine'],
-        datasets: [{
-            data: [
-                {{ stats.totale_documenti or 0 }},
-                {{ stats.costi_reali_totali or 0 }},
-                {{ stats.margine_totale or 0 }}
-            ],
-            backgroundColor: ['#16a34a', '#dc2626', '#2563eb'],
-            borderRadius: 8,
-            borderSkipped: false,
-        }]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
-    }
-});
-
-new Chart(document.getElementById('graficoLavori'), {
-    type: 'doughnut',
-    data: {
-        labels: ['Da fare', 'In corso', 'Completati', 'Annullati'],
-        datasets: [{
-            data: [
-                {{ stats.lavori_da_fare or 0 }},
-                {{ stats.lavori_in_corso or 0 }},
-                {{ stats.lavori_completati or 0 }},
-                {{ stats.lavori_annullati or 0 }}
-            ],
-            backgroundColor: ['#2563eb', '#f97316', '#16a34a', '#dc2626'],
-            borderWidth: 0,
-            hoverOffset: 6
-        }]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } },
-        cutout: '65%'
-    }
-});
-
-const ctxMensile = document.getElementById('graficoMensile');
-if (ctxMensile) {
-    new Chart(ctxMensile, {
-        type: 'line',
-        data: {
-            labels: {{ stats.grafico_mesi_labels | default([]) | tojson }},
-            datasets: [
-                { label: 'Fatturato', data: {{ stats.grafico_mesi_fatturato | default([]) | tojson }}, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)', tension: 0.4, fill: true, pointRadius: 4 },
-                { label: 'Costi', data: {{ stats.grafico_mesi_costi | default([]) | tojson }}, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.05)', tension: 0.4, fill: true, pointRadius: 4 },
-                { label: 'Margine', data: {{ stats.grafico_mesi_margine | default([]) | tojson }}, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.05)', tension: 0.4, fill: true, pointRadius: 4 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } },
-            scales: { y: { grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+    function showTab(name) {
+        tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.tab === name); });
+        panes.forEach(function (p) { p.classList.toggle('active', p.id === 'pane-' + name); });
+        try { localStorage.setItem('dash_tab', name); } catch(e) {}
+        if (name === 'numeri' && !chartsInited) {
+            chartsInited = true;
+            initCharts();
         }
-    });
-}
+    }
 
-const ctxAnnoObiettivo = document.getElementById('graficoAnnoObiettivo');
-if (ctxAnnoObiettivo) {
-    new Chart(ctxAnnoObiettivo, {
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () { showTab(this.dataset.tab); });
+    });
+
+    var saved = 'operativo';
+    try { saved = localStorage.getItem('dash_tab') || 'operativo'; } catch(e) {}
+    showTab(saved);
+})();
+
+// ── CHARTS (lazy — solo quando tab Numeri è selezionato) ──
+function initCharts() {
+    Chart.defaults.font.family = 'DM Sans, sans-serif';
+    Chart.defaults.color = '#6b7280';
+
+    new Chart(document.getElementById('graficoEconomico'), {
         type: 'bar',
         data: {
-            labels: {{ stats.grafico_anno_labels | default([]) | tojson }},
-            datasets: [
-                {
-                    label: 'Fatturato',
-                    data: {{ stats.grafico_anno_fatturato | default([]) | tojson }},
-                    backgroundColor: 'rgba(22,163,74,0.75)',
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    order: 2
-                },
-                {
-                    label: 'Obiettivo mensile',
-                    data: {{ stats.grafico_anno_obiettivo | default([]) | tojson }},
-                    type: 'line',
-                    borderColor: '#f97316',
-                    borderDash: [6, 4],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    fill: false,
-                    tension: 0,
-                    order: 1
-                }
-            ]
+            labels: ['Fatturato', 'Costi', 'Margine'],
+            datasets: [{ data: [{{ stats.totale_documenti or 0 }}, {{ stats.costi_reali_totali or 0 }}, {{ stats.margine_totale or 0 }}], backgroundColor: ['#16a34a','#dc2626','#2563eb'], borderRadius: 8, borderSkipped: false }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } },
-            scales: {
-                y: { grid: { color: '#f1f5f9' }, beginAtZero: true },
-                x: { grid: { display: false } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
     });
+
+    new Chart(document.getElementById('graficoLavori'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Da fare','In corso','Completati','Annullati'],
+            datasets: [{ data: [{{ stats.lavori_da_fare or 0 }}, {{ stats.lavori_in_corso or 0 }}, {{ stats.lavori_completati or 0 }}, {{ stats.lavori_annullati or 0 }}], backgroundColor: ['#2563eb','#f97316','#16a34a','#dc2626'], borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } }, cutout: '65%' }
+    });
+
+    var ctxMensile = document.getElementById('graficoMensile');
+    if (ctxMensile) {
+        new Chart(ctxMensile, {
+            type: 'line',
+            data: {
+                labels: {{ stats.grafico_mesi_labels | default([]) | tojson }},
+                datasets: [
+                    { label: 'Fatturato', data: {{ stats.grafico_mesi_fatturato | default([]) | tojson }}, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)', tension: 0.4, fill: true, pointRadius: 4 },
+                    { label: 'Costi', data: {{ stats.grafico_mesi_costi | default([]) | tojson }}, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.05)', tension: 0.4, fill: true, pointRadius: 4 },
+                    { label: 'Margine', data: {{ stats.grafico_mesi_margine | default([]) | tojson }}, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.05)', tension: 0.4, fill: true, pointRadius: 4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } }, scales: { y: { grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+        });
+    }
+
+    var ctxAnno = document.getElementById('graficoAnnoObiettivo');
+    if (ctxAnno) {
+        new Chart(ctxAnno, {
+            type: 'bar',
+            data: {
+                labels: {{ stats.grafico_anno_labels | default([]) | tojson }},
+                datasets: [
+                    { label: 'Fatturato', data: {{ stats.grafico_anno_fatturato | default([]) | tojson }}, backgroundColor: 'rgba(22,163,74,0.75)', borderRadius: 6, borderSkipped: false, order: 2 },
+                    { label: 'Obiettivo mensile', data: {{ stats.grafico_anno_obiettivo | default([]) | tojson }}, type: 'line', borderColor: '#f97316', borderDash: [6,4], borderWidth: 2, pointRadius: 0, fill: false, tension: 0, order: 1 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } }, scales: { y: { grid: { color: '#f1f5f9' }, beginAtZero: true }, x: { grid: { display: false } } } }
+        });
+    }
 }
 </script>
 

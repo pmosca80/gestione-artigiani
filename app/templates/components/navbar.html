@@ -31,6 +31,12 @@ function _installaPWA() {
     <button class="navbar-toggle" id="navbar-toggle" aria-label="Menu" aria-expanded="false">☰</button>
 
     <div class="navbar-links" id="navbar-links">
+        <!-- Ricerca — visibile solo nel menu hamburger su mobile -->
+        <div class="nav-search-mobile">
+            <input type="text" id="global-search-mobile" placeholder="🔍 Cerca clienti, lavori…" autocomplete="off" spellcheck="false">
+            <div id="search-dropdown-mobile"></div>
+        </div>
+
         <a href="/">🏠 Dashboard</a>
 
         <div class="nav-group-sep"></div>
@@ -72,7 +78,7 @@ function _installaPWA() {
                        padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
             📲 Installa app
         </button>
-        <a href="/logout">🚪 Logout</a>
+        <a href="/logout" class="nav-logout-btn">🚪 Esci / Logout</a>
     </div>
 
     <div class="search-wrap">
@@ -192,72 +198,51 @@ function _installaPWA() {
 
 <script>
 (function () {
-    var inp = document.getElementById('global-search');
-    var drop = document.getElementById('search-dropdown');
-    var timer = null;
-
-    function debounce(fn, ms) {
-        return function () {
-            clearTimeout(timer);
-            timer = setTimeout(fn, ms);
-        };
-    }
-
-    function renderResults(data) {
-        var total = data.clienti.length + data.lavori.length + data.materiali.length;
-        if (total === 0) {
-            drop.innerHTML = '<div class="sr-empty">Nessun risultato trovato</div>';
-            drop.style.display = 'block';
-            return;
-        }
-        var html = '';
-
-        function renderGroup(icon, label, items) {
-            if (!items.length) return '';
-            var s = '<div class="sr-section">' + icon + ' ' + label + '</div>';
-            items.forEach(function (r) {
-                s += '<a href="' + r.url + '" class="sr-item">'
-                   + '<span class="sr-label">' + escHtml(r.label) + '</span>'
-                   + (r.sub ? '<span class="sr-sub">' + escHtml(r.sub) + '</span>' : '')
-                   + '</a>';
-            });
-            return s;
-        }
-
-        html += renderGroup('👥', 'Clienti', data.clienti);
-        html += renderGroup('🛠️', 'Lavori', data.lavori);
-        html += renderGroup('📦', 'Materiali', data.materiali);
-
-        drop.innerHTML = html;
-        drop.style.display = 'block';
-    }
-
     function escHtml(s) {
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function renderGroup(icon, label, items) {
+        if (!items.length) return '';
+        var s = '<div class="sr-section">' + icon + ' ' + label + '</div>';
+        items.forEach(function (r) {
+            s += '<a href="' + r.url + '" class="sr-item"><span class="sr-label">' + escHtml(r.label) + '</span>'
+               + (r.sub ? '<span class="sr-sub">' + escHtml(r.sub) + '</span>' : '') + '</a>';
+        });
+        return s;
     }
 
-    function doSearch() {
-        var q = inp.value.trim();
-        if (q.length < 2) { drop.style.display = 'none'; return; }
-        fetch('/api/cerca?q=' + encodeURIComponent(q))
-            .then(function (r) { return r.json(); })
-            .then(renderResults)
-            .catch(function () { drop.style.display = 'none'; });
+    function initSearch(inp, drop, wrapSel) {
+        if (!inp || !drop) return;
+        var timer = null;
+        function doSearch() {
+            var q = inp.value.trim();
+            if (q.length < 2) { drop.style.display = 'none'; return; }
+            fetch('/api/cerca?q=' + encodeURIComponent(q))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var total = data.clienti.length + data.lavori.length + data.materiali.length;
+                    if (total === 0) {
+                        drop.innerHTML = '<div class="sr-empty">Nessun risultato trovato</div>';
+                    } else {
+                        drop.innerHTML = renderGroup('👥','Clienti',data.clienti)
+                            + renderGroup('🛠️','Lavori',data.lavori)
+                            + renderGroup('📦','Materiali',data.materiali);
+                    }
+                    drop.style.display = 'block';
+                })
+                .catch(function() { drop.style.display = 'none'; });
+        }
+        inp.addEventListener('input', function() { clearTimeout(timer); timer = setTimeout(doSearch, 280); });
+        inp.addEventListener('keydown', function(e) { if (e.key === 'Escape') { drop.style.display = 'none'; inp.blur(); } });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest(wrapSel)) drop.style.display = 'none';
+        });
     }
 
-    inp.addEventListener('input', debounce(doSearch, 280));
-
-    inp.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { drop.style.display = 'none'; inp.blur(); }
-    });
-
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('.search-wrap')) drop.style.display = 'none';
-    });
+    // Desktop search
+    initSearch(document.getElementById('global-search'), document.getElementById('search-dropdown'), '.search-wrap');
+    // Mobile search (dentro hamburger)
+    initSearch(document.getElementById('global-search-mobile'), document.getElementById('search-dropdown-mobile'), '.nav-search-mobile');
 })();
 
 (function () {
