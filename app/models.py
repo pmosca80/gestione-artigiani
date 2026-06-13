@@ -378,6 +378,21 @@ class Garanzia(Base):
     lavoro = relationship("Lavoro")
 
 
+class VocePrimaNota(Base):
+    __tablename__ = "prima_nota"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+
+    data = Column(String, nullable=False)
+    descrizione = Column(String, nullable=False)
+    importo = Column(Float, nullable=False)
+    tipo = Column(String, nullable=False, default="uscita")  # "entrata" | "uscita"
+    categoria = Column(String, nullable=True)  # carburante, materiali, attrezzatura, compenso, varie
+
+    data_creazione = Column(String, nullable=False)
+
+
 class InvitoAccount(Base):
     __tablename__ = "inviti_account"
 

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prima Nota — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=155">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .pn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .pn-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+
+        /* KPI saldo */
+        .pn-kpi {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .pn-kpi-tile {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 16px 20px;
+            text-align: center;
+        }
+        .pn-kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; margin-bottom: 4px; }
+        .pn-kpi-val { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700; }
+        .pn-kpi-val.green { color: #16a34a; }
+        .pn-kpi-val.red   { color: #dc2626; }
+        .pn-kpi-val.blue  { color: #2563eb; }
+
+        /* Form aggiunta rapida */
+        .pn-form-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .pn-form-card h2 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 14px; }
+        .pn-form-row {
+            display: grid;
+            grid-template-columns: 120px 1fr auto auto auto;
+            gap: 8px;
+            align-items: end;
+        }
+        .pn-form-row label { display: block; font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+        .pn-form-row input, .pn-form-row select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            box-sizing: border-box;
+        }
+        .pn-form-row input:focus, .pn-form-row select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.1); }
+
+        /* Toggle entrata/uscita */
+        .tipo-toggle { display: flex; border: 1px solid #d1d5db; border-radius: 9px; overflow: hidden; }
+        .tipo-toggle input[type=radio] { display: none; }
+        .tipo-toggle label {
+            flex: 1; padding: 9px 12px; text-align: center; cursor: pointer;
+            font-size: 13px; font-weight: 600; color: #6b7280;
+            transition: background .15s, color .15s;
+            margin: 0;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .tipo-toggle input[value=entrata]:checked + label { background: #dcfce7; color: #16a34a; }
+        .tipo-toggle input[value=uscita]:checked  + label { background: #fee2e2; color: #dc2626; }
+
+        .btn-aggiungi {
+            padding: 9px 20px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .btn-aggiungi:hover { background: #6d28d9; }
+
+        /* Navigazione mese */
+        .pn-mese-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .pn-mese-nav a, .pn-mese-nav span {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            color: #374151;
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+        .pn-mese-nav a.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+        .pn-mese-nav a:hover:not(.active) { background: #f3f4f6; }
+        .pn-mese-nav .pn-anno { font-size: 13px; font-weight: 700; color: #6b7280; padding: 6px 0; }
+        .pn-export-btn {
+            margin-left: auto;
+            padding: 6px 14px;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* Lista voci per giorno */
+        .pn-giorno {
+            margin-bottom: 16px;
+        }
+        .pn-giorno-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid #e5e7eb;
+            border-bottom: none;
+        }
+        .pn-giorno-data { font-size: 13px; font-weight: 700; color: #374151; }
+        .pn-giorno-saldo { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700; }
+        .pn-giorno-saldo.pos { color: #16a34a; }
+        .pn-giorno-saldo.neg { color: #dc2626; }
+
+        .pn-voce {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+        }
+        .pn-voce:last-child { border-radius: 0 0 8px 8px; }
+        .pn-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .pn-dot.entrata { background: #16a34a; }
+        .pn-dot.uscita  { background: #dc2626; }
+        .pn-voce-desc { flex: 1; font-size: 14px; color: #111827; }
+        .pn-voce-cat {
+            font-size: 11px; font-weight: 600;
+            color: #6b7280; background: #f3f4f6;
+            padding: 2px 7px; border-radius: 20px;
+        }
+        .pn-voce-imp {
+            font-family: 'DM Mono', monospace;
+            font-size: 14px; font-weight: 700;
+            min-width: 80px; text-align: right;
+        }
+        .pn-voce-imp.entrata { color: #16a34a; }
+        .pn-voce-imp.uscita  { color: #dc2626; }
+        .pn-del-btn {
+            background: none; border: none; cursor: pointer;
+            color: #d1d5db; font-size: 16px; padding: 2px 4px;
+            line-height: 1;
+        }
+        .pn-del-btn:hover { color: #dc2626; }
+
+        .pn-empty {
+            text-align: center; padding: 48px 20px;
+            color: #9ca3af; font-size: 15px;
+            background: white; border: 1px dashed #d1d5db;
+            border-radius: 14px;
+        }
+        .pn-empty .pn-empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+        @media (max-width: 640px) {
+            .pn-kpi { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .pn-kpi-tile { padding: 12px; }
+            .pn-kpi-val { font-size: 16px; }
+            .pn-form-row {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto auto;
+            }
+            .pn-form-row > *:nth-child(1) { grid-column: 1; }
+            .pn-form-row > *:nth-child(2) { grid-column: 2; }
+            .pn-form-row > *:nth-child(3) { grid-column: 1; }
+            .pn-form-row > *:nth-child(4) { grid-column: 2; }
+            .pn-form-row > *:nth-child(5) { grid-column: 1 / -1; }
+            .pn-form-row .btn-aggiungi { width: 100%; }
+            .pn-mese-nav { gap: 4px; }
+            .pn-mese-nav a, .pn-mese-nav span { padding: 5px 9px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="container" style="max-width:860px;">
+
+    <div class="pn-header">
+        <div>
+            <h1>📒 Prima Nota</h1>
+            <p style="color:#6b7280; font-size:14px; margin:4px 0 0;">Taccuino digitale — entrate e uscite quotidiane</p>
+        </div>
+    </div>
+
+    <!-- KPI saldo mese -->
+    <div class="pn-kpi">
+        <div class="pn-kpi-tile">
+            <div class="pn-kpi-label">Entrate</div>
+            <div class="pn-kpi-val green">€ {{ "%.2f"|format(entrate_mese) }}</div>
+        </div>
+        <div class="pn-kpi-tile">
+            <div class="pn-kpi-label">Uscite</div>
+            <div class="pn-kpi-val red">€ {{ "%.2f"|format(uscite_mese) }}</div>
+        </div>
+        <div class="pn-kpi-tile" style="{% if saldo_mese >= 0 %}border-color:#bbf7d0;{% else %}border-color:#fecaca;{% endif %}">
+            <div class="pn-kpi-label">Saldo mese</div>
+            <div class="pn-kpi-val {% if saldo_mese >= 0 %}green{% else %}red{% endif %}">
+                {% if saldo_mese >= 0 %}+{% endif %}€ {{ "%.2f"|format(saldo_mese) }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Form aggiunta rapida -->
+    <div class="pn-form-card">
+        <h2>+ Aggiungi voce</h2>
+        <form method="post" action="/prima-nota/">
+            <input type="hidden" name="anno" value="{{ anno }}">
+            <input type="hidden" name="mese" value="{{ mese }}">
+            <div class="pn-form-row">
+                <div>
+                    <label>Data</label>
+                    <input type="date" name="data" value="{{ oggi }}" required>
+                </div>
+                <div>
+                    <label>Descrizione</label>
+                    <input type="text" name="descrizione" placeholder="es. Gasolio furgone" required autocomplete="off">
+                </div>
+                <div>
+                    <label>€ Importo</label>
+                    <input type="number" step="0.01" min="0.01" name="importo" placeholder="0,00" required style="width:110px;">
+                </div>
+                <div>
+                    <label>Tipo</label>
+                    <div class="tipo-toggle">
+                        <input type="radio" name="tipo" id="tipo-uscita" value="uscita" checked>
+                        <label for="tipo-uscita">↓ Uscita</label>
+                        <input type="radio" name="tipo" id="tipo-entrata" value="entrata">
+                        <label for="tipo-entrata">↑ Entrata</label>
+                    </div>
+                </div>
+                <div>
+                    <label>Categoria</label>
+                    <select name="categoria" style="width:130px;">
+                        <option value="">— nessuna —</option>
+                        {% for cat in categorie %}
+                        <option value="{{ cat }}">{{ cat|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:12px; text-align:right;">
+                <button type="submit" class="btn-aggiungi">Aggiungi →</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Navigazione mese -->
+    <div class="pn-mese-nav">
+        <span class="pn-anno">{{ anno }}</span>
+        {% for m in range(1, 13) %}
+        <a href="/prima-nota/?anno={{ anno }}&mese={{ m }}"
+           class="{% if m == mese %}active{% endif %}">{{ mesi_nomi[m] }}</a>
+        {% endfor %}
+        <a href="/prima-nota/export.csv?anno={{ anno }}&mese={{ mese }}" class="pn-export-btn">⬇ CSV</a>
+    </div>
+
+    <!-- Anno precedente / successivo -->
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+        <a href="/prima-nota/?anno={{ anno - 1 }}&mese={{ mese }}"
+           style="font-size:12px; color:#6b7280; text-decoration:none;">← {{ anno - 1 }}</a>
+        <a href="/prima-nota/?anno={{ anno + 1 }}&mese={{ mese }}"
+           style="font-size:12px; color:#6b7280; text-decoration:none;">{{ anno + 1 }} →</a>
+    </div>
+
+    <!-- Lista per giorno -->
+    {% if giorni %}
+        {% for g in giorni %}
+        {% set voci_g = per_giorno[g] %}
+        {% set ent_g = voci_g | selectattr("tipo", "eq", "entrata") | map(attribute="importo") | sum %}
+        {% set usc_g = voci_g | selectattr("tipo", "eq", "uscita")  | map(attribute="importo") | sum %}
+        {% set sal_g = ent_g - usc_g %}
+
+        <div class="pn-giorno">
+            <div class="pn-giorno-header">
+                <span class="pn-giorno-data">{{ g }}</span>
+                <span class="pn-giorno-saldo {% if sal_g >= 0 %}pos{% else %}neg{% endif %}">
+                    {% if sal_g >= 0 %}+{% endif %}€ {{ "%.2f"|format(sal_g) }}
+                </span>
+            </div>
+            {% for v in voci_g %}
+            <div class="pn-voce">
+                <span class="pn-dot {{ v.tipo }}"></span>
+                <span class="pn-voce-desc">{{ v.descrizione }}</span>
+                {% if v.categoria %}
+                <span class="pn-voce-cat">{{ v.categoria }}</span>
+                {% endif %}
+                <span class="pn-voce-imp {{ v.tipo }}">
+                    {% if v.tipo == "entrata" %}+{% else %}−{% endif %}€ {{ "%.2f"|format(v.importo) }}
+                </span>
+                <form method="post" action="/prima-nota/{{ v.id }}/elimina"
+                      onsubmit="return confirm('Eliminare questa voce?')">
+                    <input type="hidden" name="anno" value="{{ anno }}">
+                    <input type="hidden" name="mese" value="{{ mese }}">
+                    <button type="submit" class="pn-del-btn" title="Elimina">✕</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="pn-empty">
+            <div class="pn-empty-icon">📒</div>
+            <strong>Nessuna voce per {{ mesi_nomi[mese] }} {{ anno }}</strong>
+            <p style="margin:8px 0 0; font-size:13px;">Usa il form sopra per aggiungere la prima entrata o uscita.</p>
+        </div>
+    {% endif %}
+
+</div>
+</body>
+</html>

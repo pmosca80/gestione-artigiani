@@ -24,6 +24,7 @@ from app.models import (
     TemplatePreventivo,
     VocePreventivo,
     SessioneLavoro,
+    VocePrimaNota,
 )
 from app.models import MovimentoMagazzino
 
@@ -2750,3 +2751,58 @@ def get_sessioni_lavoro(db: Session, utente_id: int, lavoro_id: int):
         .order_by(SessioneLavoro.inizio.desc())
         .all()
     )
+
+
+# ========================
+# PRIMA NOTA
+# ========================
+
+def get_prima_nota(
+    db: Session,
+    utente_id: int,
+    anno: int | None = None,
+    mese: int | None = None,
+):
+    q = db.query(VocePrimaNota).filter(VocePrimaNota.utente_id == utente_id)
+    if anno:
+        q = q.filter(VocePrimaNota.data.like(f"{anno}-%"))
+    if mese:
+        mese_str = f"{anno or '%'}-{mese:02d}"
+        q = q.filter(VocePrimaNota.data.like(f"{mese_str}-%"))
+    return q.order_by(VocePrimaNota.data.desc(), VocePrimaNota.id.desc()).all()
+
+
+def crea_voce_prima_nota(
+    db: Session,
+    utente_id: int,
+    data: str,
+    descrizione: str,
+    importo: float,
+    tipo: str,
+    categoria: str | None,
+) -> VocePrimaNota:
+    voce = VocePrimaNota(
+        utente_id=utente_id,
+        data=data,
+        descrizione=descrizione,
+        importo=importo,
+        tipo=tipo,
+        categoria=categoria or None,
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    db.add(voce)
+    db.commit()
+    db.refresh(voce)
+    return voce
+
+
+def elimina_voce_prima_nota(db: Session, voce_id: int, utente_id: int) -> bool:
+    voce = db.query(VocePrimaNota).filter(
+        VocePrimaNota.id == voce_id,
+        VocePrimaNota.utente_id == utente_id,
+    ).first()
+    if not voce:
+        return False
+    db.delete(voce)
+    db.commit()
+    return True
