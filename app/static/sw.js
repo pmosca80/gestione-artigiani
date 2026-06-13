@@ -1,4 +1,4 @@
-const CACHE = 'gestionale-v3';
+const CACHE = 'gestionale-v4';
 const STATIC = [
   '/static/style.css',
   '/static/icons/icon-192.png',

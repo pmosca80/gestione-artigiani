@@ -92,14 +92,18 @@ function _installaPWA() {
     var toggle = document.getElementById('navbar-toggle');
     var navbar = toggle.closest('.navbar');
     var links = document.getElementById('navbar-links');
+    var _scrollY = 0;
 
     function openMenu() {
+        _scrollY = window.scrollY || window.pageYOffset || 0;
         navbar.classList.add('nav-open');
         toggle.textContent = '✕';
         toggle.setAttribute('aria-expanded', 'true');
-        /* calcola l'altezza reale della navbar e posiziona l'overlay subito sotto */
         links.style.top = navbar.getBoundingClientRect().bottom + 'px';
-        document.body.style.overflow = 'hidden';
+        /* body position:fixed blocca lo scroll della pagina senza inibire touch su Android */
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + _scrollY + 'px';
+        document.body.style.width = '100%';
     }
 
     function closeMenu() {
@@ -107,7 +111,10 @@ function _installaPWA() {
         toggle.textContent = '☰';
         toggle.setAttribute('aria-expanded', 'false');
         links.style.top = '';
-        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, _scrollY);
     }
 
     toggle.addEventListener('click', function () {
