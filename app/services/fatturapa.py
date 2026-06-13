@@ -5,6 +5,14 @@ _REGIMI_SENZA_IVA = {"RF02", "RF04", "RF05", "RF06", "RF07", "RF08", "RF09",
                      "RF10", "RF11", "RF12", "RF13", "RF14", "RF15", "RF16",
                      "RF17", "RF18", "RF19"}
 
+_SOGLIA_BOLLO  = 77.47
+_IMPORTO_BOLLO = 2.00
+
+
+def bollo_dovuto(regime_senza_iva: bool, imponibile: float) -> float:
+    """€2 di bollo virtuale su fatture esenti IVA con imponibile > €77,47."""
+    return _IMPORTO_BOLLO if (regime_senza_iva and imponibile > _SOGLIA_BOLLO) else 0.0
+
 
 def errori_fatturapa(lavoro, cliente, azienda) -> list:
     """Ritorna lista di errori bloccanti prima di generare l'XML."""
@@ -108,6 +116,16 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
     natura_block      = "\n        <Natura>N2.2</Natura>" if usa_natura else ""
     esigibilita_block = "\n        <EsigibilitaIVA>I</EsigibilitaIVA>" if not usa_natura else ""
 
+    # Bollo virtuale €2 su fatture esenti IVA > €77,47 (art. 6 Tariffa DPR 642/1972)
+    bollo = bollo_dovuto(regime_senza_iva, imponibile)
+    totale_con_bollo = round(totale + bollo, 2)
+    dati_bollo_block = (
+        f"        <DatiBollo>\n"
+        f"          <BolloVirtuale>SI</BolloVirtuale>\n"
+        f"          <ImportoBollo>{bollo:.2f}</ImportoBollo>\n"
+        f"        </DatiBollo>\n"
+    ) if bollo > 0 else ""
+
     # ── Documento ────────────────────────────────────────────────────────────
     num_fattura  = getattr(lavoro, "numero_fattura", None) or lavoro.id
     data_fattura = getattr(lavoro, "data_fattura", None) or lavoro.data_lavoro
@@ -180,7 +198,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         "      <DettaglioPagamento>\n"
         "        <ModalitaPagamento>MP05</ModalitaPagamento>\n"
         + scad_tag
-        + f"        <ImportoPagamento>{totale:.2f}</ImportoPagamento>\n"
+        + f"        <ImportoPagamento>{totale_con_bollo:.2f}</ImportoPagamento>\n"
         "      </DettaglioPagamento>\n"
         "    </DatiPagamento>\n"
     )
@@ -246,8 +264,9 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         "        <Divisa>EUR</Divisa>\n"
         f"        <Data>{data_fattura}</Data>\n"
         f"        <Numero>{numero_formattato}</Numero>\n"
-        f"        <ImportoTotaleDocumento>{totale:.2f}</ImportoTotaleDocumento>\n"
-        "      </DatiGeneraliDocumento>\n"
+        f"        <ImportoTotaleDocumento>{totale_con_bollo:.2f}</ImportoTotaleDocumento>\n"
+        + dati_bollo_block
+        + "      </DatiGeneraliDocumento>\n"
         "    </DatiGenerali>\n"
         "    <DatiBeniServizi>\n"
         + dettaglio_xml

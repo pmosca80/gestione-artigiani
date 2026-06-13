@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
-from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa, errori_fatturapa
+from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa, errori_fatturapa, bollo_dovuto, _REGIMI_SENZA_IVA
 
 router = APIRouter(prefix="/documenti", tags=["documenti"])
 
@@ -96,7 +96,6 @@ def scarica_fattura_xml(
     db.commit()
 
     # Salva nel registro fatture
-    from app.services.fatturapa import _REGIMI_SENZA_IVA
     from datetime import date as _date
     data_em = lavoro.data_fattura or _date.today().isoformat()
     try:
@@ -111,6 +110,7 @@ def scarica_fattura_xml(
         lavoro.totale_iva or round(imponibile_val * aliquota_val / 100, 2)
     )
     totale_val = imponibile_val if regime_senza_iva else float(lavoro.totale_documento or 0)
+    totale_val = round(totale_val + bollo_dovuto(regime_senza_iva, imponibile_val), 2)
     filename = nome_file_fatturapa(azienda, lavoro)
     _crud.salva_fattura_emessa(
         db, user_id, lavoro.id, lavoro.numero_fattura, anno, data_em,
