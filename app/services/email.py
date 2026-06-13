@@ -207,6 +207,69 @@ def invia_conferma_pro(username: str) -> None:
         logger.warning(f"Email conferma Pro non inviata a {username}: {e}")
 
 
+def invia_verifica_email(email: str, token: str, base_url: str) -> bool:
+    """Invia link di verifica account dopo la registrazione."""
+    link = f"{base_url}/verifica-email/{token}"
+    corpo = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"></head>
+<body style="font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;margin:0;padding:32px 16px;">
+<div style="max-width:520px;margin:0 auto;background:white;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px;text-align:center;">
+    <div style="font-size:40px;">🔧</div>
+    <h1 style="color:white;font-size:22px;font-weight:700;margin:12px 0 4px;">Gestionale Artigiani</h1>
+    <p style="color:#bfdbfe;font-size:14px;margin:0;">Conferma il tuo indirizzo email</p>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#374151;font-size:15px;margin:0 0 20px;">Benvenuto! Clicca il pulsante qui sotto per attivare il tuo account.</p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="{link}" style="display:inline-block;padding:14px 32px;background:#2563eb;color:white;
+         border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;">
+        Verifica email →
+      </a>
+    </div>
+    <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;">
+      Il link è valido per 48 ore. Se non hai richiesto questo account, ignora questa email.<br>
+      Oppure copia e incolla nel browser: <span style="word-break:break-all;">{link}</span>
+    </p>
+  </div>
+</div>
+</body></html>"""
+    return invia_email(email, "Verifica il tuo account — Gestionale Artigiani", corpo)
+
+
+def invia_reset_password(email: str, token: str, base_url: str) -> bool:
+    """Invia link per reimpostare la password."""
+    link = f"{base_url}/reset-password/{token}"
+    corpo = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"></head>
+<body style="font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;margin:0;padding:32px 16px;">
+<div style="max-width:520px;margin:0 auto;background:white;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:32px;text-align:center;">
+    <div style="font-size:40px;">🔑</div>
+    <h1 style="color:white;font-size:22px;font-weight:700;margin:12px 0 4px;">Gestionale Artigiani</h1>
+    <p style="color:#94a3b8;font-size:14px;margin:0;">Reimposta la tua password</p>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#374151;font-size:15px;margin:0 0 20px;">
+      Hai richiesto di reimpostare la password del tuo account.<br>
+      Clicca il pulsante qui sotto per scegliere una nuova password.
+    </p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="{link}" style="display:inline-block;padding:14px 32px;background:#dc2626;color:white;
+         border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;">
+        Reimposta password →
+      </a>
+    </div>
+    <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;">
+      Il link è valido per 2 ore. Se non hai richiesto il reset, ignora questa email — la tua password rimane invariata.<br>
+      Oppure copia e incolla: <span style="word-break:break-all;">{link}</span>
+    </p>
+  </div>
+</div>
+</body></html>"""
+    return invia_email(email, "Reimposta la password — Gestionale Artigiani", corpo)
+
+
 def invia_fattura_xml(
     *,
     to_email: str,

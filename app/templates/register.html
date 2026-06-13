@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrazione — Gestionale Artigiani</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#7c3aed">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,46 +16,72 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 24px 16px;
         }
 
-        .register-wrapper {
+        .wrapper {
             width: 100%;
-            max-width: 420px;
-            padding: 20px;
+            max-width: 480px;
         }
 
-        .register-logo {
+        .logo {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
-        .register-logo .icon { font-size: 48px; display: block; margin-bottom: 12px; }
-        .register-logo h1 { color: white; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-        .register-logo p { color: #94a3b8; font-size: 14px; margin-top: 6px; }
+        .logo .icon { font-size: 44px; display: block; margin-bottom: 10px; }
+        .logo h1 { color: white; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        .logo p { color: #94a3b8; font-size: 13px; margin-top: 6px; }
 
-        .register-card {
+        /* Card */
+        .card {
             background: white;
             border-radius: 20px;
             padding: 36px 32px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.35);
         }
-        .register-card h2 { font-size: 20px; color: #111827; margin-bottom: 24px; font-weight: 700; }
 
-        .form-group { margin-bottom: 16px; }
+        .card-header { margin-bottom: 28px; }
+        .card-header h2 { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+        .card-header p { font-size: 13px; color: #6b7280; }
+
+        /* Vantaggi */
+        .vantaggi {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+        }
+        .vantaggio {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: #0369a1;
+            font-weight: 500;
+        }
+        .vantaggio .v-icon { font-size: 14px; flex-shrink: 0; }
+
+        /* Form */
+        .form-group { margin-bottom: 18px; }
         .form-group label {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             color: #374151;
-            margin-bottom: 6px;
+            margin-bottom: 7px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .form-group input {
             width: 100%;
-            padding: 11px 14px;
+            padding: 12px 14px;
             border: 1.5px solid #e5e7eb;
-            border-radius: 9px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 15px;
             color: #111827;
             outline: none;
             background: #f9fafb;
@@ -65,42 +93,103 @@
             box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
             background: white;
         }
+        .form-group .hint {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
 
-        .codice-note {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            padding: 10px 14px;
+        /* Password strength */
+        .pw-bar-wrap { margin-top: 6px; display: flex; gap: 4px; }
+        .pw-seg { height: 3px; flex: 1; border-radius: 2px; background: #e5e7eb; transition: background 0.3s; }
+        .pw-seg.weak { background: #ef4444; }
+        .pw-seg.ok { background: #f59e0b; }
+        .pw-seg.strong { background: #16a34a; }
+        .pw-label { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+
+        /* Promo */
+        .promo-toggle {
             font-size: 12px;
-            color: #1e40af;
-            margin-bottom: 16px;
+            color: #2563eb;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: inline-block;
+        }
+        .promo-toggle:hover { text-decoration: underline; }
+        #promo-field { display: none; }
+
+        /* Checkbox termini */
+        .termini-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 14px;
+            background: #fafafa;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+        }
+        .termini-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 1px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+        .termini-row label {
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .termini-row label a {
+            color: #2563eb;
+            text-decoration: underline;
+            font-weight: 600;
         }
 
         .btn-register {
             width: 100%;
-            padding: 13px;
+            padding: 14px;
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
             cursor: pointer;
             font-family: inherit;
             transition: opacity 0.2s, transform 0.1s;
-            margin-top: 4px;
         }
         .btn-register:hover { opacity: 0.92; transform: translateY(-1px); }
         .btn-register:active { transform: translateY(0); }
+        .btn-register:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        .register-links {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 13px;
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
         }
-        .register-links a { color: #2563eb; text-decoration: none; font-weight: 500; }
-        .register-links a:hover { text-decoration: underline; }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        .divider span { font-size: 12px; color: #9ca3af; }
 
+        .links {
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .links a { color: #2563eb; font-weight: 600; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+
+        /* Alert boxes */
         .errore-box {
             background: #fee2e2;
             color: #991b1b;
@@ -108,71 +197,185 @@
             border-radius: 10px;
             padding: 12px 14px;
             font-size: 14px;
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
         }
 
+        .pendente-box {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .pendente-box .big-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+        .pendente-box h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .pendente-box p { font-size: 13px; line-height: 1.6; }
+
         .footer-note {
             text-align: center;
-            color: #64748b;
+            color: #475569;
             font-size: 12px;
-            margin-top: 24px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .card { padding: 28px 20px; }
+            .vantaggi { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div class="register-wrapper">
-
-    <div class="register-logo">
+<div class="wrapper">
+    <div class="logo">
         <span class="icon">🔧</span>
         <h1>Gestionale Artigiani</h1>
-        <p>Crea il tuo account</p>
+        <p>Il gestionale pensato per chi lavora con le mani</p>
     </div>
 
-    <div class="register-card">
-        <h2>Registrazione</h2>
+    <div class="card">
+
+        {% if request.query_params.get('pendente') == '1' %}
+        <div class="pendente-box">
+            <span class="big-icon">📬</span>
+            <h3>Controlla la tua email!</h3>
+            <p>
+                Ti abbiamo inviato un link di attivazione.<br>
+                Clicca sul link per completare la registrazione.<br><br>
+                <strong>Non trovi l'email?</strong> Controlla la cartella Spam o Posta indesiderata.
+            </p>
+        </div>
+        <div class="divider"><span>oppure</span></div>
+        <div class="links">
+            <a href="/login">← Torna al login</a>
+        </div>
+
+        {% else %}
+
+        <div class="card-header">
+            <h2>Crea il tuo account gratuito</h2>
+            <p>Nessuna carta di credito richiesta · Pronto in 2 minuti</p>
+        </div>
+
+        <div class="vantaggi">
+            <div class="vantaggio"><span class="v-icon">✅</span> Clienti illimitati</div>
+            <div class="vantaggio"><span class="v-icon">✅</span> Preventivi PDF</div>
+            <div class="vantaggio"><span class="v-icon">✅</span> Registro pagamenti</div>
+            <div class="vantaggio"><span class="v-icon">✅</span> Fattura elettronica</div>
+        </div>
 
         {% if errore %}
         <div class="errore-box">⚠️ {{ errore }}</div>
         {% endif %}
 
-        <form method="post" action="/register">
+        <form method="post" action="/register" id="reg-form">
 
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Scegli uno username" required autofocus>
+                <label>Indirizzo email</label>
+                <input type="email" name="email" placeholder="tuaemail@esempio.it"
+                       required autofocus autocomplete="email">
             </div>
 
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="••••••••" required minlength="6">
-            </div>
-
-            <div class="codice-note">
-                🎁 Hai un <strong>codice promozionale</strong>? Inseriscilo per ricevere <strong>1 mese di Pro gratis</strong>!
+                <input type="password" name="password" id="pw-input"
+                       placeholder="Minimo 8 caratteri" required minlength="8"
+                       autocomplete="new-password">
+                <div class="pw-bar-wrap">
+                    <div class="pw-seg" id="pw-s1"></div>
+                    <div class="pw-seg" id="pw-s2"></div>
+                    <div class="pw-seg" id="pw-s3"></div>
+                    <div class="pw-seg" id="pw-s4"></div>
+                </div>
+                <div class="pw-label" id="pw-label"></div>
             </div>
 
             <div class="form-group">
-                <label>Codice promozionale <span style="font-weight:400;color:#9ca3af;">(opzionale)</span></label>
-                <input type="text" name="codice_promo" placeholder="Es. PROMO2026">
+                <label>Conferma password</label>
+                <input type="password" name="conferma_password"
+                       placeholder="Ripeti la password" required minlength="8"
+                       autocomplete="new-password">
             </div>
 
-            <button type="submit" class="btn-register">Crea account →</button>
+            <span class="promo-toggle" onclick="document.getElementById('promo-field').style.display='block';this.style.display='none';">
+                🎁 Hai un codice promozionale?
+            </span>
+            <div class="form-group" id="promo-field">
+                <label>Codice promozionale <span style="font-weight:400;color:#9ca3af;">(opzionale)</span></label>
+                <input type="text" name="codice_promo" placeholder="Es. PROMO2026">
+                <div class="hint">Un mese di piano Pro gratis se il codice è valido.</div>
+            </div>
+
+            <div class="termini-row">
+                <input type="checkbox" name="accetta_termini" id="cb-termini" value="1" required>
+                <label for="cb-termini">
+                    Ho letto e accetto i
+                    <a href="/termini" target="_blank">Termini di servizio</a>
+                    e la
+                    <a href="/privacy" target="_blank">Privacy Policy</a>.
+                    Acconsento al trattamento dei miei dati per l'erogazione del servizio.
+                </label>
+            </div>
+
+            <button type="submit" class="btn-register" id="btn-reg">
+                Crea account gratuito →
+            </button>
 
         </form>
 
-        <div class="register-links">
-            <a href="/login">← Torna al login</a>
+        <div class="divider"><span>hai già un account?</span></div>
+        <div class="links">
+            <a href="/login">Accedi →</a>
         </div>
 
+        {% endif %}
     </div>
 
-    <p class="footer-note">© 2026 Gestionale Artigiani</p>
-
+    <p class="footer-note">
+        © 2026 Gestionale Artigiani ·
+        <a href="/privacy" style="color:#94a3b8;">Privacy</a> ·
+        <a href="/termini" style="color:#94a3b8;">Termini</a>
+    </p>
 </div>
+
+<script>
+(function () {
+    var inp = document.getElementById('pw-input');
+    if (!inp) return;
+    var segs = [
+        document.getElementById('pw-s1'),
+        document.getElementById('pw-s2'),
+        document.getElementById('pw-s3'),
+        document.getElementById('pw-s4'),
+    ];
+    var lbl = document.getElementById('pw-label');
+    var labels = ['', 'Troppo corta', 'Debole', 'Discreta', 'Sicura'];
+    var colors = ['', 'weak', 'weak', 'ok', 'strong'];
+
+    function score(pw) {
+        if (!pw) return 0;
+        var s = 0;
+        if (pw.length >= 8) s++;
+        if (pw.length >= 12) s++;
+        if (/[A-Z]/.test(pw) || /[0-9]/.test(pw)) s++;
+        if (/[^A-Za-z0-9]/.test(pw)) s++;
+        return s;
+    }
+
+    inp.addEventListener('input', function () {
+        var s = score(inp.value);
+        segs.forEach(function (seg, i) {
+            seg.className = 'pw-seg' + (i < s ? ' ' + colors[s] : '');
+        });
+        lbl.textContent = inp.value ? labels[s] : '';
+        lbl.style.color = s >= 3 ? '#16a34a' : s >= 2 ? '#b45309' : '#dc2626';
+    });
+})();
+</script>
 
 </body>
 </html>

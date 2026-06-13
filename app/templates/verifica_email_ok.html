@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica email — Gestionale Artigiani</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+        .wrapper { width: 100%; max-width: 440px; }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 32px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+            text-align: center;
+        }
+        .big-icon { font-size: 56px; display: block; margin-bottom: 16px; }
+        h2 { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 10px; }
+        p { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 28px; }
+        .btn {
+            display: inline-block;
+            padding: 13px 32px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-err {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+        .footer-note { text-align: center; color: #475569; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="card">
+        {% if errore %}
+            <span class="big-icon">❌</span>
+            <h2>Link non valido</h2>
+            <p>{{ errore }}<br>Torna alla pagina di registrazione e riprova.</p>
+            <a href="/register" class="btn btn-err">Torna alla registrazione</a>
+        {% else %}
+            <span class="big-icon">✅</span>
+            <h2>Email verificata!</h2>
+            <p>Il tuo account è attivo. Puoi accedere e iniziare ad usare il gestionale.</p>
+            <a href="/login" class="btn">Accedi ora →</a>
+        {% endif %}
+    </div>
+    <p class="footer-note">© 2026 Gestionale Artigiani</p>
+</div>
+</body>
+</html>

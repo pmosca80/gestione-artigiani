@@ -178,13 +178,17 @@
     <div class="login-card">
         <h2>Accedi al tuo account</h2>
 
-        {% if request.query_params.get('promo') == '1' %}
+        {% if request.query_params.get('verificato') == '1' %}
         <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
-            🎉 Registrazione completata! Hai ricevuto <strong>1 mese di Pro gratis</strong>. Accedi ora.
+            ✅ Email verificata! Ora puoi accedere.
         </div>
-        {% elif request.query_params.get('registrato') == '1' %}
+        {% elif request.query_params.get('reset') == '1' %}
         <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
-            ✅ Account creato! Accedi con le tue credenziali.
+            🔑 Password aggiornata. Accedi con la nuova password.
+        </div>
+        {% elif request.query_params.get('promo') == '1' %}
+        <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+            🎉 Registrazione completata! Hai ricevuto <strong>1 mese di Pro gratis</strong>. Verifica la tua email e poi accedi.
         </div>
         {% endif %}
 
@@ -197,8 +201,9 @@
         <form method="post" action="/login">
 
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Il tuo username" required autofocus>
+                <label>Email</label>
+                <input type="email" name="username" placeholder="tuaemail@esempio.it"
+                       required autofocus autocomplete="email">
             </div>
 
             <div class="form-group">
@@ -212,7 +217,7 @@
 
         <div class="login-links">
             <a href="/register">Crea account</a>
-            <a href="/reset-password">Password dimenticata?</a>
+            <a href="/password-dimenticata">Password dimenticata?</a>
         </div>
 
     </div>

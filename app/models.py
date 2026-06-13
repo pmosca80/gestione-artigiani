@@ -23,6 +23,13 @@ class Utente(Base):
 
     onboarding_done = Column(Boolean, nullable=False, default=False)
 
+    email = Column(String, nullable=True)
+    email_verificato = Column(Boolean, nullable=False, default=False)
+    token_verifica = Column(String, nullable=True)
+    token_reset = Column(String, nullable=True)
+    token_reset_scadenza = Column(String, nullable=True)
+    accetta_termini = Column(Boolean, nullable=True, default=False)
+
     # Multi-utente: NULL = titolare, impostato = collaboratore
     titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
     ruolo = Column(String, nullable=True, default="titolare")  # "titolare" | "collaboratore"
