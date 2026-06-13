@@ -213,6 +213,53 @@ function _installaPWA() {
 })();
 </script>
 
+<!-- WhatsApp helper globale -->
+<script>
+window._wa = function (btn) {
+    var tel    = (btn.dataset.waTel    || '').trim();
+    var nome   = (btn.dataset.waNome   || '').trim() || 'Cliente';
+    var titolo = (btn.dataset.waTitolo || '').trim();
+    var importo = parseFloat(btn.dataset.waImporto || 0);
+    var tipo   = btn.dataset.waTipo   || 'lavoro';
+    var link   = btn.dataset.waLink   || '';
+    var numero = btn.dataset.waNumero || '';
+
+    // Normalizza numero italiano
+    var digits = tel.replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (!digits.startsWith('39') && digits.length <= 10) digits = '39' + digits;
+
+    var imp = '€ ' + importo.toFixed(2);
+    var msg;
+    if (tipo === 'firma') {
+        msg = 'Gentile ' + nome + ',\n\n' +
+              'le invio il link per visualizzare e firmare digitalmente il preventivo per:\n' +
+              titolo + '\nImporto: ' + imp + '\n\n' +
+              'Clicchi qui per firmare:\n' + link + '\n\n' +
+              'Resto a disposizione per qualsiasi chiarimento.';
+    } else if (tipo === 'preventivo') {
+        msg = 'Gentile ' + nome + ',\n\n' +
+              'le invio il preventivo per:\n' + titolo + '\n' +
+              'Importo preventivato: ' + imp + '\n\n' +
+              'Allego il PDF del preventivo a questo messaggio.\n\n' +
+              'Resto a disposizione per qualsiasi chiarimento.';
+    } else if (tipo === 'fattura') {
+        msg = 'Gentile ' + nome + ',\n\n' +
+              'le invio la fattura' + (numero ? ' n. ' + numero : '') + ' per:\n' +
+              titolo + '\nImporto: ' + imp + '\n\n' +
+              'Allego il PDF della fattura a questo messaggio.\n\n' +
+              'Grazie per la fiducia.';
+    } else {
+        msg = 'Gentile ' + nome + ',\n\n' +
+              'informazioni sul lavoro: ' + titolo + '\n' +
+              'Importo: ' + imp + '\n\n' +
+              'Resto a disposizione per qualsiasi chiarimento.';
+    }
+
+    window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(msg), '_blank');
+};
+</script>
+
 <!-- Push notifications -->
 <script>
 (function () {

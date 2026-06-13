@@ -283,6 +283,16 @@
                             <div class="azioni-cell">
                                 <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋</a>
                                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az btn-az-blue">PDF</a>
+                                {% if lavoro.cliente and lavoro.cliente.telefono %}
+                                {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
+                                <button class="btn-az" style="background:#25d366;color:#fff;border:none;"
+                                    data-wa-tel="{{ lavoro.cliente.telefono }}"
+                                    data-wa-nome="{{ _wn | trim }}"
+                                    data-wa-titolo="{{ lavoro.titolo }}"
+                                    data-wa-importo="{{ lavoro.importo_preventivato or 0 }}"
+                                    data-wa-tipo="preventivo"
+                                    onclick="_wa(this)" title="Invia via WhatsApp">📱</button>
+                                {% endif %}
                                 {% if lavoro.stato == "preventivo" %}
                                     <form action="/lavori/{{ lavoro.id }}/invia-preventivo" method="post" style="display:inline;">
                                         <button class="btn-az btn-az-orange">📧 Inviato</button>

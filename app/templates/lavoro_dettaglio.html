@@ -542,6 +542,16 @@
                 <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-hero btn-hero-outline">📦 Materiali</a>
                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
+                {% if lavoro.cliente and lavoro.cliente.telefono %}
+                {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
+                <button class="btn-hero btn-hero-white" style="background:#25d366;color:#fff;border-color:#128c7e;"
+                    data-wa-tel="{{ lavoro.cliente.telefono }}"
+                    data-wa-nome="{{ _wn | trim }}"
+                    data-wa-titolo="{{ lavoro.titolo }}"
+                    data-wa-importo="{{ lavoro.importo_preventivato or lavoro.totale_documento or 0 }}"
+                    data-wa-tipo="{% if lavoro.stato in ['preventivo','preventivo_inviato','preventivo_accettato'] %}preventivo{% else %}lavoro{% endif %}"
+                    onclick="_wa(this)">📱 WhatsApp</button>
+                {% endif %}
                 <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-hero btn-hero-white">🧾 FatturaPA XML</a>
                 {% if lavoro.stato == "da_fare" %}
                     <form action="/lavori/{{ lavoro.id }}/cambia-stato" method="post" style="display:inline;">
@@ -648,6 +658,17 @@
                 <input class="firma-link-input" type="text" id="firma-link-input"
                        value="{{ request.url.scheme }}://{{ request.url.netloc }}/firma/{{ lavoro.token_firma }}" readonly>
                 <button class="cta-firma-btn" onclick="copyFirmaLink(event)">Copia</button>
+                {% if lavoro.cliente and lavoro.cliente.telefono %}
+                {% set _wn2 = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
+                <button class="cta-firma-btn" style="background:#25d366;border-color:#128c7e;"
+                    data-wa-tel="{{ lavoro.cliente.telefono }}"
+                    data-wa-nome="{{ _wn2 | trim }}"
+                    data-wa-titolo="{{ lavoro.titolo }}"
+                    data-wa-importo="{{ lavoro.importo_preventivato or 0 }}"
+                    data-wa-tipo="firma"
+                    data-wa-link="{{ request.url.scheme }}://{{ request.url.netloc }}/firma/{{ lavoro.token_firma }}"
+                    onclick="_wa(this)">📱 Invia</button>
+                {% endif %}
             </div>
         {% else %}
             <form action="/lavori/{{ lavoro.id }}/genera-link-firma" method="post" style="display:inline;">

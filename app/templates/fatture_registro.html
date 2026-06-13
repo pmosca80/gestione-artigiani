@@ -332,6 +332,17 @@
                                class="btn-az btn-az-gray">📋 Lavoro</a>
                             {% endif %}
                             {% set cli = lav.cliente if lav else None %}
+                            {% if cli and cli.telefono %}
+                            {% set _wn = cli.ragione_sociale or ((cli.nome or '') + ' ' + (cli.cognome or '')) %}
+                            <button class="btn-az" style="background:#25d366;color:#fff;border:none;"
+                                data-wa-tel="{{ cli.telefono }}"
+                                data-wa-nome="{{ _wn | trim }}"
+                                data-wa-titolo="{{ lav.titolo if lav else '' }}"
+                                data-wa-importo="{{ f.importo_totale or 0 }}"
+                                data-wa-tipo="fattura"
+                                data-wa-numero="{{ f.anno }}/{{ '%03d'|format(f.numero) }}"
+                                onclick="_wa(this)" title="Invia via WhatsApp">📱</button>
+                            {% endif %}
                             {% if smtp_ok and cli and cli.email %}
                             <form class="stato-form" method="post"
                                   action="/fatture/{{ f.id }}/invia-email"
