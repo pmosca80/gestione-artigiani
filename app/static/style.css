@@ -479,21 +479,25 @@ th {
 
     .navbar-links {
         display: none;
-        flex-direction: column;
-        align-items: stretch;
-        width: 100%;
-        gap: 2px;
-        order: 3;
-        padding-top: 8px;
-        border-top: 1px solid rgba(255,255,255,0.08);
-        margin-top: 2px;
-        max-height: calc(100dvh - 64px);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
     }
 
     .navbar.nav-open .navbar-links {
         display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+        /* overlay fisso: scorre indipendentemente dalla navbar sticky */
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #0f172a;
+        z-index: 498;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 8px 90px; /* 90px = spazio bottom-nav */
+        border-top: 1px solid rgba(255,255,255,0.08);
     }
 
     .navbar-links a,
