@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profilo — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .alert-success {
+            background: #dcfce7; border: 1px solid #bbf7d0; color: #166534;
+            border-radius: 10px; padding: 12px 18px; font-size: 14px;
+            font-weight: 600; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;
+        }
+        .alert-error {
+            background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+            border-radius: 10px; padding: 12px 18px; font-size: 14px;
+            font-weight: 600; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;
+        }
+
+        .form-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 16px; padding: 32px; max-width: 560px;
+        }
+
+        .form-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: #9ca3af; margin: 28px 0 16px;
+            padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;
+        }
+        .form-section-title:first-child { margin-top: 0; }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .form-group label {
+            font-size: 12px; font-weight: 700; color: #374151;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .form-group input {
+            padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 9px;
+            font-size: 14px; font-family: 'DM Sans', sans-serif; color: #111827;
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: #f9fafb;
+        }
+        .form-group input:focus {
+            border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: white;
+        }
+        .form-group .hint {
+            font-size: 12px; color: #9ca3af; margin-top: 2px;
+        }
+
+        .btn-save {
+            background: #2563eb; color: white; border: none; border-radius: 10px;
+            padding: 12px 28px; font-size: 14px; font-weight: 700;
+            font-family: 'DM Sans', sans-serif; cursor: pointer;
+            transition: background 0.2s; margin-top: 8px;
+        }
+        .btn-save:hover { background: #1d4ed8; }
+
+        .username-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #f1f5f9; border-radius: 8px; padding: 10px 14px;
+            font-size: 14px; color: #374151; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="container" style="padding-top: 32px; padding-bottom: 48px;">
+
+    <div class="page-header">
+        <h1>👤 Profilo</h1>
+        <p>Gestisci email di accesso e password del tuo account</p>
+    </div>
+
+    {% if successo %}
+    <div class="alert-success">✅ {{ successo }}</div>
+    {% endif %}
+    {% if errore %}
+    <div class="alert-error">❌ {{ errore }}</div>
+    {% endif %}
+
+    <div class="form-card">
+        <form method="post" action="/impostazioni/profilo">
+
+            <div class="form-section-title">Account</div>
+
+            <div class="form-group">
+                <label>Nome utente (non modificabile)</label>
+                <div class="username-badge">🔑 {{ utente.username }}</div>
+            </div>
+
+            <div class="form-group">
+                <label>Email di accesso</label>
+                <input type="email" name="email"
+                       value="{{ utente.email or '' }}"
+                       placeholder="es. nome@email.com"
+                       autocomplete="email">
+                <span class="hint">Puoi usare questa email al posto del nome utente per accedere.</span>
+            </div>
+
+            <div class="form-section-title">Cambia password</div>
+            <p style="font-size:13px;color:#6b7280;margin:0 0 16px;">
+                Lascia vuoti questi campi se non vuoi cambiare la password.
+            </p>
+
+            <div class="form-group">
+                <label>Password attuale</label>
+                <input type="password" name="password_attuale"
+                       placeholder="••••••••" autocomplete="current-password">
+            </div>
+
+            <div class="form-group">
+                <label>Nuova password</label>
+                <input type="password" name="nuova_password"
+                       placeholder="••••••••" autocomplete="new-password">
+                <span class="hint">Almeno 8 caratteri.</span>
+            </div>
+
+            <div class="form-group">
+                <label>Conferma nuova password</label>
+                <input type="password" name="conferma_password"
+                       placeholder="••••••••" autocomplete="new-password">
+            </div>
+
+            <button type="submit" class="btn-save">💾 Salva modifiche</button>
+        </form>
+    </div>
+
+    <div style="margin-top:20px;">
+        <a href="/impostazioni/azienda" style="font-size:13px;color:#6b7280;">← Torna alle impostazioni azienda</a>
+    </div>
+</div>
+</body>
+</html>

@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -24,10 +25,10 @@ def _base_url(request: Request) -> str:
 
 
 def _find_user(db: Session, identifier: str):
-    """Cerca utente per email (campo email) o per username — retrocompatibile."""
-    user = db.query(Utente).filter(Utente.email == identifier).first()
+    """Cerca utente per email o per username, case-insensitive."""
+    user = db.query(Utente).filter(func.lower(Utente.email) == identifier).first()
     if not user:
-        user = db.query(Utente).filter(Utente.username == identifier).first()
+        user = db.query(Utente).filter(func.lower(Utente.username) == identifier).first()
     return user
 
 

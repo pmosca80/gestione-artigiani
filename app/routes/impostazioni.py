@@ -522,3 +522,73 @@ def elimina_utente(utente_id: int, request: Request, db: Session = Depends(get_d
         db.commit()
 
     return RedirectResponse(url="/impostazioni/admin", status_code=303)
+
+
+# ── PROFILO UTENTE ────────────────────────────────────────────────────────────
+
+@router.get("/profilo", response_class=HTMLResponse)
+def form_profilo(request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    return templates.TemplateResponse(
+        request=request, name="impostazioni_profilo.html",
+        context={"utente": utente, "errore": None, "successo": None}
+    )
+
+
+@router.post("/profilo")
+def salva_profilo(
+    request: Request,
+    email: str = Form(""),
+    password_attuale: str = Form(""),
+    nuova_password: str = Form(""),
+    conferma_password: str = Form(""),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.security import verify_password, hash_password
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    errore = None
+    successo = None
+
+    email = email.strip().lower()
+    if email:
+        if "@" not in email or "." not in email.split("@")[-1]:
+            errore = "Indirizzo email non valido."
+        else:
+            esistente = db.query(Utente).filter(Utente.email == email, Utente.id != user_id).first()
+            if esistente:
+                errore = "Email già in uso da un altro account."
+            else:
+                utente.email = email
+                successo = "Email aggiornata."
+
+    if not errore and nuova_password:
+        if not password_attuale:
+            errore = "Inserisci la password attuale per cambiarla."
+        else:
+            pw_ok = False
+            try:
+                pw_ok = verify_password(password_attuale, utente.password)
+            except Exception:
+                pass
+            if not pw_ok and utente.password == password_attuale:
+                pw_ok = True
+            if not pw_ok:
+                errore = "Password attuale errata."
+            elif nuova_password != conferma_password:
+                errore = "Le nuove password non coincidono."
+            elif len(nuova_password) < 8:
+                errore = "La nuova password deve essere di almeno 8 caratteri."
+            else:
+                utente.password = hash_password(nuova_password)
+                successo = (successo + " Password aggiornata." if successo else "Password aggiornata.")
+
+    if not errore:
+        db.commit()
+        if not successo:
+            successo = "Nessuna modifica effettuata."
+
+    return templates.TemplateResponse(
+        request=request, name="impostazioni_profilo.html",
+        context={"utente": utente, "errore": errore, "successo": successo}
+    )
