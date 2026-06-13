@@ -81,16 +81,23 @@ def _run_migrations():
         fat_cols = [c["name"] for c in insp.get_columns("fatture_emesse")]
         if "reminder_inviato" not in fat_cols:
             conn.execute(text("ALTER TABLE fatture_emesse ADD COLUMN reminder_inviato INTEGER DEFAULT 0"))
-        # Impostazioni azienda: PEC per invio SDI
+        # Impostazioni azienda: PEC per invio SDI + contatori fattura
         imp_cols = [c["name"] for c in insp.get_columns("impostazioni_azienda")]
         for col, defn in [
-            ("pec_indirizzo",    "VARCHAR"),
-            ("pec_smtp_host",    "VARCHAR"),
-            ("pec_smtp_port",    "INTEGER DEFAULT 465"),
-            ("pec_smtp_password","VARCHAR"),
+            ("pec_indirizzo",         "VARCHAR"),
+            ("pec_smtp_host",         "VARCHAR"),
+            ("pec_smtp_port",         "INTEGER DEFAULT 465"),
+            ("pec_smtp_password",     "VARCHAR"),
+            ("ultimo_numero_fattura", "INTEGER DEFAULT 0"),
+            ("ultimo_anno_fattura",   "INTEGER"),
         ]:
             if col not in imp_cols:
                 conn.execute(text(f"ALTER TABLE impostazioni_azienda ADD COLUMN {col} {defn}"))
+        # Clienti: campi SDI (codice destinatario / PEC per FatturaPA)
+        cli_cols = [c["name"] for c in insp.get_columns("clienti")]
+        for col in ["codice_destinatario", "pec_destinatario"]:
+            if col not in cli_cols:
+                conn.execute(text(f"ALTER TABLE clienti ADD COLUMN {col} VARCHAR"))
         # Firma digitale preventivi
         lav_cols = [c["name"] for c in insp.get_columns("lavori")]
         for col in ["token_firma", "firma_nome_cliente", "firma_ip"]:
