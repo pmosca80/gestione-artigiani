@@ -270,6 +270,87 @@ def invia_reset_password(email: str, token: str, base_url: str) -> bool:
     return invia_email(email, "Reimposta la password — Gestionale Artigiani", corpo)
 
 
+def invia_notifica_firma_preventivo(
+    *,
+    artigiano_email: str,
+    nome_azienda: str,
+    titolo_lavoro: str,
+    nome_cliente_firma: str,
+    importo: float | None,
+    link_lavoro: str,
+) -> None:
+    """Notifica all'artigiano che il cliente ha accettato il preventivo. Fire-and-forget."""
+    if "@" not in (artigiano_email or ""):
+        return
+    cfg = _smtp_settings()
+    if not cfg["user"] or not cfg["password"]:
+        return
+
+    importo_riga = (
+        f'<div class="det-row"><span class="det-label">Importo</span>'
+        f'<span class="det-val">€ {importo:,.2f}</span></div>'
+        if importo else ""
+    )
+
+    corpo = f"""<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8">
+<style>
+  body {{ margin:0; padding:0; background:#f0fdf4; font-family:'Segoe UI',Arial,sans-serif; }}
+  .wrap {{ max-width:520px; margin:40px auto; background:white; border-radius:16px;
+           overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }}
+  .header {{ background:linear-gradient(135deg,#15803d 0%,#16a34a 100%);
+             padding:28px 36px; text-align:center; }}
+  .header h1 {{ color:white; font-size:22px; margin:0; font-weight:700; }}
+  .header p  {{ color:#bbf7d0; font-size:14px; margin:8px 0 0; }}
+  .body {{ padding:28px 36px; }}
+  .body p {{ font-size:14px; color:#374151; line-height:1.7; margin:0 0 16px; }}
+  .details {{ background:#f0fdf4; border-radius:12px; padding:16px; margin:20px 0; }}
+  .det-row {{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }}
+  .det-row:last-child {{ margin-bottom:0; }}
+  .det-label {{ color:#6b7280; }}
+  .det-val {{ font-weight:700; color:#166534; }}
+  .btn {{ display:inline-block; background:#16a34a; color:white; padding:13px 28px;
+          border-radius:10px; font-size:15px; font-weight:700; text-decoration:none; }}
+  .footer {{ background:#f8fafc; padding:14px 36px; text-align:center;
+             font-size:12px; color:#9ca3af; border-top:1px solid #f1f5f9; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>✅ Preventivo accettato!</h1>
+    <p>Il cliente ha firmato il preventivo</p>
+  </div>
+  <div class="body">
+    <p>Ottima notizia! <strong>{nome_cliente_firma}</strong> ha appena accettato il preventivo.</p>
+    <div class="details">
+      <div class="det-row"><span class="det-label">Lavoro</span><span class="det-val">{titolo_lavoro}</span></div>
+      <div class="det-row"><span class="det-label">Firmato da</span><span class="det-val">{nome_cliente_firma}</span></div>
+      {importo_riga}
+    </div>
+    <p style="text-align:center;">
+      <a href="{link_lavoro}" class="btn">Apri il lavoro →</a>
+    </p>
+  </div>
+  <div class="footer">{nome_azienda} · Gestionale Artigiani</div>
+</div>
+</body></html>"""
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"✅ {nome_cliente_firma} ha accettato il preventivo — {titolo_lavoro}"
+        msg["From"] = f"Gestionale Artigiani <{cfg['from']}>"
+        msg["To"] = artigiano_email
+        msg.attach(MIMEText(corpo, "html", "utf-8"))
+        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
+            s.ehlo(); s.starttls(); s.login(cfg["user"], cfg["password"])
+            s.sendmail(cfg["from"], artigiano_email, msg.as_string())
+        logger.info(f"Notifica firma inviata a {artigiano_email} — {titolo_lavoro}")
+    except Exception as e:
+        logger.warning(f"Notifica firma non inviata a {artigiano_email}: {e}")
+
+
 def invia_fattura_xml(
     *,
     to_email: str,

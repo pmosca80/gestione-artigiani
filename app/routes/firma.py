@@ -1,3 +1,4 @@
+import threading
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import crud
+from app.models import Utente
 
 BASE_DIR = __import__("pathlib").Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -47,14 +49,42 @@ def firma_accetta(
     if lavoro.stato != "preventivo_accettato":
         lavoro.stato = "preventivo_accettato"
         lavoro.data_accettazione_preventivo = datetime.now().strftime("%Y-%m-%d")
+    nome_firmato = nome_cliente.strip() or "il cliente"
     if nome_cliente.strip():
-        lavoro.firma_nome_cliente = nome_cliente.strip()
+        lavoro.firma_nome_cliente = nome_firmato
     try:
         lavoro.firma_ip = request.client.host
     except Exception:
         pass
     db.commit()
+
+    # Notifica email all'artigiano (fire-and-forget)
+    artigiano = db.query(Utente).filter(Utente.id == lavoro.utente_id).first()
+    artigiano_email = artigiano.email or artigiano.username if artigiano else None
+    if artigiano_email and "@" in artigiano_email:
+        impostazioni = crud.get_impostazioni_azienda(db, lavoro.utente_id)
+        nome_azienda = (impostazioni.nome_azienda if impostazioni else None) or artigiano.username
+        base_url = str(request.base_url).rstrip("/")
+        threading.Thread(
+            target=_notifica_firma,
+            args=(artigiano_email, nome_azienda, lavoro.titolo, nome_firmato,
+                  lavoro.importo_preventivato, f"{base_url}/lavori/{lavoro.id}"),
+            daemon=True,
+        ).start()
+
     return RedirectResponse(f"/firma/{token}/ok", status_code=303)
+
+
+def _notifica_firma(artigiano_email, nome_azienda, titolo, nome_cliente_firma, importo, link_lavoro):
+    from app.services.email import invia_notifica_firma_preventivo
+    invia_notifica_firma_preventivo(
+        artigiano_email=artigiano_email,
+        nome_azienda=nome_azienda,
+        titolo_lavoro=titolo,
+        nome_cliente_firma=nome_cliente_firma,
+        importo=importo,
+        link_lavoro=link_lavoro,
+    )
 
 
 @router.get("/{token}/ok", response_class=HTMLResponse)
