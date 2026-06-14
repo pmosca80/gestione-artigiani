@@ -98,6 +98,9 @@ def _run_migrations():
         for col in ["codice_destinatario", "pec_destinatario"]:
             if col not in cli_cols:
                 conn.execute(text(f"ALTER TABLE clienti ADD COLUMN {col} VARCHAR"))
+        # Token feed iCalendar per utente
+        if "cal_token" not in cols:
+            conn.execute(text("ALTER TABLE utenti ADD COLUMN cal_token VARCHAR"))
         # Firma digitale preventivi
         lav_cols = [c["name"] for c in insp.get_columns("lavori")]
         for col in ["token_firma", "firma_nome_cliente", "firma_ip"]:

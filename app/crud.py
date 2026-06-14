@@ -1976,6 +1976,18 @@ def get_tutti_allegati(
         .order_by(AllegatoLavoro.id.desc())
         .all()
     )
+def get_or_create_cal_token(db: Session, utente_id: int) -> str:
+    import secrets
+    from app.models import Utente as _Utente
+    utente = db.query(_Utente).filter(_Utente.id == utente_id).first()
+    if not utente:
+        return ""
+    if not getattr(utente, "cal_token", None):
+        utente.cal_token = secrets.token_urlsafe(32)
+        db.commit()
+    return utente.cal_token
+
+
 def get_agenda_scadenzario(db: Session, utente_id: int):
     oggi = datetime.now().strftime("%Y-%m-%d")
 

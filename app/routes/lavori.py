@@ -205,6 +205,106 @@ def archivio_allegati(
         }
     )
 
+@router.get("/agenda/calendario.ics")
+def calendario_ics(token: str = "", db: Session = Depends(get_db)):
+    from datetime import date as _date
+    from icalendar import Calendar, Event, Alarm
+    from app.models import Utente as _Utente, Lavoro as _Lavoro, Garanzia as _Garanzia
+
+    utente = db.query(_Utente).filter(_Utente.cal_token == token).first()
+    if not utente or not token:
+        return Response("Token non valido", status_code=403, media_type="text/plain")
+
+    user_id = utente.id
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    nome_az = (azienda.nome_azienda or "Artigiani") if azienda else "Artigiani"
+
+    cal = Calendar()
+    cal.add("PRODID", f"-//Gestionale Artigiani//{nome_az}//IT")
+    cal.add("VERSION", "2.0")
+    cal.add("X-WR-CALNAME", f"{nome_az}")
+    cal.add("X-WR-TIMEZONE", "Europe/Rome")
+    cal.add("CALSCALE", "GREGORIAN")
+    cal.add("METHOD", "PUBLISH")
+    cal.add("REFRESH-INTERVAL;VALUE=DURATION", "PT1H")
+    cal.add("X-PUBLISHED-TTL", "PT1H")
+
+    lavori_list = db.query(_Lavoro).filter(_Lavoro.utente_id == user_id).all()
+
+    for lav in lavori_list:
+        # Evento data lavoro
+        if lav.data_lavoro:
+            try:
+                d = _date.fromisoformat(lav.data_lavoro)
+            except (ValueError, TypeError):
+                d = None
+            if d:
+                ev = Event()
+                ev.add("SUMMARY", lav.titolo or f"Lavoro #{lav.id}")
+                ev.add("DTSTART", d)
+                ev.add("DTEND", d + timedelta(days=1))
+                ev.add("UID", f"lavoro-{lav.id}@gestionale-artigiani")
+                desc = []
+                if lav.cliente:
+                    nc = (lav.cliente.ragione_sociale if lav.cliente.tipo_cliente == "azienda"
+                          else f"{lav.cliente.nome or ''} {lav.cliente.cognome or ''}".strip())
+                    desc.append(f"Cliente: {nc}")
+                if lav.stato:
+                    desc.append(f"Stato: {lav.stato.replace('_', ' ')}")
+                if lav.importo_preventivato:
+                    desc.append(f"Preventivo: € {lav.importo_preventivato:.2f}")
+                ev.add("DESCRIPTION", "\n".join(desc))
+                cal.add_component(ev)
+
+        # Evento scadenza pagamento
+        if lav.data_scadenza_pagamento and (lav.residuo_pagamento or 0) > 0:
+            try:
+                d = _date.fromisoformat(lav.data_scadenza_pagamento)
+            except (ValueError, TypeError):
+                d = None
+            if d:
+                ev = Event()
+                ev.add("SUMMARY", f"Pagamento: {lav.titolo or f'Lavoro #{lav.id}'}")
+                ev.add("DTSTART", d)
+                ev.add("DTEND", d + timedelta(days=1))
+                ev.add("UID", f"scad-{lav.id}@gestionale-artigiani")
+                ev.add("DESCRIPTION", f"Residuo: € {lav.residuo_pagamento:.2f}")
+                alarm = Alarm()
+                alarm.add("ACTION", "DISPLAY")
+                alarm.add("DESCRIPTION", f"Scadenza pagamento: {lav.titolo or ''}")
+                alarm.add("TRIGGER", -timedelta(days=1))
+                ev.add_component(alarm)
+                cal.add_component(ev)
+
+    # Garanzie
+    garanzie_list = db.query(_Garanzia).filter(_Garanzia.utente_id == user_id).all()
+    for gar in garanzie_list:
+        if gar.data_scadenza:
+            try:
+                d = _date.fromisoformat(gar.data_scadenza)
+            except (ValueError, TypeError):
+                d = None
+            if d:
+                ev = Event()
+                ev.add("SUMMARY", f"Garanzia: {gar.descrizione or 'Garanzia'}")
+                ev.add("DTSTART", d)
+                ev.add("DTEND", d + timedelta(days=1))
+                ev.add("UID", f"gar-{gar.id}@gestionale-artigiani")
+                ev.add("DESCRIPTION", f"Installazione: {gar.data_installazione}")
+                alarm = Alarm()
+                alarm.add("ACTION", "DISPLAY")
+                alarm.add("DESCRIPTION", f"Garanzia in scadenza: {gar.descrizione or ''}")
+                alarm.add("TRIGGER", -timedelta(days=7))
+                ev.add_component(alarm)
+                cal.add_component(ev)
+
+    return Response(
+        content=cal.to_ical(),
+        media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="calendario.ics"'},
+    )
+
+
 @router.get("/agenda/scadenzario", response_class=HTMLResponse)
 def agenda_scadenzario(
     request: Request,
@@ -212,15 +312,18 @@ def agenda_scadenzario(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-
     agenda = crud.get_agenda_scadenzario(db, user_id)
+    cal_token = crud.get_or_create_cal_token(db, user_id)
+    base_url = str(request.base_url).rstrip("/")
+    cal_url = f"{base_url}/lavori/agenda/calendario.ics?token={cal_token}"
 
     return templates.TemplateResponse(
         request=request,
         name="agenda_scadenzario.html",
         context={
             "agenda": agenda,
-            "filtro": filtro
+            "filtro": filtro,
+            "cal_url": cal_url,
         }
     )
 

@@ -48,3 +48,4 @@ stripe>=10.0.0
 cloudinary>=1.36
 uvicorn==0.44.0
 pywebpush>=2.0.0
+icalendar>=6.0
