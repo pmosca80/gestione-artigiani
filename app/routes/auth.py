@@ -97,10 +97,13 @@ def register_page(request: Request):
     return templates.TemplateResponse(request=request, name="register.html", context={"errore": None})
 
 
+import re as _re
+
 @router.post("/register")
 def register(
     request: Request,
     email: str = Form(...),
+    username: str = Form(...),
     password: str = Form(...),
     conferma_password: str = Form(...),
     accetta_termini: str = Form(""),
@@ -108,6 +111,7 @@ def register(
     db: Session = Depends(get_db),
 ):
     email = email.strip().lower()
+    username = username.strip().lower()
 
     if not accetta_termini:
         return templates.TemplateResponse(
@@ -119,6 +123,18 @@ def register(
         return templates.TemplateResponse(
             request=request, name="register.html",
             context={"errore": "Inserisci un indirizzo email valido."},
+        )
+
+    if len(username) < 3:
+        return templates.TemplateResponse(
+            request=request, name="register.html",
+            context={"errore": "Lo username deve essere di almeno 3 caratteri."},
+        )
+
+    if not _re.match(r'^[a-z0-9_]+$', username):
+        return templates.TemplateResponse(
+            request=request, name="register.html",
+            context={"errore": "Lo username può contenere solo lettere, numeri e underscore (niente spazi)."},
         )
 
     if password != conferma_password:
@@ -133,13 +149,16 @@ def register(
             context={"errore": "La password deve essere di almeno 8 caratteri."},
         )
 
-    esiste = db.query(Utente).filter(
-        (Utente.email == email) | (Utente.username == email)
-    ).first()
-    if esiste:
+    if db.query(Utente).filter(func.lower(Utente.email) == email).first():
         return templates.TemplateResponse(
             request=request, name="register.html",
             context={"errore": "Questo indirizzo email è già registrato. Accedi o usa 'Password dimenticata'."},
+        )
+
+    if db.query(Utente).filter(func.lower(Utente.username) == username).first():
+        return templates.TemplateResponse(
+            request=request, name="register.html",
+            context={"errore": "Username già in uso. Scegline un altro."},
         )
 
     codice_promo_valido = os.getenv("CODICE_PROMO", "")
@@ -148,7 +167,7 @@ def register(
     token = secrets.token_urlsafe(32)
 
     nuovo = Utente(
-        username=email,
+        username=username,
         email=email,
         password=hash_password(password),
         data_registrazione=datetime.now().strftime("%Y-%m-%d"),
