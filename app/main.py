@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -122,6 +122,75 @@ def _run_migrations():
                     creato_il VARCHAR
                 )
             """))
+        # Listino prezzi
+        if not _inspect(engine).has_table("listino_voci"):
+            conn.execute(text("""
+                CREATE TABLE listino_voci (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
+                    descrizione VARCHAR NOT NULL,
+                    unita_misura VARCHAR DEFAULT '',
+                    prezzo_unitario REAL DEFAULT 0,
+                    categoria VARCHAR DEFAULT '',
+                    data_creazione VARCHAR NOT NULL
+                )
+            """))
+        # SAL — Stato Avanzamento Lavori
+        if not _inspect(engine).has_table("sal_lavoro"):
+            conn.execute(text("""
+                CREATE TABLE sal_lavoro (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
+                    numero INTEGER NOT NULL DEFAULT 1,
+                    data VARCHAR NOT NULL,
+                    percentuale REAL NOT NULL DEFAULT 0,
+                    importo_richiesto REAL NOT NULL DEFAULT 0,
+                    descrizione TEXT DEFAULT '',
+                    note TEXT DEFAULT '',
+                    stato VARCHAR NOT NULL DEFAULT 'emesso',
+                    data_creazione VARCHAR NOT NULL
+                )
+            """))
+        # Rapportini di lavoro giornalieri
+        if not _inspect(engine).has_table("rapportini_lavoro"):
+            conn.execute(text("""
+                CREATE TABLE rapportini_lavoro (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
+                    data VARCHAR NOT NULL,
+                    ore_lavorate REAL DEFAULT 0,
+                    descrizione_attivita TEXT NOT NULL,
+                    materiali_note TEXT DEFAULT '',
+                    note TEXT DEFAULT '',
+                    data_creazione VARCHAR NOT NULL
+                )
+            """))
+        # Promemoria manutenzioni / CRM
+        if not _inspect(engine).has_table("promemoria_clienti"):
+            conn.execute(text("""
+                CREATE TABLE promemoria_clienti (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
+                    cliente_id INTEGER REFERENCES clienti(id),
+                    titolo VARCHAR NOT NULL,
+                    note TEXT DEFAULT '',
+                    data_promemoria VARCHAR NOT NULL,
+                    tipo VARCHAR NOT NULL DEFAULT 'manutenzione',
+                    stato VARCHAR NOT NULL DEFAULT 'attivo',
+                    data_creazione VARCHAR NOT NULL
+                )
+            """))
+        # token_portale per accesso pubblico cliente
+        try:
+            conn.execute(text("ALTER TABLE clienti ADD COLUMN token_portale VARCHAR"))
+        except Exception:
+            pass
+        # Fix residuo_pagamento negativo (pagato > totale_documento = 0)
+        conn.execute(text(
+            "UPDATE lavori SET residuo_pagamento = 0 WHERE residuo_pagamento < 0"
+        ))
         conn.commit()
 _run_migrations()
 
@@ -171,6 +240,11 @@ app.include_router(garanzie.router)
 app.include_router(prima_nota.router)
 app.include_router(notifiche_push.router)
 app.include_router(export_contabilita.router)
+app.include_router(listino.router)
+app.include_router(lavori_sal.router)
+app.include_router(lavori_rapportini.router)
+app.include_router(scadenzario.router)
+app.include_router(portale_cliente.router)
 
 @app.get("/api/cerca")
 def cerca_globale(

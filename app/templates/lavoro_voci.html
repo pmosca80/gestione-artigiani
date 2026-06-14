@@ -87,6 +87,48 @@
 
         .footer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
 
+        /* Listino panel */
+        .listino-bar {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .btn-listino {
+            padding: 8px 16px; background: #f5f3ff; color: #7c3aed;
+            border: 1.5px solid #ddd6fe; border-radius: 8px; font-size: 13px;
+            font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-listino:hover { background: #ede9fe; }
+        .listino-panel {
+            display: none; background: white; border: 1.5px solid #ddd6fe;
+            border-radius: 12px; overflow: hidden; margin-bottom: 20px;
+        }
+        .listino-panel.open { display: block; }
+        .listino-panel-header {
+            padding: 12px 16px; background: #f5f3ff;
+            border-bottom: 1px solid #ddd6fe;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .listino-panel-header span { font-size: 13px; font-weight: 700; color: #7c3aed; flex: 1; }
+        .listino-search {
+            flex: 1; padding: 7px 11px; border: 1.5px solid #ddd6fe;
+            border-radius: 7px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+            outline: none; background: white; max-width: 220px;
+        }
+        .listino-search:focus { border-color: #7c3aed; }
+        .listino-items { max-height: 260px; overflow-y: auto; }
+        .listino-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 16px; border-bottom: 1px solid #f8fafc;
+            cursor: pointer; transition: background 0.1s;
+        }
+        .listino-item:last-child { border-bottom: none; }
+        .listino-item:hover { background: #f5f3ff; }
+        .listino-item-desc { flex: 1; font-size: 14px; color: #374151; font-weight: 500; }
+        .listino-item-um { font-size: 12px; color: #9ca3af; min-width: 32px; }
+        .listino-item-prezzo { font-family: 'DM Mono', monospace; font-size: 13px; color: #111827; min-width: 72px; text-align: right; }
+        .listino-empty { padding: 24px; text-align: center; color: #9ca3af; font-size: 13px; }
+
         @media (max-width: 700px) {
             .add-grid { grid-template-columns: 1fr 1fr; }
             .voci-table-wrap { overflow-x: auto; }
@@ -113,27 +155,59 @@
         </div>
     </div>
 
+    <!-- LISTINO PREZZI -->
+    {% if listino %}
+    <div class="listino-bar">
+        <button type="button" class="btn-listino" onclick="toggleListino()">
+            📚 Scegli dal listino
+        </button>
+        <span style="font-size:12px; color:#9ca3af;">{{ listino|length }} voc{{ 'e' if listino|length == 1 else 'i' }} salvat{{ 'a' if listino|length == 1 else 'e' }}</span>
+    </div>
+    <div class="listino-panel" id="listino-panel">
+        <div class="listino-panel-header">
+            <span>📚 Listino prezzi</span>
+            <input type="text" class="listino-search" id="listino-search"
+                   placeholder="Cerca voce…" oninput="filtraListino(this.value)">
+            <button type="button" onclick="toggleListino()"
+                    style="background:none;border:none;font-size:16px;cursor:pointer;color:#9ca3af;padding:0 2px;">✕</button>
+        </div>
+        <div class="listino-items" id="listino-items">
+            {% for v in listino %}
+            <div class="listino-item"
+                 data-desc="{{ v.descrizione|replace('"', '&quot;') }}"
+                 data-um="{{ v.unita_misura or '' }}"
+                 data-prezzo="{{ v.prezzo_unitario or 0 }}"
+                 onclick="usaVoceListino(this)">
+                <span class="listino-item-desc">{{ v.descrizione }}</span>
+                <span class="listino-item-um">{{ v.unita_misura or '' }}</span>
+                <span class="listino-item-prezzo">€ {{ "%.2f"|format(v.prezzo_unitario or 0) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- FORM AGGIUNGI -->
     <div class="add-card">
         <h3>➕ Aggiungi voce</h3>
-        <form method="post">
+        <form method="post" id="form-aggiungi">
             <div class="add-grid">
                 <div class="fg">
                     <label>Descrizione *</label>
-                    <input type="text" name="descrizione" required autofocus
+                    <input type="text" name="descrizione" id="f-descrizione" required autofocus
                            placeholder="Es. Caldaia Vaillant 24kW, Manodopera 4h...">
                 </div>
                 <div class="fg">
                     <label>Quantità</label>
-                    <input type="number" step="0.01" name="quantita" value="1" min="0">
+                    <input type="number" step="0.01" name="quantita" id="f-quantita" value="1" min="0">
                 </div>
                 <div class="fg">
                     <label>U.M.</label>
-                    <input type="text" name="unita_misura" placeholder="pz, h, m...">
+                    <input type="text" name="unita_misura" id="f-um" placeholder="pz, h, m...">
                 </div>
                 <div class="fg">
                     <label>Prezzo (€)</label>
-                    <input type="number" step="0.01" name="prezzo_unitario" value="0" min="0">
+                    <input type="number" step="0.01" name="prezzo_unitario" id="f-prezzo" value="0" min="0">
                 </div>
                 <button type="submit" class="btn-add">+ Aggiungi</button>
             </div>
@@ -194,6 +268,38 @@
     </div>
 
 </div>
+
+<script>
+function toggleListino() {
+    var p = document.getElementById('listino-panel');
+    if (!p) return;
+    p.classList.toggle('open');
+    if (p.classList.contains('open')) {
+        var s = document.getElementById('listino-search');
+        if (s) { s.value = ''; filtraListino(''); s.focus(); }
+    }
+}
+function usaVoceListino(el) {
+    document.getElementById('f-descrizione').value = el.dataset.desc;
+    document.getElementById('f-um').value = el.dataset.um;
+    document.getElementById('f-prezzo').value = el.dataset.prezzo;
+    document.getElementById('f-quantita').value = '1';
+    document.getElementById('listino-panel').classList.remove('open');
+    document.getElementById('f-quantita').focus();
+}
+function filtraListino(q) {
+    q = q.toLowerCase();
+    var items = document.querySelectorAll('#listino-items .listino-item');
+    var visible = 0;
+    items.forEach(function(el) {
+        var match = !q || el.dataset.desc.toLowerCase().includes(q);
+        el.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    var empty = document.getElementById('listino-no-results');
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
+}
+</script>
 
 </body>
 </html>

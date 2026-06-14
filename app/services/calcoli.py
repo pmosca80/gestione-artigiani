@@ -49,7 +49,7 @@ def calcola_totali_lavoro(db, lavoro_id: int):
 
     importo_pagato = lavoro.importo_pagato or 0
 
-    lavoro.residuo_pagamento = totale_documento - importo_pagato
+    lavoro.residuo_pagamento = max(0.0, totale_documento - importo_pagato)
 
     if importo_pagato <= 0:
         lavoro.stato_pagamento = "da_pagare"

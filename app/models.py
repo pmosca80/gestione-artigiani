@@ -63,6 +63,8 @@ class Cliente(Base):
 
     note = Column(Text, nullable=True)
 
+    token_portale = Column(String, nullable=True)
+
     data_creazione = Column(String, nullable=False)
 
     # relazione con lavori
@@ -391,6 +393,64 @@ class VocePrimaNota(Base):
     categoria = Column(String, nullable=True)  # carburante, materiali, attrezzatura, compenso, varie
 
     data_creazione = Column(String, nullable=False)
+
+
+class ListinoVoce(Base):
+    __tablename__ = "listino_voci"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    descrizione = Column(String, nullable=False)
+    unita_misura = Column(String, nullable=True, default="")
+    prezzo_unitario = Column(Float, nullable=False, default=0)
+    categoria = Column(String, nullable=True, default="")
+    data_creazione = Column(String, nullable=False)
+
+
+class SalLavoro(Base):
+    __tablename__ = "sal_lavoro"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    numero = Column(Integer, nullable=False, default=1)
+    data = Column(String, nullable=False)
+    percentuale = Column(Float, nullable=False, default=0)
+    importo_richiesto = Column(Float, nullable=False, default=0)
+    descrizione = Column(Text, nullable=True, default="")
+    note = Column(Text, nullable=True, default="")
+    stato = Column(String, nullable=False, default="emesso")  # emesso / pagato
+    data_creazione = Column(String, nullable=False)
+
+
+class RapportinoLavoro(Base):
+    __tablename__ = "rapportini_lavoro"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    data = Column(String, nullable=False)
+    ore_lavorate = Column(Float, nullable=True, default=0)
+    descrizione_attivita = Column(Text, nullable=False)
+    materiali_note = Column(Text, nullable=True, default="")
+    note = Column(Text, nullable=True, default="")
+    data_creazione = Column(String, nullable=False)
+
+
+class PromemoriaCliente(Base):
+    __tablename__ = "promemoria_clienti"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    cliente_id = Column(Integer, ForeignKey("clienti.id"), nullable=True)
+    titolo = Column(String, nullable=False)
+    note = Column(Text, nullable=True, default="")
+    data_promemoria = Column(String, nullable=False)
+    tipo = Column(String, nullable=False, default="manutenzione")  # manutenzione/revisione/chiamata/ispezione
+    stato = Column(String, nullable=False, default="attivo")  # attivo/completato
+    data_creazione = Column(String, nullable=False)
+
+    cliente = relationship("Cliente")
 
 
 class PushSubscription(Base):

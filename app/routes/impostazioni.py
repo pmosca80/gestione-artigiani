@@ -16,6 +16,7 @@ from openpyxl import Workbook
 import zipfile
 
 from fastapi import HTTPException
+from sqlalchemy import text as sql_text
 from app.models import Utente
 from app.templates_config import templates
 
@@ -513,9 +514,43 @@ def elimina_utente(utente_id: int, request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="Non puoi eliminare te stesso")
 
     utente = db.query(Utente).filter(Utente.id == utente_id).first()
-    if utente:
-        db.delete(utente)
-        db.commit()
+    if not utente:
+        return RedirectResponse(url="/impostazioni/admin", status_code=303)
+
+    uid = {"uid": utente_id}
+    # Tabelle figlie che referenziano lavori (devono venire prima di lavori)
+    db.execute(sql_text("DELETE FROM materiali_usati_lavoro WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM sessioni_lavoro WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM pagamenti_lavoro WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM foto_lavori WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM allegati_lavoro WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM documenti_pdf WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM voci_preventivo WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM fatture_emesse WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM garanzie WHERE utente_id = :uid"), uid)
+    # Tabelle magazzino
+    db.execute(sql_text("DELETE FROM movimenti_magazzino WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM carichi_materiale WHERE utente_id = :uid"), uid)
+    # Tabelle che referenziano lavori.id (devono precedere la cancellazione dei lavori)
+    db.execute(sql_text("DELETE FROM sal_lavoro WHERE lavoro_id IN (SELECT id FROM lavori WHERE utente_id = :uid)"), uid)
+    db.execute(sql_text("DELETE FROM rapportini_lavoro WHERE lavoro_id IN (SELECT id FROM lavori WHERE utente_id = :uid)"), uid)
+    # Entità principali
+    db.execute(sql_text("DELETE FROM lavori WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM materiali WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM promemoria_clienti WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM clienti WHERE utente_id = :uid"), uid)
+    # Tabelle di configurazione e dati extra
+    db.execute(sql_text("DELETE FROM impostazioni_azienda WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM template_preventivi WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM prima_nota WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM listino_voci WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM push_subscriptions WHERE utente_id = :uid"), uid)
+    db.execute(sql_text("DELETE FROM inviti_account WHERE titolare_id = :uid"), uid)
+    # Sgancia collaboratori prima di eliminare il titolare
+    db.execute(sql_text("UPDATE utenti SET titolare_id = NULL WHERE titolare_id = :uid"), uid)
+
+    db.delete(utente)
+    db.commit()
 
     return RedirectResponse(url="/impostazioni/admin", status_code=303)
 

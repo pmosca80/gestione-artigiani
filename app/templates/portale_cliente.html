@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Area clienti{% if azienda and azienda.nome_azienda %} — {{ azienda.nome_azienda }}{% endif %}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: #f8fafc; color: #111827; }
+
+        .top-bar {
+            background: #0f172a;
+            padding: 16px 24px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .top-bar-logo { max-height: 48px; border-radius: 6px; }
+        .top-bar-name { color: white; font-size: 18px; font-weight: 700; }
+        .top-bar-sub { color: #94a3b8; font-size: 12px; margin-top: 2px; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+
+        .welcome-card {
+            background: linear-gradient(135deg, #1e3a5f, #0f172a);
+            border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; color: white;
+        }
+        .welcome-card h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .welcome-card p { color: #94a3b8; font-size: 13px; }
+
+        .section-title {
+            font-size: 13px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 14px; margin-top: 28px;
+        }
+
+        .lavoro-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 20px; margin-bottom: 16px;
+        }
+        .lavoro-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .lavoro-titolo { font-size: 16px; font-weight: 700; color: #111827; }
+        .lavoro-data { font-size: 12px; color: #9ca3af; margin-top: 3px; }
+
+        .lb { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+        .lb-blue { background: #eff6ff; color: #2563eb; }
+        .lb-orange { background: #fff7ed; color: #c2410c; }
+        .lb-green { background: #dcfce7; color: #16a34a; }
+        .lb-gray { background: #f3f4f6; color: #6b7280; }
+        .lb-purple { background: #f5f3ff; color: #7c3aed; }
+
+        .lavoro-desc { font-size: 13px; color: #6b7280; margin-bottom: 12px; line-height: 1.5; }
+
+        .rapp-list { border-top: 1px solid #f3f4f6; padding-top: 12px; margin-top: 12px; }
+        .rapp-item { padding: 10px 0; border-bottom: 1px solid #f9fafb; }
+        .rapp-item:last-child { border-bottom: none; }
+        .rapp-item-date { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 3px; }
+        .rapp-item-text { font-size: 13px; color: #6b7280; line-height: 1.4; }
+        .rapp-ore { display: inline-block; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 6px; }
+
+        .foto-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+        .foto-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; }
+
+        .empty-rapp { font-size: 13px; color: #9ca3af; padding: 8px 0; font-style: italic; }
+
+        .footer {
+            margin-top: 40px; text-align: center; font-size: 12px; color: #9ca3af;
+            padding-bottom: 32px; border-top: 1px solid #e5e7eb; padding-top: 20px;
+        }
+
+        /* Lightbox */
+        #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
+              z-index:9999; align-items:center; justify-content:center; }
+        #lb img { max-width:92vw; max-height:88vh; border-radius:8px; }
+        #lb-close { position:absolute; top:18px; right:22px; color:white; font-size:28px; cursor:pointer; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    {% if azienda and azienda.logo_path %}
+    <img src="/static/uploads/{{ azienda.logo_path.split('/')[-1] }}" class="top-bar-logo" alt="logo">
+    {% endif %}
+    <div>
+        <div class="top-bar-name">{{ azienda.nome_azienda if azienda and azienda.nome_azienda else 'Area clienti' }}</div>
+        <div class="top-bar-sub">Portale aggiornamenti lavori</div>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="welcome-card">
+        <h1>Benvenuto, {{ nome_cliente }}</h1>
+        <p>Qui puoi seguire l'avanzamento dei tuoi lavori in tempo reale.</p>
+    </div>
+
+    {% if lavori %}
+
+    <div class="section-title">I tuoi lavori</div>
+
+    {% for l in lavori %}
+    <div class="lavoro-card">
+        <div class="lavoro-header">
+            <div>
+                <div class="lavoro-titolo">{{ l.titolo }}</div>
+                <div class="lavoro-data">Data: {{ l.data_lavoro }}</div>
+            </div>
+            <div>
+                {% if l.stato == 'preventivo' %}<span class="lb lb-blue">📑 Preventivo</span>
+                {% elif l.stato == 'preventivo_inviato' %}<span class="lb lb-orange">📧 Preventivo inviato</span>
+                {% elif l.stato == 'preventivo_accettato' %}<span class="lb lb-purple">✅ Accettato</span>
+                {% elif l.stato == 'in_corso' %}<span class="lb lb-orange">⚡ In corso</span>
+                {% elif l.stato == 'completato' %}<span class="lb lb-green">✓ Completato</span>
+                {% else %}<span class="lb lb-gray">{{ l.stato }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if l.descrizione %}
+        <div class="lavoro-desc">{{ l.descrizione }}</div>
+        {% endif %}
+
+        {% set rapp_list = rapportini_per_lavoro.get(l.id, []) %}
+        {% if rapp_list %}
+        <div class="rapp-list">
+            <div style="font-size:12px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px;">Aggiornamenti cantiere</div>
+            {% for r in rapp_list %}
+            <div class="rapp-item">
+                <div class="rapp-item-date">
+                    {{ r.data }}
+                    {% if r.ore_lavorate %}<span class="rapp-ore">{{ "%.1f"|format(r.ore_lavorate) }} h</span>{% endif %}
+                </div>
+                <div class="rapp-item-text">{{ r.descrizione_attivita }}</div>
+                {% if r.materiali_note %}
+                <div class="rapp-item-text" style="color:#9ca3af; margin-top:2px;">Materiali: {{ r.materiali_note }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% set foto_list = foto_per_lavoro.get(l.id, []) %}
+        {% if foto_list %}
+        <div class="foto-grid">
+            {% for f in foto_list %}
+            <img src="/{{ f.percorso_file }}" class="foto-thumb"
+                 alt="{{ f.descrizione or '' }}"
+                 onclick="document.getElementById('lb').style.display='flex'; document.getElementById('lb-img').src=this.src;">
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:14px; text-align:center; padding:48px 20px; color:#9ca3af;">
+        <div style="font-size:40px; margin-bottom:12px;">🛠️</div>
+        <p style="font-weight:600; color:#374151; margin-bottom:6px;">Nessun lavoro ancora</p>
+        <p style="font-size:13px;">Quando inizierà un lavoro potrai seguire gli aggiornamenti qui.</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        {% if azienda %}
+        {{ azienda.nome_azienda or '' }}
+        {% if azienda.telefono %} · {{ azienda.telefono }}{% endif %}
+        {% if azienda.email %} · {{ azienda.email }}{% endif %}
+        {% endif %}
+        <br>
+        <span style="margin-top:6px; display:block;">Pagina generata dal Gestionale Artigiani</span>
+    </div>
+
+</div>
+
+<!-- Lightbox -->
+<div id="lb" onclick="this.style.display='none'">
+    <span id="lb-close" onclick="document.getElementById('lb').style.display='none'">✕</span>
+    <img id="lb-img" src="">
+</div>
+
+</body>
+</html>

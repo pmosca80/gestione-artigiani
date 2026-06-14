@@ -607,12 +607,77 @@
         </div>
     </div>
 
+    <!-- PORTALE CLIENTE -->
+    <div class="c-section">
+        <div class="section-title">🔗 Portale cliente (link read-only)</div>
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:14px; padding:20px 24px;">
+            {% if cliente.token_portale %}
+            {% set _portale_url = request.url.scheme + '://' + request.url.netloc + '/portale/' + cliente.token_portale %}
+            <p style="font-size:13px; color:#6b7280; margin-bottom:12px;">
+                Il cliente può seguire i lavori in tempo reale tramite questo link (senza login).
+                Contiene aggiornamenti, rapportini e foto — nessuna informazione finanziaria.
+            </p>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+                <input type="text" id="portale-link-input" value="{{ _portale_url }}" readonly
+                       style="flex:1; min-width:200px; padding:9px 12px; background:#f8fafc; border:1.5px solid #e5e7eb;
+                              border-radius:8px; font-size:12px; font-family:'DM Mono',monospace; color:#374151; outline:none;">
+                <button onclick="copyPortaleLink()" class="btn-az" style="background:#e0f2fe;color:#075985; white-space:nowrap;">📋 Copia</button>
+                {% if cliente.telefono %}
+                <button id="btn-wa-portale"
+                        data-tel="{{ cliente.telefono }}"
+                        data-nome="{{ (cliente.ragione_sociale or ((cliente.nome or '') + ' ' + (cliente.cognome or '')))|trim }}"
+                        data-url="{{ _portale_url }}"
+                        onclick="inviaPortaleWA(this)"
+                        class="btn-az" style="background:#dcfce7;color:#16a34a;">💬 WhatsApp</button>
+                {% endif %}
+                <a href="{{ _portale_url }}" target="_blank" class="btn-az btn-az-gray">↗ Apri</a>
+            </div>
+            <form method="post" action="/clienti/{{ cliente.id }}/genera-portale" style="display:inline;">
+                <button class="btn-az btn-az-gray" style="font-size:12px;">🔄 Rigenera link</button>
+            </form>
+            {% else %}
+            <p style="font-size:13px; color:#6b7280; margin-bottom:14px;">
+                Genera un link univoco da condividere con il cliente: vedrà i lavori, gli aggiornamenti e le foto — senza dover chiamare.
+            </p>
+            <form method="post" action="/clienti/{{ cliente.id }}/genera-portale">
+                <button class="btn-az" style="background:#0f172a;color:white; font-size:13px; padding:8px 18px;">🔗 Genera link portale</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <div class="footer-actions">
         <a href="/clienti/" class="btn-az btn-az-gray">← Torna ai clienti</a>
         <a href="/lavori/nuovo/{{ cliente.id }}" class="btn-az btn-az-blue">➕ Nuovo lavoro</a>
         <a href="/lavori/?cliente_id={{ cliente.id }}&pagamento=da_incassare" class="btn-az btn-az-green">💳 Da incassare</a>
     </div>
+
+<script>
+function copyPortaleLink() {
+    var input = document.getElementById('portale-link-input');
+    if (!input) return;
+    input.select(); input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(function() {
+        var btns = document.querySelectorAll('button');
+        btns.forEach(function(b) {
+            if (b.textContent.indexOf('Copia') !== -1) {
+                b.textContent = '✓ Copiato';
+                setTimeout(function(){ b.textContent = '📋 Copia'; }, 2000);
+            }
+        });
+    }).catch(function() { document.execCommand('copy'); });
+}
+function inviaPortaleWA(btn) {
+    var tel = (btn.dataset.tel || '').replace(/\D/g, '');
+    if (tel.indexOf('00') === 0) tel = tel.slice(2);
+    if (tel.indexOf('39') !== 0) tel = '39' + tel;
+    var nome = btn.dataset.nome || 'Cliente';
+    var url = btn.dataset.url || '';
+    var msg = 'Gentile ' + nome + ',\n\nle invio il link per seguire i suoi lavori in tempo reale:\n' + url + '\n\nResto a disposizione per qualsiasi chiarimento.';
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
+}
+</script>
 
 </div>
 

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapportini — {{ lavoro.titolo }}</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .kpi-bar {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 14px; margin-bottom: 28px;
+        }
+        .kpi-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px;
+        }
+        .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 6px; }
+        .kpi-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
+        .kpi-val.green { color: #16a34a; }
+
+        .add-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 24px; margin-bottom: 28px;
+        }
+        .add-card h3 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 18px; }
+        .form-grid-2 {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+        }
+        .form-full { grid-column: 1 / -1; }
+        .fg { display: flex; flex-direction: column; gap: 5px; }
+        .fg label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #9ca3af;
+        }
+        .fg input, .fg textarea {
+            padding: 10px 12px; border: 1.5px solid #e5e7eb;
+            border-radius: 8px; font-size: 14px;
+            font-family: 'DM Sans', sans-serif; color: #111827;
+            outline: none; background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .fg input:focus, .fg textarea:focus {
+            border-color: #059669; background: white;
+            box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+        }
+        .fg textarea { resize: vertical; min-height: 80px; }
+        .btn-add {
+            padding: 10px 24px; background: #059669; color: white;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s; margin-top: 4px;
+        }
+        .btn-add:hover { background: #047857; }
+
+        .rapportino-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 20px; margin-bottom: 16px;
+        }
+        .rapportino-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+        }
+        .rapportino-date {
+            font-size: 15px; font-weight: 700; color: #111827;
+        }
+        .rapportino-ore {
+            display: inline-block; background: #f0fdf4; color: #16a34a;
+            border: 1px solid #bbf7d0; border-radius: 999px;
+            padding: 3px 12px; font-size: 12px; font-weight: 700;
+            font-family: 'DM Mono', monospace;
+        }
+        .rapportino-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .rapportino-section { margin-bottom: 10px; }
+        .rapportino-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 4px;
+        }
+        .rapportino-section-body {
+            font-size: 14px; color: #374151; white-space: pre-wrap; line-height: 1.5;
+        }
+
+        .btn-az { padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+                  text-decoration: none; cursor: pointer; border: none;
+                  font-family: 'DM Sans', sans-serif; transition: opacity 0.15s; display: inline-block; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-red { background: #fef2f2; color: #dc2626; }
+        .btn-az-blue { background: #eff6ff; color: #2563eb; }
+        .btn-az-wa { background: #dcfce7; color: #16a34a; }
+
+        .empty-state { text-align: center; padding: 48px 20px; color: #9ca3af; }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+        .footer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+        @media (max-width: 600px) {
+            .form-grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>📋 Rapportini di lavoro</h1>
+            <p>{{ lavoro.titolo }} · {{ lavoro.data_lavoro }}</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
+        </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-bar">
+        <div class="kpi-card">
+            <div class="kpi-label">Rapportini registrati</div>
+            <div class="kpi-val">{{ rapportini|length }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Totale ore registrate</div>
+            <div class="kpi-val green">{{ "%.1f"|format(totale_ore) }} h</div>
+        </div>
+    </div>
+
+    <!-- FORM NUOVO RAPPORTINO -->
+    <div class="add-card">
+        <h3>➕ Nuovo rapportino</h3>
+        <form method="post" action="/lavori/{{ lavoro.id }}/rapportini/nuovo">
+            <div class="form-grid-2">
+                <div class="fg">
+                    <label>Data *</label>
+                    <input type="date" name="data" value="{{ oggi }}" required>
+                </div>
+                <div class="fg">
+                    <label>Ore lavorate</label>
+                    <input type="number" name="ore_lavorate" step="0.5" value="0" min="0" placeholder="Es. 4.5">
+                </div>
+                <div class="fg form-full">
+                    <label>Attività svolte *</label>
+                    <textarea name="descrizione_attivita" required
+                              placeholder="Descrivere le attività svolte oggi: installazione, riparazioni, test…"></textarea>
+                </div>
+                <div class="fg form-full">
+                    <label>Materiali utilizzati</label>
+                    <textarea name="materiali_note"
+                              placeholder="Es. 2 tubi rame ø22, 1 valvola, guarnizioni…" style="min-height:56px;"></textarea>
+                </div>
+                <div class="fg form-full">
+                    <label>Note</label>
+                    <textarea name="note" placeholder="Eventuali note o problemi riscontrati…" style="min-height:48px;"></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn-add">+ Salva rapportino</button>
+        </form>
+    </div>
+
+    <!-- LISTA RAPPORTINI -->
+    {% if rapportini %}
+        {% for r in rapportini %}
+        <div class="rapportino-card">
+            <div class="rapportino-header">
+                <div>
+                    <div class="rapportino-date">{{ r.data }}</div>
+                    {% if r.ore_lavorate %}
+                    <span class="rapportino-ore">{{ "%.1f"|format(r.ore_lavorate) }} h</span>
+                    {% endif %}
+                </div>
+                <div class="rapportino-actions">
+                    <a href="/lavori/{{ lavoro.id }}/rapportini/{{ r.id }}/pdf" target="_blank"
+                       class="btn-az btn-az-blue">📄 PDF</a>
+                    <a href="https://wa.me/?text={{ ('Rapportino%20del%20' + r.data + '%20—%20' + lavoro.titolo + '%0A%0A' + r.descrizione_attivita[:200])|urlencode }}"
+                       target="_blank" class="btn-az btn-az-wa">💬 WhatsApp</a>
+                    <form method="post" action="/lavori/{{ lavoro.id }}/rapportini/{{ r.id }}/elimina"
+                          onsubmit="return confirm('Eliminare rapportino del {{ r.data }}?')" style="display:inline;">
+                        <button class="btn-az btn-az-red">🗑</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="rapportino-section">
+                <div class="rapportino-section-title">Attività svolte</div>
+                <div class="rapportino-section-body">{{ r.descrizione_attivita }}</div>
+            </div>
+            {% if r.materiali_note %}
+            <div class="rapportino-section">
+                <div class="rapportino-section-title">Materiali utilizzati</div>
+                <div class="rapportino-section-body">{{ r.materiali_note }}</div>
+            </div>
+            {% endif %}
+            {% if r.note %}
+            <div class="rapportino-section">
+                <div class="rapportino-section-title">Note</div>
+                <div class="rapportino-section-body" style="color:#6b7280;">{{ r.note }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:14px;">
+        <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <p style="font-weight:600; color:#374151; margin:0 0 6px;">Nessun rapportino ancora</p>
+            <p style="font-size:13px; margin:0;">Aggiungi un rapportino giornaliero per tenere traccia delle attività e inviarle al cliente.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer-actions" style="margin-top:24px;">
+        <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
+    </div>
+
+</div>
+
+</body>
+</html>

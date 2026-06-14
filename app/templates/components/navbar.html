@@ -68,7 +68,9 @@ function _mostraToastSWUpdate(newWorker) {
         <a href="/clienti/">👥 Clienti</a>
         <a href="/lavori/">🛠️ Lavori</a>
         <a href="/lavori/preventivi/dashboard">📑 Preventivi</a>
+        <a href="/listino/">📚 Listino prezzi</a>
         <a href="/lavori/agenda/scadenzario">📅 Agenda</a>
+        <a href="/scadenzario/manutenzioni">🔧 Manutenzioni</a>
 
         <div class="nav-group-sep"></div>
         <span class="nav-group-label">Gestione</span>
@@ -262,11 +264,19 @@ window._wa = function (btn) {
               'Clicchi qui per firmare:\n' + link + '\n\n' +
               'Resto a disposizione per qualsiasi chiarimento.';
     } else if (tipo === 'preventivo') {
-        msg = 'Gentile ' + nome + ',\n\n' +
-              'le invio il preventivo per:\n' + titolo + '\n' +
-              'Importo preventivato: ' + imp + '\n\n' +
-              'Allego il PDF del preventivo a questo messaggio.\n\n' +
-              'Resto a disposizione per qualsiasi chiarimento.';
+        if (link) {
+            msg = 'Gentile ' + nome + ',\n\n' +
+                  'le invio il preventivo per:\n' + titolo + '\n' +
+                  'Importo preventivato: ' + imp + '\n\n' +
+                  'Può visualizzare e accettare il preventivo al seguente link:\n' + link + '\n\n' +
+                  'Resto a disposizione per qualsiasi chiarimento.';
+        } else {
+            msg = 'Gentile ' + nome + ',\n\n' +
+                  'le invio il preventivo per:\n' + titolo + '\n' +
+                  'Importo preventivato: ' + imp + '\n\n' +
+                  'Allego il PDF del preventivo a questo messaggio.\n\n' +
+                  'Resto a disposizione per qualsiasi chiarimento.';
+        }
     } else if (tipo === 'fattura') {
         msg = 'Gentile ' + nome + ',\n\n' +
               'le invio la fattura' + (numero ? ' n. ' + numero : '') + ' per:\n' +

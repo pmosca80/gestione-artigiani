@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scadenzario manutenzioni — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .add-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 24px; margin-bottom: 28px;
+        }
+        .add-card h3 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 18px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-full { grid-column: 1 / -1; }
+        .fg { display: flex; flex-direction: column; gap: 5px; }
+        .fg label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+        .fg input, .fg select, .fg textarea {
+            padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+            font-size: 14px; font-family: 'DM Sans', sans-serif; color: #111827;
+            outline: none; background: #f9fafb; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .fg input:focus, .fg select:focus, .fg textarea:focus {
+            border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+        }
+        .btn-add {
+            padding: 10px 24px; background: #f59e0b; color: white;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+        }
+        .btn-add:hover { background: #d97706; }
+
+        .filtri { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filtro-btn {
+            padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+            text-decoration: none; border: 1.5px solid #e5e7eb; color: #6b7280;
+            transition: all 0.15s;
+        }
+        .filtro-btn.active { background: #111827; color: white; border-color: #111827; }
+
+        .lista-promemoria { display: flex; flex-direction: column; gap: 12px; }
+
+        .prm-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 14px;
+            padding: 16px 20px; display: flex; align-items: flex-start; gap: 16px;
+            transition: box-shadow 0.15s;
+        }
+        .prm-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .prm-card.completato { opacity: 0.55; }
+        .prm-card.scaduto { border-left: 4px solid #dc2626; }
+        .prm-card.imminente { border-left: 4px solid #f59e0b; }
+        .prm-card.futuro { border-left: 4px solid #d1d5db; }
+
+        .prm-icon { font-size: 28px; flex-shrink: 0; margin-top: 2px; }
+        .prm-body { flex: 1; min-width: 0; }
+        .prm-titolo { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+        .prm-card.completato .prm-titolo { text-decoration: line-through; color: #9ca3af; }
+        .prm-meta { font-size: 12px; color: #6b7280; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+        .prm-note { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+        .tipo-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .tipo-manutenzione { background: #fef3c7; color: #92400e; }
+        .tipo-revisione { background: #ede9fe; color: #6d28d9; }
+        .tipo-chiamata { background: #dcfce7; color: #166534; }
+        .tipo-ispezione { background: #e0f2fe; color: #075985; }
+        .tipo-altro { background: #f3f4f6; color: #374151; }
+
+        .scad-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace;
+        }
+        .scad-rosso { background: #fee2e2; color: #dc2626; }
+        .scad-arancio { background: #fef3c7; color: #92400e; }
+        .scad-grigio { background: #f3f4f6; color: #6b7280; }
+        .scad-verde { background: #dcfce7; color: #166534; }
+
+        .prm-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; align-items: flex-start; }
+
+        .btn-az { padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+                  cursor: pointer; border: none; font-family: 'DM Sans', sans-serif;
+                  transition: opacity 0.15s; display: inline-block; }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-green { background: #dcfce7; color: #16a34a; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-red { background: #fef2f2; color: #dc2626; }
+
+        .empty-state { text-align: center; padding: 48px 20px; color: #9ca3af;
+                       background: white; border: 1px solid #e5e7eb; border-radius: 14px; }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .prm-card { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>🔧 Scadenzario manutenzioni</h1>
+            <p>Promemoria per revisioni, manutenzioni periodiche e ricontatti clienti</p>
+        </div>
+    </div>
+
+    <!-- FORM NUOVO PROMEMORIA -->
+    <div class="add-card">
+        <h3>➕ Nuovo promemoria</h3>
+        <form method="post" action="/scadenzario/manutenzioni/nuovo">
+            <div class="form-grid">
+                <div class="fg" style="grid-column: 1 / -1;">
+                    <label>Titolo *</label>
+                    <input type="text" name="titolo" required
+                           placeholder="Es. Revisione caldaia Sig. Rossi, Ricontattare per manutenzione annuale…">
+                </div>
+                <div class="fg">
+                    <label>Data promemoria *</label>
+                    <input type="date" name="data_promemoria" required>
+                </div>
+                <div class="fg">
+                    <label>Tipo</label>
+                    <select name="tipo">
+                        {% for t in tipi %}
+                        <option value="{{ t }}">{{ t|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Cliente (opzionale)</label>
+                    <select name="cliente_id">
+                        <option value="">— Nessun cliente associato —</option>
+                        {% for c in clienti %}
+                        <option value="{{ c.id }}">
+                            {{ c.ragione_sociale or ((c.nome or '') + ' ' + (c.cognome or ''))|trim }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="fg form-full">
+                    <label>Note</label>
+                    <textarea name="note" style="min-height:56px;"
+                              placeholder="Dettagli sull'intervento, numero apparecchio, riferimento lavoro…"></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn-add">+ Aggiungi promemoria</button>
+        </form>
+    </div>
+
+    <!-- FILTRI -->
+    <div class="filtri">
+        <a href="/scadenzario/manutenzioni?filtro=attivi"
+           class="filtro-btn {% if filtro == 'attivi' %}active{% endif %}">🟡 Attivi</a>
+        <a href="/scadenzario/manutenzioni?filtro=tutti"
+           class="filtro-btn {% if filtro == 'tutti' %}active{% endif %}">📋 Tutti</a>
+    </div>
+
+    <!-- LISTA PROMEMORIA -->
+    {% if promemoria %}
+    <div class="lista-promemoria">
+        {% for p in promemoria %}
+        {% set _scad = p.data_promemoria %}
+        {% set _oggi = oggi %}
+        {% set _classe = 'futuro' %}
+        {% if p.stato == 'completato' %}{% set _classe = '' %}
+        {% elif _scad < _oggi %}{% set _classe = 'scaduto' %}
+        {% elif _scad <= tra_30 %}{% set _classe = 'imminente' %}
+        {% endif %}
+        <div class="prm-card {{ _classe }} {% if p.stato == 'completato' %}completato{% endif %}">
+            <div class="prm-icon">
+                {% if p.tipo == 'manutenzione' %}🔧
+                {% elif p.tipo == 'revisione' %}🔍
+                {% elif p.tipo == 'chiamata' %}📞
+                {% elif p.tipo == 'ispezione' %}🔎
+                {% else %}📌{% endif %}
+            </div>
+            <div class="prm-body">
+                <div class="prm-titolo">{{ p.titolo }}</div>
+                <div class="prm-meta">
+                    <span class="tipo-badge tipo-{{ p.tipo }}">{{ p.tipo }}</span>
+                    {% if p.stato == 'completato' %}
+                        <span class="scad-badge scad-verde">✓ Completato</span>
+                    {% elif p.data_promemoria < oggi %}
+                        <span class="scad-badge scad-rosso">⚠ Scaduto il {{ p.data_promemoria }}</span>
+                    {% elif p.data_promemoria <= tra_30 %}
+                        <span class="scad-badge scad-arancio">⏰ {{ p.data_promemoria }}</span>
+                    {% else %}
+                        <span class="scad-badge scad-grigio">📅 {{ p.data_promemoria }}</span>
+                    {% endif %}
+                    {% if p.cliente %}
+                        <span>👤 {{ p.cliente.ragione_sociale or ((p.cliente.nome or '') + ' ' + (p.cliente.cognome or ''))|trim }}
+                        {% if p.cliente.telefono %}
+                            · <a href="tel:{{ p.cliente.telefono }}" style="color:#059669;">{{ p.cliente.telefono }}</a>
+                        {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+                {% if p.note %}
+                <div class="prm-note">{{ p.note }}</div>
+                {% endif %}
+            </div>
+            <div class="prm-actions">
+                <form method="post" action="/scadenzario/manutenzioni/{{ p.id }}/completa" style="display:inline;">
+                    <button class="btn-az btn-az-green">
+                        {% if p.stato == 'completato' %}↩ Riattiva{% else %}✓ Fatto{% endif %}
+                    </button>
+                </form>
+                {% if p.cliente and p.cliente.telefono %}
+                {% set _nc = p.cliente.ragione_sociale or ((p.cliente.nome or '') + ' ' + (p.cliente.cognome or '')) %}
+                <button class="btn-az" style="background:#dcfce7;color:#16a34a;"
+                    onclick="window.open('https://wa.me/' + '{{ p.cliente.telefono }}'.replace(/\D/g,'').replace(/^00/,'').replace(/^(?!39)/,'39') + '?text=' + encodeURIComponent('Gentile {{ _nc|trim }},\n\nla contatto per: {{ p.titolo }}\n\nResto a disposizione.'), '_blank')">
+                    💬 WA
+                </button>
+                {% endif %}
+                <form method="post" action="/scadenzario/manutenzioni/{{ p.id }}/elimina"
+                      onsubmit="return confirm('Eliminare questo promemoria?')" style="display:inline;">
+                    <button class="btn-az btn-az-red">🗑</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">🔧</span>
+        <p style="font-weight:600; color:#374151; margin:0 0 6px;">Nessun promemoria</p>
+        <p style="font-size:13px; margin:0;">
+            Aggiungi un promemoria per ricordarti di ricontattare un cliente per la manutenzione periodica.<br>
+            <strong>Es.</strong> "Revisione caldaia Sig. Rossi — tra 11 mesi"
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

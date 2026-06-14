@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listino prezzi — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px; }
+        .page-header p { color: #6b7280; font-size: 13px; margin: 0; }
+
+        .add-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 24px; margin-bottom: 28px;
+        }
+        .add-card h3 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 18px; }
+        .add-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 1fr auto;
+            gap: 12px; align-items: end;
+        }
+        .fg { display: flex; flex-direction: column; gap: 5px; }
+        .fg label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #9ca3af;
+        }
+        .fg input, .fg select {
+            padding: 10px 12px; border: 1.5px solid #e5e7eb;
+            border-radius: 8px; font-size: 14px;
+            font-family: 'DM Sans', sans-serif; color: #111827;
+            outline: none; background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .fg input:focus, .fg select:focus {
+            border-color: #7c3aed; background: white;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+        }
+        .btn-add {
+            padding: 10px 20px; background: #7c3aed; color: white;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s; white-space: nowrap;
+        }
+        .btn-add:hover { background: #6d28d9; }
+
+        /* Gruppi per categoria */
+        .cat-group { margin-bottom: 24px; }
+        .cat-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.8px; color: #9ca3af; margin: 0 0 10px; padding: 0;
+        }
+
+        .listino-table-wrap {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; overflow: hidden;
+        }
+        .listino-table { width: 100%; border-collapse: collapse; }
+        .listino-table thead { background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .listino-table th {
+            padding: 11px 14px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af;
+            text-align: left;
+        }
+        .listino-table td {
+            padding: 12px 14px; border-bottom: 1px solid #f8fafc;
+            font-size: 14px; color: #374151; vertical-align: middle;
+        }
+        .listino-table tbody tr:last-child td { border-bottom: none; }
+        .listino-table tbody tr:hover td { background: #fafafa; }
+        .mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+        .prezzo-col { text-align: right; }
+
+        .btn-az {
+            padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+            text-decoration: none; cursor: pointer; border: none;
+            font-family: 'DM Sans', sans-serif; transition: opacity 0.15s;
+            display: inline-block;
+        }
+        .btn-az:hover { opacity: 0.82; }
+        .btn-az-gray { background: #f3f4f6; color: #374151; }
+        .btn-az-red { background: #fef2f2; color: #dc2626; }
+        .btn-az-violet { background: #f5f3ff; color: #7c3aed; }
+
+        .empty-state {
+            text-align: center; padding: 56px 20px; color: #9ca3af;
+        }
+        .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+
+        /* Modal modifica */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white; border-radius: 16px; padding: 28px;
+            width: 100%; max-width: 520px; margin: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .modal h3 { font-size: 17px; font-weight: 700; margin: 0 0 20px; color: #111827; }
+        .modal-grid { display: grid; grid-template-columns: 3fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .modal-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-cancel {
+            padding: 10px 20px; background: #f3f4f6; color: #374151;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+        }
+        .btn-save {
+            padding: 10px 20px; background: #7c3aed; color: white;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+        }
+        .btn-save:hover { background: #6d28d9; }
+
+        @media (max-width: 700px) {
+            .add-grid { grid-template-columns: 1fr 1fr; }
+            .modal-grid, .modal-grid2 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 440px) {
+            .add-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>📚 Listino prezzi</h1>
+            <p>Voci standard che puoi inserire nei preventivi con un clic.</p>
+        </div>
+    </div>
+
+    <!-- FORM AGGIUNGI -->
+    <div class="add-card">
+        <h3>➕ Nuova voce</h3>
+        <form method="post" action="/listino/nuovo">
+            <div class="add-grid">
+                <div class="fg">
+                    <label>Descrizione *</label>
+                    <input type="text" name="descrizione" required autofocus
+                           placeholder="Es. Ora manodopera idraulico, Scarico lavandino…">
+                </div>
+                <div class="fg">
+                    <label>U.M.</label>
+                    <input type="text" name="unita_misura" placeholder="h, pz, m…" maxlength="10">
+                </div>
+                <div class="fg">
+                    <label>Prezzo (€)</label>
+                    <input type="number" step="0.01" name="prezzo_unitario" value="0" min="0">
+                </div>
+                <div class="fg">
+                    <label>Categoria</label>
+                    <input type="text" name="categoria" placeholder="Es. Manodopera, Materiali…" list="cat-list">
+                    <datalist id="cat-list">
+                        {% set categorie = voci | map(attribute='categoria') | select | unique | list %}
+                        {% for c in categorie %}<option value="{{ c }}">{% endfor %}
+                    </datalist>
+                </div>
+                <button type="submit" class="btn-add">+ Aggiungi</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- TABELLA VOCI -->
+    {% if voci %}
+        {% set gruppi = {} %}
+        {% for v in voci %}
+            {% set cat = v.categoria or 'Senza categoria' %}
+            {% if cat not in gruppi %}{% set _ = gruppi.update({cat: []}) %}{% endif %}
+            {% set _ = gruppi[cat].append(v) %}
+        {% endfor %}
+
+        {% for cat, items in gruppi.items() %}
+        <div class="cat-group">
+            <p class="cat-label">{{ cat }}</p>
+            <div class="listino-table-wrap">
+                <table class="listino-table">
+                    <thead>
+                        <tr>
+                            <th>Descrizione</th>
+                            <th>U.M.</th>
+                            <th class="prezzo-col">Prezzo unitario</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in items %}
+                        <tr>
+                            <td><strong>{{ v.descrizione }}</strong></td>
+                            <td style="color:#6b7280; font-size:12px;">{{ v.unita_misura or '—' }}</td>
+                            <td class="prezzo-col mono">€ {{ "%.2f"|format(v.prezzo_unitario or 0) }}</td>
+                            <td style="white-space:nowrap; text-align:right;">
+                                <button type="button"
+                                        onclick="apriModifica({{ v.id }}, '{{ v.descrizione|replace("'", "\\'") }}', '{{ v.unita_misura or '' }}', {{ v.prezzo_unitario or 0 }}, '{{ v.categoria or '' }}')"
+                                        class="btn-az btn-az-violet">✏️ Modifica</button>
+                                <form method="post" action="/listino/{{ v.id }}/elimina"
+                                      onsubmit="return confirm('Eliminare questa voce dal listino?')"
+                                      style="display:inline;">
+                                    <button class="btn-az btn-az-red">🗑 Elimina</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="listino-table-wrap">
+        <div class="empty-state">
+            <span class="empty-icon">📚</span>
+            <p style="font-weight:600; color:#374151; margin:0 0 6px;">Listino vuoto</p>
+            <p style="font-size:13px; margin:0;">Aggiungi le tue voci standard per inserirle nei preventivi con un clic.</p>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- MODAL MODIFICA -->
+<div class="modal-overlay" id="modal-modifica">
+    <div class="modal">
+        <h3>✏️ Modifica voce</h3>
+        <form method="post" id="form-modifica">
+            <div class="modal-grid">
+                <div class="fg">
+                    <label>Descrizione *</label>
+                    <input type="text" name="descrizione" id="m-descrizione" required>
+                </div>
+                <div class="fg">
+                    <label>U.M.</label>
+                    <input type="text" name="unita_misura" id="m-um" maxlength="10">
+                </div>
+            </div>
+            <div class="modal-grid2">
+                <div class="fg">
+                    <label>Prezzo (€)</label>
+                    <input type="number" step="0.01" name="prezzo_unitario" id="m-prezzo" min="0">
+                </div>
+                <div class="fg">
+                    <label>Categoria</label>
+                    <input type="text" name="categoria" id="m-categoria" list="cat-list">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="chiudiModifica()">Annulla</button>
+                <button type="submit" class="btn-save">Salva</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function apriModifica(id, descrizione, um, prezzo, categoria) {
+    document.getElementById('form-modifica').action = '/listino/' + id + '/modifica';
+    document.getElementById('m-descrizione').value = descrizione;
+    document.getElementById('m-um').value = um;
+    document.getElementById('m-prezzo').value = prezzo;
+    document.getElementById('m-categoria').value = categoria;
+    document.getElementById('modal-modifica').classList.add('open');
+}
+function chiudiModifica() {
+    document.getElementById('modal-modifica').classList.remove('open');
+}
+document.getElementById('modal-modifica').addEventListener('click', function(e) {
+    if (e.target === this) chiudiModifica();
+});
+</script>
+
+</body>
+</html>

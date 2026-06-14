@@ -25,6 +25,10 @@ from app.models import (
     VocePreventivo,
     SessioneLavoro,
     VocePrimaNota,
+    ListinoVoce,
+    SalLavoro,
+    RapportinoLavoro,
+    PromemoriaCliente,
 )
 from app.models import MovimentoMagazzino
 
@@ -394,7 +398,7 @@ def aggiorna_lavoro(
 
         lavoro.margine = totale_documento - costo_reale
 
-        lavoro.residuo_pagamento = lavoro.totale_documento - importo_pagato
+        lavoro.residuo_pagamento = max(0.0, lavoro.totale_documento - importo_pagato)
 
         if importo_pagato <= 0:
             lavoro.stato_pagamento = "da_pagare"
@@ -1553,7 +1557,7 @@ def aggiorna_totale_pagamenti_lavoro(db: Session, utente_id: int, lavoro_id: int
     totale_documento = lavoro.totale_documento or 0
 
     lavoro.importo_pagato = totale_pagato
-    lavoro.residuo_pagamento = totale_documento - totale_pagato
+    lavoro.residuo_pagamento = max(0.0, totale_documento - totale_pagato)
 
     if totale_pagato <= 0:
         lavoro.stato_pagamento = "da_pagare"
@@ -2818,3 +2822,222 @@ def elimina_voce_prima_nota(db: Session, voce_id: int, utente_id: int) -> bool:
     db.delete(voce)
     db.commit()
     return True
+
+
+# ========================
+# LISTINO PREZZI
+# ========================
+
+def get_listino(db: Session, utente_id: int):
+    return (
+        db.query(ListinoVoce)
+        .filter(ListinoVoce.utente_id == utente_id)
+        .order_by(ListinoVoce.categoria, ListinoVoce.descrizione)
+        .all()
+    )
+
+
+def get_listino_voce(db: Session, voce_id: int, utente_id: int):
+    return db.query(ListinoVoce).filter(
+        ListinoVoce.id == voce_id,
+        ListinoVoce.utente_id == utente_id,
+    ).first()
+
+
+def crea_listino_voce(
+    db: Session,
+    utente_id: int,
+    descrizione: str,
+    unita_misura: str,
+    prezzo_unitario: float,
+    categoria: str,
+) -> ListinoVoce:
+    voce = ListinoVoce(
+        utente_id=utente_id,
+        descrizione=descrizione,
+        unita_misura=unita_misura or "",
+        prezzo_unitario=prezzo_unitario,
+        categoria=categoria or "",
+        data_creazione=datetime.now().strftime("%Y-%m-%d"),
+    )
+    db.add(voce)
+    db.commit()
+    db.refresh(voce)
+    return voce
+
+
+def aggiorna_listino_voce(
+    db: Session,
+    voce_id: int,
+    utente_id: int,
+    descrizione: str,
+    unita_misura: str,
+    prezzo_unitario: float,
+    categoria: str,
+):
+    voce = get_listino_voce(db, voce_id, utente_id)
+    if not voce:
+        return None
+    voce.descrizione = descrizione
+    voce.unita_misura = unita_misura or ""
+    voce.prezzo_unitario = prezzo_unitario
+    voce.categoria = categoria or ""
+    db.commit()
+    db.refresh(voce)
+    return voce
+
+
+def elimina_listino_voce(db: Session, voce_id: int, utente_id: int) -> bool:
+    voce = get_listino_voce(db, voce_id, utente_id)
+    if not voce:
+        return False
+    db.delete(voce)
+    db.commit()
+    return True
+
+
+# ========================
+# SAL — STATO AVANZAMENTO LAVORI
+# ========================
+
+def get_sal_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(SalLavoro)
+        .filter(SalLavoro.utente_id == utente_id, SalLavoro.lavoro_id == lavoro_id)
+        .order_by(SalLavoro.numero)
+        .all()
+    )
+
+def get_sal_by_id(db: Session, sal_id: int, utente_id: int):
+    return db.query(SalLavoro).filter(
+        SalLavoro.id == sal_id, SalLavoro.utente_id == utente_id
+    ).first()
+
+def crea_sal(db: Session, utente_id: int, lavoro_id: int, data: str,
+             percentuale: float, importo_richiesto: float, descrizione: str, note: str):
+    numero = db.query(SalLavoro).filter(
+        SalLavoro.utente_id == utente_id, SalLavoro.lavoro_id == lavoro_id
+    ).count() + 1
+    sal = SalLavoro(
+        lavoro_id=lavoro_id, utente_id=utente_id, numero=numero,
+        data=data, percentuale=percentuale, importo_richiesto=importo_richiesto,
+        descrizione=descrizione or "", note=note or "",
+        stato="emesso", data_creazione=datetime.now().strftime("%Y-%m-%d"),
+    )
+    db.add(sal); db.commit(); db.refresh(sal); return sal
+
+def segna_sal_pagato(db: Session, sal_id: int, utente_id: int):
+    sal = get_sal_by_id(db, sal_id, utente_id)
+    if not sal:
+        return None
+    sal.stato = "pagato" if sal.stato == "emesso" else "emesso"
+    db.commit(); db.refresh(sal); return sal
+
+def elimina_sal(db: Session, sal_id: int, utente_id: int) -> bool:
+    sal = get_sal_by_id(db, sal_id, utente_id)
+    if not sal:
+        return False
+    db.delete(sal); db.commit(); return True
+
+
+# ========================
+# RAPPORTINI DI LAVORO
+# ========================
+
+def get_rapportini_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(RapportinoLavoro)
+        .filter(RapportinoLavoro.utente_id == utente_id, RapportinoLavoro.lavoro_id == lavoro_id)
+        .order_by(RapportinoLavoro.data.desc())
+        .all()
+    )
+
+def get_rapportino_by_id(db: Session, rapportino_id: int, utente_id: int):
+    return db.query(RapportinoLavoro).filter(
+        RapportinoLavoro.id == rapportino_id, RapportinoLavoro.utente_id == utente_id
+    ).first()
+
+def crea_rapportino(db: Session, utente_id: int, lavoro_id: int, data: str,
+                    ore_lavorate: float, descrizione_attivita: str,
+                    materiali_note: str, note: str):
+    r = RapportinoLavoro(
+        lavoro_id=lavoro_id, utente_id=utente_id, data=data,
+        ore_lavorate=ore_lavorate or 0, descrizione_attivita=descrizione_attivita,
+        materiali_note=materiali_note or "", note=note or "",
+        data_creazione=datetime.now().strftime("%Y-%m-%d"),
+    )
+    db.add(r); db.commit(); db.refresh(r); return r
+
+def elimina_rapportino(db: Session, rapportino_id: int, utente_id: int) -> bool:
+    r = get_rapportino_by_id(db, rapportino_id, utente_id)
+    if not r:
+        return False
+    db.delete(r); db.commit(); return True
+
+
+# ─── PROMEMORIA MANUTENZIONI ───────────────────────────────────────────────
+
+def get_promemoria(db: Session, utente_id: int, solo_attivi: bool = False):
+    q = db.query(PromemoriaCliente).filter(PromemoriaCliente.utente_id == utente_id)
+    if solo_attivi:
+        q = q.filter(PromemoriaCliente.stato == "attivo")
+    return q.order_by(PromemoriaCliente.data_promemoria.asc()).all()
+
+def get_promemoria_imminenti(db: Session, utente_id: int, giorni: int = 30):
+    from datetime import date, timedelta
+    oggi = date.today()
+    limite = (oggi + timedelta(days=giorni)).isoformat()
+    return (
+        db.query(PromemoriaCliente)
+        .filter(
+            PromemoriaCliente.utente_id == utente_id,
+            PromemoriaCliente.stato == "attivo",
+            PromemoriaCliente.data_promemoria <= limite,
+        )
+        .order_by(PromemoriaCliente.data_promemoria.asc())
+        .all()
+    )
+
+def get_promemoria_by_id(db: Session, promemoria_id: int, utente_id: int):
+    return (
+        db.query(PromemoriaCliente)
+        .filter(PromemoriaCliente.id == promemoria_id, PromemoriaCliente.utente_id == utente_id)
+        .first()
+    )
+
+def crea_promemoria(db: Session, utente_id: int, titolo: str, data_promemoria: str,
+                    tipo: str = "manutenzione", note: str = "", cliente_id: int | None = None):
+    p = PromemoriaCliente(
+        utente_id=utente_id, cliente_id=cliente_id or None,
+        titolo=titolo, note=note or "", data_promemoria=data_promemoria,
+        tipo=tipo, stato="attivo",
+        data_creazione=datetime.now().strftime("%Y-%m-%d"),
+    )
+    db.add(p); db.commit(); db.refresh(p); return p
+
+def completa_promemoria(db: Session, promemoria_id: int, utente_id: int):
+    p = get_promemoria_by_id(db, promemoria_id, utente_id)
+    if not p:
+        return None
+    p.stato = "completato" if p.stato == "attivo" else "attivo"
+    db.commit(); db.refresh(p); return p
+
+def elimina_promemoria(db: Session, promemoria_id: int, utente_id: int) -> bool:
+    p = get_promemoria_by_id(db, promemoria_id, utente_id)
+    if not p:
+        return False
+    db.delete(p); db.commit(); return True
+
+
+# ─── PORTALE CLIENTE (token pubblico) ──────────────────────────────────────
+
+def genera_token_portale_cliente(db: Session, cliente_id: int, utente_id: int):
+    cliente = get_cliente_by_id(db, cliente_id, utente_id)
+    if not cliente:
+        return None
+    cliente.token_portale = secrets.token_urlsafe(24)
+    db.commit(); db.refresh(cliente)
+    return cliente
+
+def get_cliente_by_token_portale(db: Session, token: str):
+    return db.query(Cliente).filter(Cliente.token_portale == token).first()

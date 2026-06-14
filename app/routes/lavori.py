@@ -766,8 +766,9 @@ def form_voci_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
     voci = crud.get_voci_preventivo(db, user_id, lavoro_id)
     totale_voci = sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)
+    listino = crud.get_listino(db, user_id)
     return templates.TemplateResponse(request=request, name="lavoro_voci.html", context={
-        "lavoro": lavoro, "voci": voci, "totale_voci": totale_voci,
+        "lavoro": lavoro, "voci": voci, "totale_voci": totale_voci, "listino": listino,
     })
 
 @router.post("/{lavoro_id}/voci")

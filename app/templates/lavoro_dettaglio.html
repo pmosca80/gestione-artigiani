@@ -541,6 +541,8 @@
                 <a href="/lavori/{{ lavoro.id }}/voci" class="btn-hero btn-hero-outline">📋 Voci{% if voci_preventivo %} ({{ voci_preventivo|length }}){% endif %}</a>
                 <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-hero btn-hero-outline">📦 Materiali</a>
                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
+                <a href="/lavori/{{ lavoro.id }}/sal" class="btn-hero btn-hero-outline">📊 SAL</a>
+                <a href="/lavori/{{ lavoro.id }}/rapportini" class="btn-hero btn-hero-outline">📋 Rapportini</a>
                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
                 {% if lavoro.cliente and lavoro.cliente.telefono %}
                 {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
@@ -550,6 +552,7 @@
                     data-wa-titolo="{{ lavoro.titolo }}"
                     data-wa-importo="{{ lavoro.importo_preventivato or lavoro.totale_documento or 0 }}"
                     data-wa-tipo="{% if lavoro.stato in ['preventivo','preventivo_inviato','preventivo_accettato'] %}preventivo{% else %}lavoro{% endif %}"
+                    {% if lavoro.token_firma and lavoro.stato in ['preventivo','preventivo_inviato','preventivo_accettato'] %}data-wa-link="{{ request.url.scheme }}://{{ request.url.netloc }}/firma/{{ lavoro.token_firma }}"{% endif %}
                     onclick="_wa(this)">📱 WhatsApp</button>
                 {% endif %}
                 <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-hero btn-hero-white">🧾 FatturaPA XML</a>
@@ -908,6 +911,14 @@
             <a href="/lavori/{{ lavoro.id }}/pagamenti" class="azione-tile">
                 <div class="azione-icon">💳</div>
                 <div><h4>Pagamenti</h4><p>Acconti e saldi</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/sal" class="azione-tile">
+                <div class="azione-icon">📊</div>
+                <div><h4>SAL</h4><p>Stato avanzamento lavori</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/rapportini" class="azione-tile">
+                <div class="azione-icon">📋</div>
+                <div><h4>Rapportini</h4><p>Giornale di cantiere</p></div>
             </a>
             <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="azione-tile">
                 <div class="azione-icon">📄</div>
