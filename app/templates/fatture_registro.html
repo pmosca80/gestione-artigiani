@@ -206,6 +206,11 @@
         ✅ Fattura inviata via email con successo!
     </div>
     {% endif %}
+    {% if request.query_params.get('creata') %}
+    <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#5b21b6;">
+        🧾 Fattura creata nel registro! Scarica l'XML o inviala al cliente con i pulsanti qui sotto.
+    </div>
+    {% endif %}
     {% if flash_err %}
     <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#991b1b;">
         ⚠️ {{ flash_err }}
@@ -326,7 +331,7 @@
                     <td>
                         <div class="azioni-cell">
                             {% if lav %}
-                            <a href="/documenti/lavori/{{ lav.id }}/fattura-xml"
+                            <a href="/fatture/{{ f.id }}/scarica-xml"
                                class="btn-az btn-az-purple">↓ XML</a>
                             <a href="/lavori/{{ lav.id }}"
                                class="btn-az btn-az-gray">📋 Lavoro</a>

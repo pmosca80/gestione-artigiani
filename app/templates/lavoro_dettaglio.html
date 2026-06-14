@@ -639,6 +639,26 @@
         </div>
     </div>
 
+    <!-- CTA FATTURA: appare per lavori non in fase di preventivo e senza fattura emessa -->
+    {% if lavoro.stato not in ["preventivo", "preventivo_inviato", "preventivo_accettato"] and not fattura_emessa %}
+    <div class="cta-fattura">
+        <div class="cta-fattura-icon">🧾</div>
+        <div class="cta-fattura-text">
+            <strong>Genera la FatturaPA elettronica</strong>
+            <span>Crea la fattura nel registro — poi scarica l'XML o inviala via email / SDI</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; flex-shrink:0;">
+            <form action="/fatture/crea-da-lavoro/{{ lavoro.id }}" method="post" style="margin:0;">
+                <button type="submit" class="cta-fattura-btn">🧾 Genera Fattura</button>
+            </form>
+            <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml"
+               class="cta-fattura-btn" style="background:rgba(255,255,255,0.18); color:white; border:1px solid rgba(255,255,255,0.3);">
+               ↓ Scarica XML
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- FIRMA DIGITALE: appare solo per preventivi -->
     {% if lavoro.stato in ["preventivo", "preventivo_inviato", "preventivo_accettato"] %}
     <div class="cta-firma {% if lavoro.firma_nome_cliente %}firmato{% endif %}">

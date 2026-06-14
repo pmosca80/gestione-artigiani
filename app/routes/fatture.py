@@ -1,8 +1,8 @@
 import io
-from datetime import datetime
+from datetime import datetime, date as _date
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -392,3 +392,125 @@ def aggiorna_stato(
 ):
     crud.aggiorna_stato_fattura(db, fattura_id, user_id, stato)
     return RedirectResponse("/fatture/", status_code=303)
+
+
+@router.post("/crea-da-lavoro/{lavoro_id}")
+def crea_fattura_da_lavoro(
+    lavoro_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Crea FatturaEmessa nel registro senza forzare il download dell'XML."""
+    from app.services.fatturapa import (
+        errori_fatturapa, nome_file_fatturapa, bollo_dovuto, _REGIMI_SENZA_IVA,
+    )
+
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404)
+
+    cliente = lavoro.cliente
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+
+    errori = errori_fatturapa(lavoro, cliente, azienda)
+    if errori:
+        items = "".join(f"<li>{err}</li>" for err in errori)
+        return HTMLResponse(
+            status_code=422,
+            content=f"""<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FatturaPA — dati mancanti</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {{ font-family: 'DM Sans', sans-serif; background: #f8fafc; }}
+    .wrap {{ max-width: 640px; margin: 60px auto; padding: 0 20px; }}
+    .card {{ background: white; border: 1px solid #fca5a5; border-radius: 16px; padding: 32px; }}
+    h2 {{ font-size: 20px; font-weight: 700; color: #991b1b; margin: 0 0 8px; }}
+    p  {{ color: #6b7280; font-size: 14px; margin: 0 0 20px; }}
+    ul {{ color: #374151; font-size: 14px; padding-left: 20px; line-height: 1.9; margin: 0 0 28px; }}
+    .btn {{ display: inline-block; padding: 10px 20px; background: #2563eb; color: white;
+            border-radius: 9px; font-size: 14px; font-weight: 700; text-decoration: none; }}
+    .btn-gray {{ background: #f3f4f6; color: #374151; margin-left: 8px; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Impossibile generare la FatturaPA</h2>
+      <p>Correggi i seguenti dati prima di procedere:</p>
+      <ul>{items}</ul>
+      <a href="/lavori/{lavoro_id}/modifica" class="btn">✏️ Modifica lavoro</a>
+      <a href="/lavori/{lavoro_id}" class="btn btn-gray">← Torna alla scheda</a>
+    </div>
+  </div>
+</body>
+</html>""",
+        )
+
+    if not lavoro.numero_fattura:
+        anno_gen, numero_gen = crud.genera_numero_fattura(db, user_id)
+        lavoro.numero_fattura = numero_gen
+        if not lavoro.data_fattura:
+            lavoro.data_fattura = _date.today().isoformat()
+        db.commit()
+        db.refresh(lavoro)
+
+    lavoro.stato_fattura = "emessa"
+    db.commit()
+
+    data_em = lavoro.data_fattura or _date.today().isoformat()
+    try:
+        anno = int(data_em[:4])
+    except (ValueError, TypeError):
+        anno = _date.today().year
+
+    imponibile_val = float(lavoro.importo_consuntivo or 0)
+    regime_str = (azienda.regime_fiscale or "RF01").strip().upper()
+    regime_senza_iva = regime_str in _REGIMI_SENZA_IVA
+    aliquota_val = 0.0 if regime_senza_iva else float(lavoro.aliquota_iva or 22)
+    iva_val = 0.0 if (regime_senza_iva or aliquota_val == 0) else float(
+        lavoro.totale_iva or round(imponibile_val * aliquota_val / 100, 2)
+    )
+    totale_val = imponibile_val if regime_senza_iva else float(lavoro.totale_documento or 0)
+    totale_val = round(totale_val + bollo_dovuto(regime_senza_iva, imponibile_val), 2)
+    filename = nome_file_fatturapa(azienda, lavoro)
+
+    crud.salva_fattura_emessa(
+        db, user_id, lavoro.id, lavoro.numero_fattura, anno, data_em,
+        imponibile_val, iva_val, totale_val, filename, azienda.regime_fiscale or "RF01",
+    )
+
+    return RedirectResponse(f"/fatture/?anno={anno}&creata=1", status_code=303)
+
+
+@router.get("/{fattura_id}/scarica-xml")
+def scarica_xml_da_registro(
+    fattura_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Genera e scarica l'XML di una FatturaEmessa già registrata, senza toccare il DB."""
+    from app.models import FatturaEmessa as _FE
+    from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa
+
+    fattura = db.query(_FE).filter(_FE.id == fattura_id, _FE.utente_id == user_id).first()
+    if not fattura:
+        raise HTTPException(status_code=404)
+
+    lav = fattura.lavoro
+    if not lav:
+        raise HTTPException(status_code=404)
+
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    voci = crud.get_voci_preventivo(db, user_id, lav.id)
+    xml_bytes = genera_xml_fatturapa(lav, lav.cliente, azienda, voci=voci or None)
+    filename = fattura.nome_file or nome_file_fatturapa(azienda, lav)
+
+    return Response(
+        content=xml_bytes,
+        media_type="application/xml",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
