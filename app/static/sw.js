@@ -1,9 +1,10 @@
-const CACHE = 'gestionale-v4';
+const CACHE = 'gestionale-v5';
 const STATIC = [
   '/static/style.css',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
   '/static/manifest.json',
+  '/offline',
 ];
 
 self.addEventListener('install', e => {
@@ -22,6 +23,10 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', e => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('push', e => {
@@ -82,6 +87,6 @@ self.addEventListener('fetch', e => {
         }
         return res;
       })
-      .catch(() => caches.match(request).then(cached => cached || caches.match('/')))
+      .catch(() => caches.match(request).then(cached => cached || caches.match('/offline')))
   );
 });

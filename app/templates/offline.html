@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Offline — Gestionale Artigiani</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Artigiani">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0;
+            min-height: 100dvh;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            gap: 0;
+        }
+        .icon { font-size: 64px; margin-bottom: 16px; }
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 10px;
+            color: #f1f5f9;
+        }
+        .subtitle {
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 300px;
+            margin: 0 0 28px;
+        }
+        .btn-retry {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 32px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-retry:hover { background: #6d28d9; }
+        .cached-section {
+            margin-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 28px;
+            width: 100%;
+            max-width: 280px;
+        }
+        .cached-section h2 {
+            font-size: 11px;
+            color: #475569;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin: 0 0 14px;
+        }
+        .cached-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #a78bfa;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(167,139,250,0.15);
+            margin-bottom: 8px;
+            transition: background 0.12s, border-color 0.12s;
+        }
+        .cached-link:hover {
+            background: rgba(124,58,237,0.15);
+            border-color: rgba(167,139,250,0.35);
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #dc2626;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .online-msg {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #16a34a;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div class="online-msg" id="online-msg">Connessione ripristinata — ricarico…</div>
+
+    <div class="icon">📡</div>
+    <h1><span class="status-dot"></span>Sei offline</h1>
+    <p class="subtitle">
+        Non c'è connessione a internet.<br>
+        Le pagine visitate di recente potrebbero essere disponibili dalla cache.
+    </p>
+    <button class="btn-retry" onclick="location.reload()">Riprova la connessione</button>
+
+    <div class="cached-section">
+        <h2>Accesso rapido (da cache)</h2>
+        <a class="cached-link" href="/">🏠 Dashboard</a>
+        <a class="cached-link" href="/clienti/">👥 Clienti</a>
+        <a class="cached-link" href="/lavori/">🛠️ Lavori</a>
+        <a class="cached-link" href="/lavori/agenda/scadenzario">📅 Agenda</a>
+        <a class="cached-link" href="/fatture/">🧾 Fatture</a>
+    </div>
+
+    <script>
+        window.addEventListener('online', function () {
+            var msg = document.getElementById('online-msg');
+            msg.style.display = 'block';
+            setTimeout(function () { location.reload(); }, 1200);
+        });
+    </script>
+</body>
+</html>

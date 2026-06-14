@@ -247,6 +247,10 @@ def service_worker():
     from fastapi.responses import FileResponse
     return FileResponse(str(BASE_DIR / "static" / "sw.js"), media_type="application/javascript")
 
+@app.get("/offline", response_class=HTMLResponse)
+def offline_page(request: Request):
+    return templates.TemplateResponse(request=request, name="offline.html", context={})
+
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy_policy(request: Request):
     return templates.TemplateResponse(request=request, name="privacy.html", context={})
