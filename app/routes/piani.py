@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,7 @@ from app.services.piani import (
     LIMITE_CLIENTI_FREE,
     conta_clienti,
     get_piano,
+    get_limite_clienti,
     stripe_configurato,
     get_stripe_price_id,
     get_base_url,
@@ -58,7 +59,6 @@ def pagina_piani(
     piano_corrente = get_piano(db, eff_id)
     n_clienti = conta_clienti(db, eff_id)
     stripe_ok = stripe_configurato()
-    price_id = get_stripe_price_id()
 
     from app.models import Utente
     _u = db.query(Utente).filter(Utente.id == eff_id).first()
@@ -71,8 +71,11 @@ def pagina_piani(
             "piano_corrente": piano_corrente,
             "n_clienti": n_clienti,
             "limite_free": LIMITE_CLIENTI_FREE,
+            "limite_corrente": get_limite_clienti(piano_corrente),
             "stripe_ok": stripe_ok,
-            "price_id": price_id,
+            "price_id_starter":  get_stripe_price_id("starter"),
+            "price_id_pro":      get_stripe_price_id("pro"),
+            "price_id_business": get_stripe_price_id("business"),
             "trial_scaduto": trial_scaduto,
             "successo": successo,
             "is_collaboratore": is_collab,
@@ -81,9 +84,12 @@ def pagina_piani(
     )
 
 
+_PIANI_VALIDI = {"starter", "pro", "business"}
+
 @router.post("/piani/checkout")
 def crea_checkout(
     request: Request,
+    piano: str = Form("pro"),
     db: Session = Depends(get_db),
 ):
     import stripe as _stripe
@@ -94,10 +100,13 @@ def crea_checkout(
     if _is_collaboratore(request, db):
         return RedirectResponse("/piani?errore=solo_titolare", status_code=303)
 
+    if piano not in _PIANI_VALIDI:
+        piano = "pro"
+
     if not stripe_configurato():
         return RedirectResponse("/piani?errore=stripe_non_configurato", status_code=303)
 
-    price_id = get_stripe_price_id()
+    price_id = get_stripe_price_id(piano)
     if not price_id:
         return RedirectResponse("/piani?errore=price_non_configurato", status_code=303)
 
@@ -115,6 +124,7 @@ def crea_checkout(
             success_url=f"{base_url}/piani/successo?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{base_url}/piani/annullato",
             client_reference_id=str(user_id),
+            metadata={"piano": piano},
             **({"customer_email": email} if email else {}),
         )
         return RedirectResponse(session.url, status_code=303)
@@ -213,7 +223,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if evt_type == "checkout.session.completed":
         user_id = _safe_int(obj.get("client_reference_id"))
         if user_id and obj.get("payment_status") == "paid":
-            _attiva_pro(db, user_id, obj.get("customer"), obj.get("subscription"))
+            piano_acquistato = (obj.get("metadata") or {}).get("piano", "pro")
+            if piano_acquistato not in _PIANI_VALIDI:
+                piano_acquistato = "pro"
+            _attiva_pro(db, user_id, obj.get("customer"), obj.get("subscription"), piano_acquistato)
 
     elif evt_type in ("customer.subscription.deleted", "customer.subscription.paused"):
         customer_id = obj.get("customer")
@@ -236,12 +249,12 @@ def _safe_int(val) -> int | None:
         return None
 
 
-def _attiva_pro(db: Session, user_id: int, customer_id: str | None, subscription_id: str | None):
+def _attiva_pro(db: Session, user_id: int, customer_id: str | None, subscription_id: str | None, piano: str = "pro"):
     from app.models import Utente
     u = db.query(Utente).filter(Utente.id == user_id).first()
     if u:
-        era_gia_pro = u.piano == "pro"
-        u.piano = "pro"
+        era_gia_pro = u.piano != "free"
+        u.piano = piano
         u.attivo = 2
         if customer_id:
             u.stripe_customer_id = customer_id

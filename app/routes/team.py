@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.services.piani import get_base_url, get_piano
+from app.services.piani import get_base_url, get_piano, ha_team, max_collaboratori
 from app.templates_config import templates
 
 router = APIRouter(tags=["team"])
@@ -88,11 +88,12 @@ def genera_invito(
     from app.models import Utente, InvitoAccount
 
     piano = get_piano(db, user_id)
-    if piano != "pro":
+    if not ha_team(piano):
         return RedirectResponse("/team?errore=pro_required", status_code=303)
 
     n_collab = db.query(Utente).filter(Utente.titolare_id == user_id).count()
-    if n_collab >= MAX_COLLABORATORI:
+    max_c = max_collaboratori(piano)
+    if max_c is not None and n_collab >= max_c:
         return RedirectResponse("/team?errore=limite_raggiunto", status_code=303)
 
     # Revoca inviti precedenti non usati

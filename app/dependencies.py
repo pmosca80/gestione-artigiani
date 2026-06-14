@@ -23,7 +23,7 @@ def _check_piano_trial(utente, db: Session) -> None:
     """Verifica piano Pro e scadenza trial. Lancia AccountScaduto se trial finito."""
     piano = getattr(utente, "piano", None) or "free"
 
-    if piano == "pro":
+    if piano in ("starter", "pro", "business"):
         pro_scadenza = getattr(utente, "pro_scadenza", None)
         stripe_sub = getattr(utente, "stripe_subscription_id", None)
         if pro_scadenza and not stripe_sub:
@@ -38,7 +38,7 @@ def _check_piano_trial(utente, db: Session) -> None:
                 raise
             except Exception:
                 pass
-        if piano == "pro":
+        if piano in ("starter", "pro", "business"):
             return
 
     # Piano free: verifica trial 30 giorni
