@@ -1,66 +1,65 @@
 import os
-import smtplib
-from email.message import EmailMessage
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-
 from app.logger import get_logger
 
 logger = get_logger("email")
 
+_SENDER_DEFAULT = "Gestionale Artigiani <onboarding@resend.dev>"
+
 
 def smtp_configurato() -> bool:
-    """True se le variabili SMTP sono impostate."""
-    return bool(
-        os.getenv("MAIL_USERNAME") or os.getenv("SMTP_USER")
-    ) and bool(
-        os.getenv("MAIL_PASSWORD") or os.getenv("SMTP_PASSWORD")
-    )
+    """True se RESEND_API_KEY è configurata."""
+    return bool(os.getenv("RESEND_API_KEY"))
 
 
-def _smtp_settings() -> dict:
-    """Legge le variabili env SMTP, accetta sia MAIL_* che SMTP_*."""
-    return {
-        "host":     os.getenv("SMTP_HOST", "smtp.gmail.com"),
-        "port":     int(os.getenv("SMTP_PORT", "587")),
-        "user":     os.getenv("SMTP_USER") or os.getenv("MAIL_USERNAME", ""),
-        "password": os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_PASSWORD", ""),
-        "from":     os.getenv("MAIL_FROM") or os.getenv("SMTP_USER") or os.getenv("MAIL_USERNAME", ""),
+def _sender() -> str:
+    return os.getenv("MAIL_FROM", _SENDER_DEFAULT)
+
+
+def _send(
+    *,
+    to: str,
+    subject: str,
+    html: str,
+    from_: str | None = None,
+    attachments: list | None = None,
+) -> bool:
+    """Invia via Resend API. Ritorna True se OK, False altrimenti."""
+    import resend
+
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key:
+        logger.warning("RESEND_API_KEY non configurata — email non inviata")
+        return False
+
+    resend.api_key = api_key
+    params: dict = {
+        "from": from_ or _sender(),
+        "to": [to],
+        "subject": subject,
+        "html": html,
     }
+    if attachments:
+        params["attachments"] = attachments
+
+    try:
+        resend.Emails.send(params)
+        logger.info(f"Email inviata a {to} — {subject}")
+        return True
+    except Exception as e:
+        logger.warning(f"Errore invio email a {to}: {e}")
+        return False
 
 
 def invia_email(destinatario: str, oggetto: str, corpo: str) -> bool:
-    """Invia email HTML semplice (funzione originale, mantenuta)."""
-    cfg = _smtp_settings()
-    if not cfg["user"] or not cfg["password"]:
-        logger.error("Credenziali email non configurate")
-        return False
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = oggetto
-        msg["From"] = cfg["from"]
-        msg["To"] = destinatario
-        msg.attach(MIMEText(corpo, "html", "utf-8"))
-        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
-            s.ehlo()
-            s.starttls()
-            s.login(cfg["user"], cfg["password"])
-            s.sendmail(cfg["from"], destinatario, msg.as_string())
-        logger.info(f"Email inviata a {destinatario} — {oggetto}")
-        return True
-    except Exception as e:
-        logger.error(f"Errore invio email: {e}")
-        return False
+    """Invia email HTML semplice."""
+    return _send(to=destinatario, subject=oggetto, html=corpo)
 
 
 def invia_benvenuto(username: str, piano: str = "free") -> None:
     """Email di benvenuto inviata subito dopo la registrazione. Fire-and-forget."""
     if "@" not in (username or ""):
         return
-    cfg = _smtp_settings()
-    if not cfg["user"] or not cfg["password"]:
+    if not smtp_configurato():
         return
 
     promo_banner = ""
@@ -119,26 +118,14 @@ def invia_benvenuto(username: str, piano: str = "free") -> None:
 </div>
 </body></html>"""
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Benvenuto su Gestionale Artigiani 🔧"
-        msg["From"] = f"Gestionale Artigiani <{cfg['from']}>"
-        msg["To"] = username
-        msg.attach(MIMEText(corpo, "html", "utf-8"))
-        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
-            s.ehlo(); s.starttls(); s.login(cfg["user"], cfg["password"])
-            s.sendmail(cfg["from"], username, msg.as_string())
-        logger.info(f"Email benvenuto inviata a {username}")
-    except Exception as e:
-        logger.warning(f"Email benvenuto non inviata a {username}: {e}")
+    _send(to=username, subject="Benvenuto su Gestionale Artigiani 🔧", html=corpo)
 
 
 def invia_conferma_pro(username: str) -> None:
     """Email di conferma attivazione piano Pro. Fire-and-forget."""
     if "@" not in (username or ""):
         return
-    cfg = _smtp_settings()
-    if not cfg["user"] or not cfg["password"]:
+    if not smtp_configurato():
         return
 
     corpo = f"""<!DOCTYPE html>
@@ -184,7 +171,7 @@ def invia_conferma_pro(username: str) -> None:
     <div class="feature"><span>📊</span><p><strong>Dashboard KPI avanzata</strong> — analisi economica completa</p></div>
     <div class="feature"><span>📦</span><p><strong>Magazzino illimitato</strong> con storico movimenti</p></div>
     <div class="feature"><span>💾</span><p><strong>Backup & export</strong> dati completo</p></div>
-    <p>Puoi gestire il tuo abbonamento (fatture, cancellazione) in qualsiasi momento dal menu <strong>Piano Pro</strong>.</p>
+    <p>Puoi gestire il tuo abbonamento in qualsiasi momento dal menu <strong>Piano</strong>.</p>
     <p>
       <a href="https://optimistic-courtesy-production.up.railway.app" class="btn">Vai al gestionale →</a>
     </p>
@@ -193,18 +180,7 @@ def invia_conferma_pro(username: str) -> None:
 </div>
 </body></html>"""
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Piano Pro attivato ⭐ — Gestionale Artigiani"
-        msg["From"] = f"Gestionale Artigiani <{cfg['from']}>"
-        msg["To"] = username
-        msg.attach(MIMEText(corpo, "html", "utf-8"))
-        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
-            s.ehlo(); s.starttls(); s.login(cfg["user"], cfg["password"])
-            s.sendmail(cfg["from"], username, msg.as_string())
-        logger.info(f"Email conferma Pro inviata a {username}")
-    except Exception as e:
-        logger.warning(f"Email conferma Pro non inviata a {username}: {e}")
+    _send(to=username, subject="Piano Pro attivato ⭐ — Gestionale Artigiani", html=corpo)
 
 
 def invia_verifica_email(email: str, token: str, base_url: str) -> bool:
@@ -282,8 +258,7 @@ def invia_notifica_firma_preventivo(
     """Notifica all'artigiano che il cliente ha accettato il preventivo. Fire-and-forget."""
     if "@" not in (artigiano_email or ""):
         return
-    cfg = _smtp_settings()
-    if not cfg["user"] or not cfg["password"]:
+    if not smtp_configurato():
         return
 
     importo_riga = (
@@ -337,18 +312,11 @@ def invia_notifica_firma_preventivo(
 </div>
 </body></html>"""
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"✅ {nome_cliente_firma} ha accettato il preventivo — {titolo_lavoro}"
-        msg["From"] = f"Gestionale Artigiani <{cfg['from']}>"
-        msg["To"] = artigiano_email
-        msg.attach(MIMEText(corpo, "html", "utf-8"))
-        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
-            s.ehlo(); s.starttls(); s.login(cfg["user"], cfg["password"])
-            s.sendmail(cfg["from"], artigiano_email, msg.as_string())
-        logger.info(f"Notifica firma inviata a {artigiano_email} — {titolo_lavoro}")
-    except Exception as e:
-        logger.warning(f"Notifica firma non inviata a {artigiano_email}: {e}")
+    _send(
+        to=artigiano_email,
+        subject=f"✅ {nome_cliente_firma} ha accettato il preventivo — {titolo_lavoro}",
+        html=corpo,
+    )
 
 
 def invia_fattura_xml(
@@ -364,21 +332,19 @@ def invia_fattura_xml(
 ) -> None:
     """
     Invia la FatturaPA XML via email con allegato.
-    Lancia RuntimeError se SMTP non è configurato o l'invio fallisce.
+    Lancia RuntimeError se Resend non è configurato o l'invio fallisce.
     """
-    cfg = _smtp_settings()
-    if not cfg["user"] or not cfg["password"]:
+    import resend
+
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key:
         raise RuntimeError(
-            "SMTP non configurato. Imposta MAIL_USERNAME e MAIL_PASSWORD "
-            "(o SMTP_USER / SMTP_PASSWORD) nelle variabili d'ambiente."
+            "Resend non configurato. Imposta RESEND_API_KEY nelle variabili d'ambiente."
         )
 
-    msg = MIMEMultipart()
-    msg["Subject"] = f"Fattura n. {numero_fattura} — {from_nome}"
-    msg["From"] = f"{from_nome} <{cfg['from']}>"
-    msg["To"] = f"{to_nome} <{to_email}>"
+    resend.api_key = api_key
 
-    corpo = (
+    corpo_testo = (
         f"Gentile {to_nome},\n\n"
         f"in allegato trova la FatturaPA elettronica n. {numero_fattura} "
         f"del {data_emissione}.\n\n"
@@ -388,20 +354,22 @@ def invia_fattura_xml(
         "al Sistema di Interscambio (SDI).\n\n"
         f"Cordiali saluti,\n{from_nome}\n"
     )
-    msg.attach(MIMEText(corpo, "plain", "utf-8"))
 
-    allegato = MIMEBase("application", "xml")
-    allegato.set_payload(xml_bytes)
-    encoders.encode_base64(allegato)
-    allegato.add_header("Content-Disposition", "attachment", filename=nome_file)
-    msg.attach(allegato)
+    params: dict = {
+        "from": _sender(),
+        "to": [f"{to_nome} <{to_email}>"],
+        "subject": f"Fattura n. {numero_fattura} — {from_nome}",
+        "text": corpo_testo,
+        "attachments": [
+            {
+                "filename": nome_file,
+                "content": list(xml_bytes),
+            }
+        ],
+    }
 
     try:
-        with smtplib.SMTP(cfg["host"], cfg["port"]) as s:
-            s.ehlo()
-            s.starttls()
-            s.login(cfg["user"], cfg["password"])
-            s.sendmail(cfg["from"], to_email, msg.as_string())
+        resend.Emails.send(params)
         logger.info(f"FatturaPA {nome_file} inviata a {to_email}")
     except Exception as e:
         logger.error(f"Errore invio FatturaPA a {to_email}: {e}")
