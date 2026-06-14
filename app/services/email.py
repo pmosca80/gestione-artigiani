@@ -12,6 +12,20 @@ logger = get_logger("email")
 _SENDER_DEFAULT = "Gestionale Artigiani <noreply@resend.dev>"
 
 
+def _detect_backend() -> str:
+    if os.getenv("RESEND_API_KEY"):
+        return "Resend"
+    if os.getenv("BREVO_API_KEY"):
+        return "Brevo API"
+    if (os.getenv("SMTP_USER") or os.getenv("MAIL_USERNAME")) and \
+            (os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_PASSWORD")):
+        return f"SMTP ({os.getenv('SMTP_HOST', 'smtp-relay.brevo.com')}:{os.getenv('SMTP_PORT', '587')})"
+    return "NESSUNO"
+
+
+logger.info(f"Email service inizializzato — backend: {_detect_backend()}")
+
+
 def smtp_configurato() -> bool:
     """True se Resend, Brevo API o SMTP sono configurati."""
     if os.getenv("RESEND_API_KEY"):
@@ -126,20 +140,23 @@ def _send(
     attachments: list | None = None,
 ) -> bool:
     sender = from_ or _sender()
+    backend = "SMTP"
     try:
         if os.getenv("RESEND_API_KEY"):
-            logger.info(f"Email backend: Resend → {to}")
+            backend = "Resend"
+            logger.info(f"Email backend: {backend} → {to}")
             _send_resend(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         elif os.getenv("BREVO_API_KEY"):
-            logger.info(f"Email backend: Brevo API → {to}")
+            backend = "Brevo API"
+            logger.info(f"Email backend: {backend} → {to}")
             _send_brevo_api(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         else:
-            logger.info(f"Email backend: SMTP → {to}")
+            logger.info(f"Email backend: {backend} → {to}")
             _send_smtp(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         logger.info(f"Email inviata a {to} — {subject}")
         return True
     except Exception as e:
-        logger.warning(f"Errore invio email a {to}: {e}")
+        logger.warning(f"Errore invio email [{backend}] a {to}: {e}")
         return False
 
 
