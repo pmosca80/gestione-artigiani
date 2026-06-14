@@ -543,6 +543,7 @@
                 <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-hero btn-hero-green">💳 Pagamenti</a>
                 <a href="/lavori/{{ lavoro.id }}/sal" class="btn-hero btn-hero-outline">📊 SAL</a>
                 <a href="/lavori/{{ lavoro.id }}/rapportini" class="btn-hero btn-hero-outline">📋 Rapportini</a>
+                <a href="/lavori/{{ lavoro.id }}/timesheet" class="btn-hero btn-hero-outline">⏱ Timesheet</a>
                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
                 {% if lavoro.cliente and lavoro.cliente.telefono %}
                 {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
@@ -847,6 +848,63 @@
         </div>
     </div>
 
+    <!-- BUDGET VS CONSUNTIVO REAL-TIME -->
+    {% if preventivo_val > 0 %}
+    {% set bar_color = "#16a34a" if perc_budget_consumato < 60 else ("#f97316" if perc_budget_consumato < 90 else "#dc2626") %}
+    {% set bar_w = [perc_budget_consumato, 100]|min %}
+    <div class="l-section">
+        <div class="section-title">📊 Budget vs Consuntivo in tempo reale</div>
+        <div class="l-card">
+            <!-- Riga importi -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; margin-bottom:20px;">
+                <div>
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#9ca3af; margin-bottom:5px;">Budget (preventivo)</div>
+                    <div style="font-size:20px; font-weight:700; font-family:'DM Mono',monospace; color:#2563eb;">€ {{ "%.2f"|format(preventivo_val) }}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#9ca3af; margin-bottom:5px;">Materiali (costo)</div>
+                    <div style="font-size:20px; font-weight:700; font-family:'DM Mono',monospace; color:#dc2626;">€ {{ "%.2f"|format(budget_rt.costo_materiali_reale) }}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#9ca3af; margin-bottom:5px;">Manodopera (<a href="/lavori/{{ lavoro.id }}/timesheet" style="color:#9ca3af; text-decoration:underline dotted;">timesheet</a>)</div>
+                    <div style="font-size:20px; font-weight:700; font-family:'DM Mono',monospace; color:#dc2626;">€ {{ "%.2f"|format(budget_rt.costo_manodopera_timesheet) }}</div>
+                    {% if budget_rt.ore_totali_timesheet > 0 %}
+                    <div style="font-size:11px; color:#6b7280; margin-top:2px;">{{ "%.1f"|format(budget_rt.ore_totali_timesheet) }} ore registrate</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#9ca3af; margin-bottom:5px;">Totale speso</div>
+                    <div style="font-size:20px; font-weight:700; font-family:'DM Mono',monospace; color:#dc2626;">€ {{ "%.2f"|format(speso_rt) }}</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#9ca3af; margin-bottom:5px;">Margine attuale</div>
+                    <div style="font-size:20px; font-weight:700; font-family:'DM Mono',monospace; color:{{ '#16a34a' if margine_rt >= 0 else '#dc2626' }};">
+                        € {{ "%.2f"|format(margine_rt) }}
+                    </div>
+                    <div style="font-size:11px; color:#6b7280; margin-top:2px;">{{ margine_rt_perc }}% del budget</div>
+                </div>
+            </div>
+            <!-- Barra di avanzamento -->
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; font-weight:700; color:#374151;">Budget consumato</span>
+                <span style="font-size:13px; font-weight:700; font-family:'DM Mono',monospace; color:{{ bar_color }};">{{ perc_budget_consumato }}%</span>
+            </div>
+            <div style="height:10px; background:#f1f5f9; border-radius:999px; overflow:hidden;">
+                <div style="height:100%; width:{{ bar_w }}%; background:{{ bar_color }}; border-radius:999px; transition:width 0.4s;"></div>
+            </div>
+            {% if perc_budget_consumato > 90 %}
+            <div style="margin-top:10px; padding:8px 12px; background:#fee2e2; border-radius:8px; font-size:12px; font-weight:600; color:#991b1b;">
+                ⚠️ Attenzione: hai consumato oltre il 90% del budget preventivato.
+            </div>
+            {% elif perc_budget_consumato > 60 %}
+            <div style="margin-top:10px; padding:8px 12px; background:#fff7ed; border-radius:8px; font-size:12px; font-weight:600; color:#9a3412;">
+                🟡 Hai consumato oltre il 60% del budget — tieni sotto controllo i costi.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- SESSIONI LAVORO -->
     {% if sessioni_lavoro %}
     <div class="l-section">
@@ -919,6 +977,13 @@
             <a href="/lavori/{{ lavoro.id }}/rapportini" class="azione-tile">
                 <div class="azione-icon">📋</div>
                 <div><h4>Rapportini</h4><p>Giornale di cantiere</p></div>
+            </a>
+            <a href="/lavori/{{ lavoro.id }}/timesheet" class="azione-tile">
+                <div class="azione-icon">⏱</div>
+                <div>
+                    <h4>Timesheet operai</h4>
+                    <p>{% if budget_rt.ore_totali_timesheet > 0 %}{{ "%.1f"|format(budget_rt.ore_totali_timesheet) }}h — € {{ "%.0f"|format(budget_rt.costo_manodopera_timesheet) }}{% else %}Traccia ore per operaio{% endif %}</p>
+                </div>
             </a>
             <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="azione-tile">
                 <div class="azione-icon">📄</div>

@@ -532,6 +532,14 @@ def dettaglio_lavoro(
     sessione_aperta = crud.get_sessione_aperta(db, user_id, lavoro_id)
     sessioni_lavoro = crud.get_sessioni_lavoro(db, user_id, lavoro_id)
 
+    # Budget vs Consuntivo real-time
+    budget_rt = crud.calcola_budget_realtime(db, user_id, lavoro_id, materiali_usati)
+    preventivo_val = lavoro.importo_preventivato or 0
+    speso_rt = budget_rt["totale_speso"]
+    perc_budget_consumato = round((speso_rt / preventivo_val * 100), 1) if preventivo_val > 0 else 0
+    margine_rt = round(preventivo_val - speso_rt, 2)
+    margine_rt_perc = round((margine_rt / preventivo_val * 100), 1) if preventivo_val > 0 else 0
+
     return templates.TemplateResponse(
         request=request,
         name="lavoro_dettaglio.html",
@@ -554,6 +562,13 @@ def dettaglio_lavoro(
             "voci_preventivo": voci_preventivo,
             "sessione_aperta": sessione_aperta,
             "sessioni_lavoro": sessioni_lavoro,
+            # Budget real-time
+            "budget_rt": budget_rt,
+            "preventivo_val": preventivo_val,
+            "speso_rt": speso_rt,
+            "perc_budget_consumato": perc_budget_consumato,
+            "margine_rt": margine_rt,
+            "margine_rt_perc": margine_rt_perc,
         }
     )
 

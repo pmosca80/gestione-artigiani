@@ -534,6 +534,7 @@ def elimina_utente(utente_id: int, request: Request, db: Session = Depends(get_d
     # Tabelle che referenziano lavori.id (devono precedere la cancellazione dei lavori)
     db.execute(sql_text("DELETE FROM sal_lavoro WHERE lavoro_id IN (SELECT id FROM lavori WHERE utente_id = :uid)"), uid)
     db.execute(sql_text("DELETE FROM rapportini_lavoro WHERE lavoro_id IN (SELECT id FROM lavori WHERE utente_id = :uid)"), uid)
+    db.execute(sql_text("DELETE FROM timesheet_collab WHERE lavoro_id IN (SELECT id FROM lavori WHERE utente_id = :uid)"), uid)
     # Entità principali
     db.execute(sql_text("DELETE FROM lavori WHERE utente_id = :uid"), uid)
     db.execute(sql_text("DELETE FROM materiali WHERE utente_id = :uid"), uid)

@@ -453,6 +453,20 @@ class PromemoriaCliente(Base):
     cliente = relationship("Cliente")
 
 
+class TimesheetCollab(Base):
+    __tablename__ = "timesheet_collab"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    nome_operaio = Column(String, nullable=False)
+    data = Column(String, nullable=False)
+    ore = Column(Float, nullable=False, default=0)
+    costo_orario = Column(Float, nullable=True, default=0)
+    note = Column(Text, nullable=True, default="")
+    data_creazione = Column(String, nullable=False)
+
+
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
 

@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente, lavori_timesheet
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -187,6 +187,21 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE clienti ADD COLUMN token_portale VARCHAR"))
         except Exception:
             pass
+        # Timesheet collaboratori
+        if not _inspect(engine).has_table("timesheet_collab"):
+            conn.execute(text("""
+                CREATE TABLE timesheet_collab (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
+                    nome_operaio VARCHAR NOT NULL,
+                    data VARCHAR NOT NULL,
+                    ore REAL NOT NULL DEFAULT 0,
+                    costo_orario REAL DEFAULT 0,
+                    note TEXT DEFAULT '',
+                    data_creazione VARCHAR NOT NULL
+                )
+            """))
         # Fix residuo_pagamento negativo (pagato > totale_documento = 0)
         conn.execute(text(
             "UPDATE lavori SET residuo_pagamento = 0 WHERE residuo_pagamento < 0"
@@ -245,6 +260,7 @@ app.include_router(lavori_sal.router)
 app.include_router(lavori_rapportini.router)
 app.include_router(scadenzario.router)
 app.include_router(portale_cliente.router)
+app.include_router(lavori_timesheet.router)
 
 @app.get("/api/cerca")
 def cerca_globale(

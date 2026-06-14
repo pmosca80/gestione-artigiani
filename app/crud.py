@@ -29,6 +29,7 @@ from app.models import (
     SalLavoro,
     RapportinoLavoro,
     PromemoriaCliente,
+    TimesheetCollab,
 )
 from app.models import MovimentoMagazzino
 
@@ -3041,3 +3042,59 @@ def genera_token_portale_cliente(db: Session, cliente_id: int, utente_id: int):
 
 def get_cliente_by_token_portale(db: Session, token: str):
     return db.query(Cliente).filter(Cliente.token_portale == token).first()
+
+
+# ─── TIMESHEET COLLABORATORI ────────────────────────────────────────────────
+
+def get_timesheet_lavoro(db: Session, utente_id: int, lavoro_id: int):
+    return (
+        db.query(TimesheetCollab)
+        .filter(TimesheetCollab.utente_id == utente_id, TimesheetCollab.lavoro_id == lavoro_id)
+        .order_by(TimesheetCollab.data.desc())
+        .all()
+    )
+
+def crea_timesheet_entry(db: Session, utente_id: int, lavoro_id: int,
+                         nome_operaio: str, data: str, ore: float,
+                         costo_orario: float, note: str):
+    entry = TimesheetCollab(
+        utente_id=utente_id,
+        lavoro_id=lavoro_id,
+        nome_operaio=nome_operaio.strip(),
+        data=data,
+        ore=ore,
+        costo_orario=costo_orario,
+        note=note.strip(),
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    )
+    db.add(entry); db.commit(); db.refresh(entry)
+    return entry
+
+def elimina_timesheet_entry(db: Session, entry_id: int, utente_id: int) -> bool:
+    entry = db.query(TimesheetCollab).filter(
+        TimesheetCollab.id == entry_id, TimesheetCollab.utente_id == utente_id
+    ).first()
+    if not entry:
+        return False
+    db.delete(entry); db.commit(); return True
+
+def get_collaboratori_utente(db: Session, utente_id: int):
+    """Restituisce i collaboratori (sub-account) del titolare."""
+    return db.query(Utente).filter(Utente.titolare_id == utente_id).all()
+
+def calcola_budget_realtime(db: Session, utente_id: int, lavoro_id: int, materiali_usati=None):
+    """Calcola costo materiali reale (da costo_unitario) e costo manodopera da timesheet."""
+    if materiali_usati is None:
+        materiali_usati = get_materiali_usati_lavoro(db, utente_id, lavoro_id)
+    costo_mat = sum((m.quantita or 0) * (m.costo_unitario or 0) for m in materiali_usati)
+
+    entries = get_timesheet_lavoro(db, utente_id, lavoro_id)
+    costo_man = sum((e.ore or 0) * (e.costo_orario or 0) for e in entries)
+    ore_tot = sum(e.ore or 0 for e in entries)
+
+    return {
+        "costo_materiali_reale": round(costo_mat, 2),
+        "costo_manodopera_timesheet": round(costo_man, 2),
+        "ore_totali_timesheet": round(ore_tot, 2),
+        "totale_speso": round(costo_mat + costo_man, 2),
+    }
