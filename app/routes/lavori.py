@@ -137,9 +137,12 @@ def crea_lavoro_form(
         logger.error(f"Errore creazione lavoro | utente {user_id} | {e}")
         raise
 
+_STATI_VALIDI_RAPIDO = {"da_fare", "preventivo"}
+
 @router.get("/nuovo-rapido", response_class=HTMLResponse)
 def form_lavoro_rapido(
     request: Request,
+    tipo: str = "da_fare",
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
@@ -151,10 +154,11 @@ def form_lavoro_rapido(
         .all()
     )
     oggi = datetime.now().strftime("%Y-%m-%d")
+    stato_iniziale = tipo if tipo in _STATI_VALIDI_RAPIDO else "da_fare"
     return templates.TemplateResponse(
         request=request,
         name="lavoro_nuovo_rapido.html",
-        context={"clienti": clienti, "oggi": oggi},
+        context={"clienti": clienti, "oggi": oggi, "stato_iniziale": stato_iniziale},
     )
 
 
@@ -164,6 +168,7 @@ def crea_lavoro_rapido(
     cliente_id: int = Form(...),
     titolo: str = Form(...),
     data_lavoro: str = Form(...),
+    stato: str = Form("da_fare"),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
@@ -171,13 +176,14 @@ def crea_lavoro_rapido(
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.utente_id == user_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
+    stato_sicuro = stato if stato in _STATI_VALIDI_RAPIDO else "da_fare"
     lavoro = crud.crea_lavoro(
         db=db,
         cliente_id=cliente_id,
         data_lavoro=data_lavoro,
         titolo=titolo,
         descrizione="",
-        stato="da_fare",
+        stato=stato_sicuro,
         importo_preventivato=None,
         importo_consuntivo=None,
         aliquota_iva=22,

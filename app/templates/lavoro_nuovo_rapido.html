@@ -99,10 +99,15 @@
 {% include "components/navbar.html" %}
 
 <div class="rapido-wrap">
+    {% if stato_iniziale == "preventivo" %}
+    <h1 class="rapido-title">📑 Nuovo Preventivo</h1>
+    {% else %}
     <h1 class="rapido-title">🛠️ Nuovo Lavoro</h1>
+    {% endif %}
 
     {% if clienti %}
     <form method="post" action="/lavori/nuovo-rapido">
+        <input type="hidden" name="stato" value="{{ stato_iniziale or 'da_fare' }}">
 
         <div class="rapido-field">
             <label for="cliente-cerca">Cliente</label>
@@ -119,10 +124,17 @@
         </div>
 
         <div class="rapido-field">
+            {% if stato_iniziale == "preventivo" %}
+            <label for="titolo">Oggetto del preventivo</label>
+            <input type="text" name="titolo" id="titolo"
+                   placeholder="es. Impianto elettrico bagno, Riparazione caldaia…"
+                   required autocomplete="off">
+            {% else %}
             <label for="titolo">Titolo lavoro</label>
             <input type="text" name="titolo" id="titolo"
                    placeholder="es. Impianto elettrico bagno, Riparazione caldaia…"
                    required autocomplete="off">
+            {% endif %}
         </div>
 
         <div class="rapido-field">
@@ -130,7 +142,11 @@
             <input type="date" name="data_lavoro" id="data_lavoro" value="{{ oggi }}" required>
         </div>
 
+        {% if stato_iniziale == "preventivo" %}
+        <button type="submit" class="rapido-submit">Crea preventivo →</button>
+        {% else %}
         <button type="submit" class="rapido-submit">Crea lavoro →</button>
+        {% endif %}
     </form>
     {% else %}
     <div class="nessun-cliente">
