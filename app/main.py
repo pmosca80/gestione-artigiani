@@ -100,9 +100,9 @@ def _run_migrations():
         ]:
             if col not in imp_cols:
                 conn.execute(text(f"ALTER TABLE impostazioni_azienda ADD COLUMN {col} {defn}"))
-        # Clienti: campi SDI (codice destinatario / PEC per FatturaPA)
+        # Clienti: campi SDI + token portale
         cli_cols = [c["name"] for c in insp.get_columns("clienti")]
-        for col in ["codice_destinatario", "pec_destinatario"]:
+        for col in ["codice_destinatario", "pec_destinatario", "token_portale"]:
             if col not in cli_cols:
                 conn.execute(text(f"ALTER TABLE clienti ADD COLUMN {col} VARCHAR"))
         # Token feed iCalendar per utente
@@ -190,11 +190,6 @@ def _run_migrations():
                 )
             """)))
 
-        # token_portale per accesso pubblico cliente
-        try:
-            conn.execute(text("ALTER TABLE clienti ADD COLUMN token_portale VARCHAR"))
-        except Exception:
-            pass
         # Timesheet collaboratori
         if not _inspect(engine).has_table("timesheet_collab"):
             conn.execute(text(_adapt_sql("""
