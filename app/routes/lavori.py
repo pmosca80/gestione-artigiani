@@ -5,7 +5,6 @@ import re
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
@@ -19,6 +18,7 @@ from app import crud
 from app.services.calcoli import calcola_totali_lavoro
 from app.models import Materiale, MaterialeUsatoLavoro
 from app.logger import get_logger
+from app.templates_config import templates
 logger = get_logger("lavori")
 
 def to_float(valore, default=0.0):
@@ -28,9 +28,6 @@ def to_float(valore, default=0.0):
         return default
 
 router = APIRouter(prefix="/lavori", tags=["lavori"])
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)

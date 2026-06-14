@@ -1,18 +1,13 @@
-from pathlib import Path
-
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, to_float
 from app import crud
+from app.templates_config import templates
 
 router = APIRouter(prefix="/preventivi/template", tags=["preventivi_template"])
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)

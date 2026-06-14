@@ -3,15 +3,12 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import crud
 from app.models import Utente
-
-BASE_DIR = __import__("pathlib").Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+from app.templates_config import templates
 
 router = APIRouter(prefix="/firma", tags=["firma"])
 

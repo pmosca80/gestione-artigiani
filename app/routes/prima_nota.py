@@ -1,20 +1,16 @@
-from pathlib import Path
 from datetime import date
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
+from app.templates_config import templates
 
 router = APIRouter(prefix="/prima-nota", tags=["prima-nota"])
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 _CATEGORIE = ["carburante", "materiali", "attrezzatura", "compenso", "varie"]
 

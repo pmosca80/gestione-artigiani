@@ -3,11 +3,9 @@ from pathlib import Path
 from fastapi import UploadFile, File
 import shutil
 from datetime import datetime
-import shutil
 
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -19,11 +17,9 @@ import zipfile
 
 from fastapi import HTTPException
 from app.models import Utente
+from app.templates_config import templates
 
 router = APIRouter(prefix="/impostazioni", tags=["impostazioni"])
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/azienda", response_class=HTMLResponse)

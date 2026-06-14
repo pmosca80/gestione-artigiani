@@ -1,9 +1,7 @@
 import os
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -15,10 +13,9 @@ from app.services.piani import (
     get_stripe_price_id,
     get_base_url,
 )
+from app.templates_config import templates
 
 router = APIRouter(tags=["piani"])
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 def _get_user_id(request: Request) -> int | None:

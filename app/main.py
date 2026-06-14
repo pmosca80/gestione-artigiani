@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
+from app.csrf import CSRFMiddleware
+from app.templates_config import templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -61,7 +62,6 @@ if not SECRET_KEY or SECRET_KEY == "dev-secret-key" or len(SECRET_KEY) < 20:
         "Imposta una chiave random di almeno 20 caratteri."
     )
 
-Base.metadata.create_all(bind=engine)
 
 # Migrazione inline: aggiunge colonne aggiunte dopo il deploy iniziale
 from sqlalchemy import text, inspect as _inspect
@@ -128,6 +128,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
@@ -136,7 +137,6 @@ app.add_middleware(
     https_only=False,
 )
 
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 templates.env.globals["VAPID_PUBLIC_KEY"] = os.getenv("VAPID_PUBLIC_KEY", "")
 
 app.mount(

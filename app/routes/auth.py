@@ -1,11 +1,9 @@
 import os
 import secrets
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,11 +11,9 @@ from app.database import get_db
 from app.models import Utente
 from app.security import hash_password, verify_password
 from app.limiter import limiter
+from app.templates_config import templates
 
 router = APIRouter()
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 def _base_url(request: Request) -> str:

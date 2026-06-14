@@ -2,18 +2,15 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Response
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
 from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa, errori_fatturapa, bollo_dovuto, _REGIMI_SENZA_IVA
+from app.templates_config import templates
 
 router = APIRouter(prefix="/documenti", tags=["documenti"])
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)
