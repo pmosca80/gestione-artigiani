@@ -13,8 +13,10 @@ _SENDER_DEFAULT = "Gestionale Artigiani <noreply@resend.dev>"
 
 
 def smtp_configurato() -> bool:
-    """True se Resend o SMTP sono configurati."""
+    """True se Resend, Brevo API o SMTP sono configurati."""
     if os.getenv("RESEND_API_KEY"):
+        return True
+    if os.getenv("BREVO_API_KEY"):
         return True
     return bool(
         (os.getenv("SMTP_USER") or os.getenv("MAIL_USERNAME"))
@@ -28,13 +30,62 @@ def _sender() -> str:
 
 # ── backend Resend ────────────────────────────────────────────────────────────
 
-def _send_resend(*, to: str, subject: str, html: str, from_: str, attachments: list | None) -> bool:
+def _send_resend(*, to: str, subject: str, html: str, from_: str, attachments: list | None) -> None:
     import resend
     resend.api_key = os.getenv("RESEND_API_KEY")
     params: dict = {"from": from_, "to": [to], "subject": subject, "html": html}
     if attachments:
         params["attachments"] = attachments
     resend.Emails.send(params)
+
+
+# ── backend Brevo HTTP API ────────────────────────────────────────────────────
+
+def _send_brevo_api(*, to: str, subject: str, html: str, from_: str, attachments: list | None) -> None:
+    import json
+    import base64
+    import urllib.request
+
+    api_key = os.getenv("BREVO_API_KEY", "")
+
+    sender_name = "Gestionale Artigiani"
+    sender_email = from_
+    if "<" in from_ and ">" in from_:
+        sender_name = from_.split("<")[0].strip()
+        sender_email = from_.split("<")[1].rstrip(">").strip()
+
+    payload: dict = {
+        "sender":      {"name": sender_name, "email": sender_email},
+        "to":          [{"email": to}],
+        "subject":     subject,
+        "htmlContent": html,
+    }
+
+    if attachments:
+        payload["attachment"] = []
+        for att in attachments:
+            content = att.get("content", b"")
+            if isinstance(content, list):
+                content = bytes(content)
+            payload["attachment"].append({
+                "name":    att.get("filename", "allegato"),
+                "content": base64.b64encode(content).decode("utf-8"),
+            })
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=data,
+        headers={
+            "api-key":      api_key,
+            "Content-Type": "application/json",
+            "Accept":       "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        if resp.status not in (200, 201):
+            raise RuntimeError(f"Brevo API error {resp.status}")
 
 
 # ── backend SMTP (Brevo / qualsiasi SMTP) ────────────────────────────────────
@@ -86,6 +137,8 @@ def _send(
     try:
         if os.getenv("RESEND_API_KEY"):
             _send_resend(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
+        elif os.getenv("BREVO_API_KEY"):
+            _send_brevo_api(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         else:
             _send_smtp(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         logger.info(f"Email inviata a {to} — {subject}")
