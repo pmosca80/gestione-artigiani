@@ -160,15 +160,18 @@ def register(
     codice_promo_valido = os.getenv("CODICE_PROMO", "")
     promo_ok = bool(codice_promo and codice_promo_valido and codice_promo.strip() == codice_promo_valido)
 
-    token = secrets.token_urlsafe(32)
+    from app.services.email import smtp_configurato, invia_verifica_email
+    smtp_ok = smtp_configurato()
+
+    token = secrets.token_urlsafe(32) if smtp_ok else None
 
     nuovo = Utente(
         username=username,
         email=email,
         password=hash_password(password),
         data_registrazione=datetime.now().strftime("%Y-%m-%d"),
-        attivo=0,
-        email_verificato=False,
+        attivo=1 if not smtp_ok else 0,
+        email_verificato=not smtp_ok,
         token_verifica=token,
         accetta_termini=True,
         piano="pro" if promo_ok else "free",
@@ -177,15 +180,17 @@ def register(
     db.add(nuovo)
     db.commit()
 
-    from app.services.email import invia_verifica_email
-    import threading
-    threading.Thread(
-        target=invia_verifica_email,
-        args=(email, token, _base_url(request)),
-        daemon=True,
-    ).start()
+    if smtp_ok:
+        import threading
+        threading.Thread(
+            target=invia_verifica_email,
+            args=(email, token, _base_url(request)),
+            daemon=True,
+        ).start()
+        return RedirectResponse(url="/register?pendente=1", status_code=303)
 
-    return RedirectResponse(url="/register?pendente=1", status_code=303)
+    # SMTP non configurato: account attivo direttamente, accesso immediato
+    return RedirectResponse(url="/login?verificato=1", status_code=303)
 
 
 # ── VERIFICA EMAIL ─────────────────────────────────────────────────────────────
