@@ -32,6 +32,35 @@
         .alert-warn  { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
         .alert-ok    { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
         .alert-limit { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-info  { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+        /* ── Trial banner ── */
+        .trial-banner {
+            background: linear-gradient(135deg, #059669 0%, #0284c7 100%);
+            border-radius: 16px;
+            padding: 22px 28px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .trial-icon { font-size: 36px; flex-shrink: 0; }
+        .trial-text { flex: 1; min-width: 200px; }
+        .trial-text strong { display: block; font-size: 17px; font-weight: 800; color: white; margin-bottom: 3px; }
+        .trial-text span { font-size: 13px; color: rgba(255,255,255,0.82); }
+        .trial-days {
+            background: white;
+            color: #059669;
+            font-size: 28px;
+            font-weight: 900;
+            padding: 10px 20px;
+            border-radius: 12px;
+            line-height: 1;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .trial-days small { display: block; font-size: 11px; font-weight: 600; color: #6b7280; margin-top: 2px; }
 
         /* ── Header ── */
         .plans-header { text-align: center; margin-bottom: 40px; }
@@ -232,6 +261,7 @@
 
         /* ── FAQ ── */
         .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .faq-grid .faq-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
         @media (max-width: 600px) { .faq-grid { grid-template-columns: 1fr; } }
         .faq-item { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px; }
         .faq-item dt { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 6px; }
@@ -269,11 +299,27 @@
     {% if request.query_params.get('errore') %}
     <div class="alert alert-limit">⚠️ Errore: {{ request.query_params.get('errore') }}</div>
     {% endif %}
+    {% if request.query_params.get('upgrade') == 'fatturapa' %}
+    <div class="alert alert-info">🔒 La generazione di FatturaPA XML richiede il piano <strong>Starter o superiore</strong>. Scegli un piano qui sotto.</div>
+    {% elif request.query_params.get('upgrade') == 'export' %}
+    <div class="alert alert-info">🔒 L'export contabile richiede il piano <strong>Starter o superiore</strong>. Scegli un piano qui sotto.</div>
+    {% endif %}
 
     <div class="plans-header">
         <h1>Scegli il piano giusto per te</h1>
-        <p>Inizia gratis, passa a un piano superiore quando ne hai bisogno.</p>
+        <p>15 giorni di prova gratuita · Nessuna carta richiesta · Disdici quando vuoi</p>
     </div>
+
+    {% if piano_corrente == 'free' %}
+    <div class="trial-banner">
+        <div class="trial-icon">🎁</div>
+        <div class="trial-text">
+            <strong>Prova gratuita inclusa — senza carta di credito</strong>
+            <span>Ogni nuovo account ha <b>15 giorni</b> per esplorare il gestionale. Poi scegli il piano più adatto a te, anche gratuito.</span>
+        </div>
+        <div class="trial-days">15<small>giorni gratis</small></div>
+    </div>
+    {% endif %}
 
     <!-- ── STATO PIANO CORRENTE ── -->
     <div class="plan-status {{ piano_corrente }}">
@@ -357,7 +403,7 @@
             {% if piano_corrente == 'starter' %}<div class="crown crown-current" style="background:#0284c7;">Piano attuale ✓</div>{% endif %}
             <div class="card-badge b-starter">Starter</div>
             <div class="card-name">Starter</div>
-            <div class="card-price">€4,90 <span>/ mese</span></div>
+            <div class="card-price">€6,90 <span>/ mese</span></div>
             <div class="card-desc">Per chi inizia a lavorare in modo professionale.</div>
             <ul class="card-features">
                 <li><span class="fi-ok">✓</span> <strong>30 clienti</strong></li>
@@ -392,7 +438,7 @@
             {% endif %}
             <div class="card-badge b-pro">Pro</div>
             <div class="card-name">Professionale</div>
-            <div class="card-price">€9,90 <span>/ mese</span></div>
+            <div class="card-price">€12,90 <span>/ mese</span></div>
             <div class="card-desc">Per artigiani e piccole imprese in crescita.</div>
             <ul class="card-features">
                 <li><span class="fi-ok">✓</span> <strong>Clienti illimitati</strong></li>
@@ -427,7 +473,7 @@
             {% endif %}
             <div class="card-badge b-business">Business</div>
             <div class="card-name">Business</div>
-            <div class="card-price">€19,90 <span>/ mese</span></div>
+            <div class="card-price">€24,90 <span>/ mese</span></div>
             <div class="card-desc">Per imprese con più operai e cantieri multipli.</div>
             <ul class="card-features">
                 <li><span class="fi-ok">✓</span> <strong>Clienti illimitati</strong></li>
@@ -463,6 +509,10 @@
 
     <div class="section-title">Domande frequenti</div>
     <div class="faq-grid">
+        <div class="faq-item">
+            <dt>Come funziona la prova gratuita di 15 giorni?</dt>
+            <dd>Ogni nuovo account ha 15 giorni per esplorare tutte le funzionalità. Nessuna carta richiesta. Allo scadere scegli il piano più adatto — anche il piano Free è disponibile gratuitamente.</dd>
+        </div>
         <div class="faq-item">
             <dt>Posso annullare in qualsiasi momento?</dt>
             <dd>Sì. Tutti i piani sono mensili. Disdici quando vuoi dal portale Stripe — l'account torna al piano Free al termine del periodo pagato.</dd>

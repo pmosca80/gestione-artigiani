@@ -71,6 +71,9 @@ def export_excel(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.services.piani import get_piano, ha_export
+    if not ha_export(get_piano(db, user_id)):
+        return RedirectResponse("/piani?upgrade=export", status_code=303)
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
@@ -236,6 +239,9 @@ def export_csv_fatture(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.services.piani import get_piano, ha_export
+    if not ha_export(get_piano(db, user_id)):
+        return RedirectResponse("/piani?upgrade=export", status_code=303)
     from fastapi.responses import Response as _Response
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
@@ -401,6 +407,10 @@ def crea_fattura_da_lavoro(
     user_id: int = Depends(get_current_user),
 ):
     """Crea FatturaEmessa nel registro senza forzare il download dell'XML."""
+    from app.services.piani import get_piano, ha_fatturapa
+    if not ha_fatturapa(get_piano(db, user_id)):
+        return RedirectResponse("/piani?upgrade=fatturapa", status_code=303)
+
     from app.services.fatturapa import (
         errori_fatturapa, nome_file_fatturapa, bollo_dovuto, _REGIMI_SENZA_IVA,
     )
@@ -493,6 +503,10 @@ def scarica_xml_da_registro(
     user_id: int = Depends(get_current_user),
 ):
     """Genera e scarica l'XML di una FatturaEmessa già registrata, senza toccare il DB."""
+    from app.services.piani import get_piano, ha_fatturapa
+    if not ha_fatturapa(get_piano(db, user_id)):
+        return RedirectResponse("/piani?upgrade=fatturapa", status_code=303)
+
     from app.models import FatturaEmessa as _FE
     from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa
 

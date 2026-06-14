@@ -21,6 +21,10 @@ def export_hub(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.services.piani import get_piano, ha_export
+    if not ha_export(get_piano(db, user_id)):
+        return RedirectResponse("/piani?upgrade=export", status_code=303)
+
     anni_fatture = crud.get_anni_fatture(db, user_id)
     anno_corrente = datetime.now().year
     anno_sel = anno or (anni_fatture[0] if anni_fatture else anno_corrente)
@@ -41,6 +45,10 @@ def export_xml(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.services.piani import get_piano, ha_export
+    if not ha_export(get_piano(db, user_id)):
+        return RedirectResponse("/piani?upgrade=export", status_code=303)
+
     anno_sel = anno or datetime.now().year
     fatture_list = crud.get_fatture_registro(db, user_id, anno_sel)
     voci_pn = crud.get_prima_nota(db, user_id, anno=anno_sel)

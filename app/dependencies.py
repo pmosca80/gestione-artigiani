@@ -46,7 +46,7 @@ def _check_piano_trial(utente, db: Session) -> None:
         try:
             data_reg = datetime.strptime(utente.data_registrazione, "%Y-%m-%d")
             giorni_passati = (datetime.now() - data_reg).days
-            if giorni_passati > 30 and utente.attivo != 2:
+            if giorni_passati > 15 and utente.attivo != 2:
                 raise AccountScaduto()
         except AccountScaduto:
             raise
