@@ -65,6 +65,13 @@ if not SECRET_KEY or SECRET_KEY == "dev-secret-key" or len(SECRET_KEY) < 20:
 
 # Migrazione inline: aggiunge colonne aggiunte dopo il deploy iniziale
 from sqlalchemy import text, inspect as _inspect
+
+def _adapt_sql(sql: str) -> str:
+    """Sostituisce sintassi SQLite con l'equivalente PostgreSQL se necessario."""
+    if engine.dialect.name == "postgresql":
+        return sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+    return sql
+
 def _run_migrations():
     insp = _inspect(engine)
     cols = [c["name"] for c in insp.get_columns("utenti")]
@@ -108,7 +115,7 @@ def _run_migrations():
                 conn.execute(text(f"ALTER TABLE lavori ADD COLUMN {col} VARCHAR"))
         # Template preventivi
         if not _inspect(engine).has_table("template_preventivi"):
-            conn.execute(text("""
+            conn.execute(text(_adapt_sql("""
                 CREATE TABLE template_preventivi (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     utente_id INTEGER NOT NULL REFERENCES utenti(id),
@@ -121,10 +128,10 @@ def _run_migrations():
                     note_consuntivo TEXT DEFAULT '',
                     creato_il VARCHAR
                 )
-            """))
+            """)))
         # Listino prezzi
         if not _inspect(engine).has_table("listino_voci"):
-            conn.execute(text("""
+            conn.execute(text(_adapt_sql("""
                 CREATE TABLE listino_voci (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     utente_id INTEGER NOT NULL REFERENCES utenti(id),
@@ -134,10 +141,10 @@ def _run_migrations():
                     categoria VARCHAR DEFAULT '',
                     data_creazione VARCHAR NOT NULL
                 )
-            """))
+            """)))
         # SAL — Stato Avanzamento Lavori
         if not _inspect(engine).has_table("sal_lavoro"):
-            conn.execute(text("""
+            conn.execute(text(_adapt_sql("""
                 CREATE TABLE sal_lavoro (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
@@ -151,10 +158,10 @@ def _run_migrations():
                     stato VARCHAR NOT NULL DEFAULT 'emesso',
                     data_creazione VARCHAR NOT NULL
                 )
-            """))
+            """)))
         # Rapportini di lavoro giornalieri
         if not _inspect(engine).has_table("rapportini_lavoro"):
-            conn.execute(text("""
+            conn.execute(text(_adapt_sql("""
                 CREATE TABLE rapportini_lavoro (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
@@ -166,10 +173,10 @@ def _run_migrations():
                     note TEXT DEFAULT '',
                     data_creazione VARCHAR NOT NULL
                 )
-            """))
+            """)))
         # Promemoria manutenzioni / CRM
         if not _inspect(engine).has_table("promemoria_clienti"):
-            conn.execute(text("""
+            conn.execute(text(_adapt_sql("""
                 CREATE TABLE promemoria_clienti (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     utente_id INTEGER NOT NULL REFERENCES utenti(id),
@@ -181,7 +188,8 @@ def _run_migrations():
                     stato VARCHAR NOT NULL DEFAULT 'attivo',
                     data_creazione VARCHAR NOT NULL
                 )
-            """))
+            """)))
+
         # token_portale per accesso pubblico cliente
         try:
             conn.execute(text("ALTER TABLE clienti ADD COLUMN token_portale VARCHAR"))
@@ -189,7 +197,7 @@ def _run_migrations():
             pass
         # Timesheet collaboratori
         if not _inspect(engine).has_table("timesheet_collab"):
-            conn.execute(text("""
+            conn.execute(text(_adapt_sql("""
                 CREATE TABLE timesheet_collab (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
@@ -201,7 +209,7 @@ def _run_migrations():
                     note TEXT DEFAULT '',
                     data_creazione VARCHAR NOT NULL
                 )
-            """))
+            """)))
         # Fix residuo_pagamento negativo (pagato > totale_documento = 0)
         conn.execute(text(
             "UPDATE lavori SET residuo_pagamento = 0 WHERE residuo_pagamento < 0"
