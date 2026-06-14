@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Contabilità — Gestionale Artigiani</title>
+    <link rel="stylesheet" href="/static/style.css?v=155">
+    {% include "components/navbar.html" %}
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; background: #f8fafc; }
+        .exp-container { max-width: 680px; margin: 32px auto; padding: 0 16px 80px; }
+        .exp-header { margin-bottom: 28px; }
+        .exp-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px; }
+        .exp-header p { font-size: 14px; color: #6b7280; margin: 0; }
+
+        .anno-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .anno-bar label { font-size: 14px; font-weight: 600; color: #374151; }
+        .anno-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            color: #111827;
+        }
+        .anno-bar select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px #ede9fe; }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .exp-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .exp-card-icon { font-size: 28px; }
+        .exp-card h3 { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
+        .exp-card p { font-size: 13px; color: #6b7280; margin: 0; line-height: 1.5; }
+        .exp-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: fit-content;
+        }
+        .badge-csv { background: #dcfce7; color: #16a34a; }
+        .badge-xlsx { background: #dbeafe; color: #1d4ed8; }
+        .badge-xml { background: #fef3c7; color: #b45309; }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            margin-top: auto;
+        }
+        .btn-download:hover { opacity: 0.85; }
+        .btn-csv { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .btn-xlsx { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .btn-xml { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: #9ca3af;
+            margin: 28px 0 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="exp-container">
+    <div class="exp-header">
+        <h1>Export Contabilità</h1>
+        <p>Scarica i tuoi dati in formato CSV, Excel o XML per il commercialista o per importarli in altri software.</p>
+    </div>
+
+    <div class="anno-bar">
+        <label for="anno-sel">Anno:</label>
+        <select id="anno-sel" onchange="aggiornaAnno(this.value)">
+            {% for a in anni_disponibili %}
+            <option value="{{ a }}" {% if a == anno_sel %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="section-title">Fatture emesse</div>
+    <div class="card-grid">
+        <div class="exp-card">
+            <div class="exp-card-icon">📊</div>
+            <span class="exp-badge badge-xlsx">Excel .xlsx</span>
+            <h3>Registro Fatture — Excel</h3>
+            <p>Foglio Excel formattato con numero, data, cliente, P.IVA, imponibile, IVA, totale e stato.</p>
+            <a id="link-fatture-xlsx" href="/fatture/export-excel?anno={{ anno_sel }}" class="btn-download btn-xlsx">
+                ⬇ Scarica Excel
+            </a>
+        </div>
+        <div class="exp-card">
+            <div class="exp-card-icon">📋</div>
+            <span class="exp-badge badge-csv">CSV</span>
+            <h3>Registro Fatture — CSV</h3>
+            <p>File CSV compatibile con Excel, LibreOffice e software di contabilità (Zucchetti, TeamSystem…).</p>
+            <a id="link-fatture-csv" href="/fatture/export.csv?anno={{ anno_sel }}" class="btn-download btn-csv">
+                ⬇ Scarica CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="section-title">Prima Nota</div>
+    <div class="card-grid">
+        <div class="exp-card">
+            <div class="exp-card-icon">📒</div>
+            <span class="exp-badge badge-csv">CSV</span>
+            <h3>Prima Nota annuale — CSV</h3>
+            <p>Tutte le entrate e uscite dell'anno: data, descrizione, tipo, categoria, importo.</p>
+            <a id="link-pn-csv" href="/prima-nota/export.csv?anno={{ anno_sel }}" class="btn-download btn-csv">
+                ⬇ Scarica CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="section-title">Riepilogo completo</div>
+    <div class="card-grid">
+        <div class="exp-card">
+            <div class="exp-card-icon">🗂️</div>
+            <span class="exp-badge badge-xml">XML</span>
+            <h3>Riepilogo Contabilità — XML</h3>
+            <p>File XML strutturato con fatture e prima nota, importabile in software gestionali e consultabili da qualsiasi commercialista.</p>
+            <a id="link-xml" href="/export/riepilogo.xml?anno={{ anno_sel }}" class="btn-download btn-xml">
+                ⬇ Scarica XML
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function aggiornaAnno(anno) {
+    document.getElementById('link-fatture-xlsx').href = '/fatture/export-excel?anno=' + anno;
+    document.getElementById('link-fatture-csv').href  = '/fatture/export.csv?anno=' + anno;
+    document.getElementById('link-pn-csv').href       = '/prima-nota/export.csv?anno=' + anno;
+    document.getElementById('link-xml').href          = '/export/riepilogo.xml?anno=' + anno;
+}
+</script>
+</body>
+</html>

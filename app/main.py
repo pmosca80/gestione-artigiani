@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -167,6 +167,7 @@ app.include_router(firma.router)
 app.include_router(garanzie.router)
 app.include_router(prima_nota.router)
 app.include_router(notifiche_push.router)
+app.include_router(export_contabilita.router)
 
 @app.get("/api/cerca")
 def cerca_globale(

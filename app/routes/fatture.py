@@ -230,6 +230,47 @@ def export_excel(
     )
 
 
+@router.get("/export.csv")
+def export_csv_fatture(
+    anno: int = None,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from fastapi.responses import Response as _Response
+    anni_disponibili = crud.get_anni_fatture(db, user_id)
+    anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
+    fatture_list = crud.get_fatture_registro(db, user_id, anno_sel)
+
+    righe = ["N. Fattura,Data,Cliente,P.IVA/CF,Imponibile,IVA,Totale,Stato"]
+    for f in fatture_list:
+        lav = f.lavoro
+        cli = lav.cliente if lav else None
+        if cli:
+            nome_cli = (
+                cli.ragione_sociale if cli.tipo_cliente == "azienda"
+                else f"{cli.nome or ''} {cli.cognome or ''}".strip()
+            ) or ""
+            piva_cf = cli.partita_iva or cli.codice_fiscale or ""
+        else:
+            nome_cli = ""
+            piva_cf = ""
+        numero_fmt = f"{f.anno}/{str(f.numero).zfill(3)}"
+        nome_cli = nome_cli.replace('"', "'")
+        righe.append(
+            f'{numero_fmt},{f.data_emissione},"{nome_cli}",{piva_cf},'
+            f'{f.importo_imponibile or 0:.2f},{f.importo_iva or 0:.2f},'
+            f'{f.importo_totale or 0:.2f},{f.stato or "emessa"}'
+        )
+
+    content = "﻿" + "\n".join(righe)
+    filename = f"fatture_{anno_sel}.csv"
+    return _Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.post("/{fattura_id}/invia-email")
 def invia_fattura_email(
     fattura_id: int,

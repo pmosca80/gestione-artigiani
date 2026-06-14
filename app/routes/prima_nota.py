@@ -121,18 +121,18 @@ def export_csv(
 ):
     oggi = date.today()
     anno = anno or oggi.year
-    mese = mese or oggi.month
     voci = crud.get_prima_nota(db, user_id, anno=anno, mese=mese)
 
     righe = ["Data,Descrizione,Tipo,Categoria,Importo"]
     for v in sorted(voci, key=lambda x: x.data):
         imp = f"{v.importo:.2f}" if v.tipo == "entrata" else f"-{v.importo:.2f}"
-        righe.append(f'{v.data},"{v.descrizione}",{v.tipo},{v.categoria or ""},{imp}')
+        desc = v.descrizione.replace('"', "'") if v.descrizione else ""
+        righe.append(f'{v.data},"{desc}",{v.tipo},{v.categoria or ""},{imp}')
 
-    content = "\n".join(righe)
-    filename = f"prima_nota_{anno}_{mese:02d}.csv"
+    content = "﻿" + "\n".join(righe)
+    filename = f"prima_nota_{anno}_{mese:02d}.csv" if mese else f"prima_nota_{anno}.csv"
     return Response(
-        content=content,
-        media_type="text/csv",
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
