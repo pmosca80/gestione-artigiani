@@ -59,31 +59,53 @@
         .feat-title { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 6px; }
         .feat-desc { font-size: 13px; color: #6b7280; line-height: 1.6; }
 
-        .pricing { max-width: 720px; margin: 0 auto 80px; padding: 0 24px; }
-        .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 580px) { .plans-grid { grid-template-columns: 1fr; } }
-        .plan-card { background: white; border: 2px solid #e5e7eb; border-radius: 20px; padding: 28px; }
-        .plan-card.pro { background: linear-gradient(145deg, #0f172a, #1e3a5f); border-color: #7c3aed; }
-        .plan-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
-        .badge-free { background: #f3f4f6; color: #6b7280; }
-        .badge-pro { background: #7c3aed; color: white; }
-        .plan-name { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 4px; }
-        .plan-card.pro .plan-name { color: white; }
-        .plan-price { font-size: 34px; font-weight: 800; color: #111827; margin: 10px 0 16px; }
-        .plan-price span { font-size: 15px; font-weight: 500; color: #6b7280; }
-        .plan-card.pro .plan-price { color: white; }
-        .plan-card.pro .plan-price span { color: #94a3b8; }
-        .plan-features { list-style: none; margin-bottom: 24px; }
-        .plan-features li { font-size: 13px; color: #374151; padding: 4px 0; display: flex; gap: 8px; align-items: flex-start; }
-        .plan-card.pro .plan-features li { color: #cbd5e1; }
-        .check { color: #16a34a; }
-        .plan-card.pro .check { color: #34d399; }
-        .cross { color: #d1d5db; }
-        .btn-plan { display: block; width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; text-align: center; }
-        .btn-free { background: #f3f4f6; color: #374151; }
+        .pricing { max-width: 980px; margin: 0 auto 80px; padding: 0 24px; }
+        .plans-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        @media (max-width: 860px) { .plans-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 500px) { .plans-grid { grid-template-columns: 1fr; } }
+        .plan-card { background: white; border: 2px solid #e5e7eb; border-radius: 18px; padding: 22px 18px 18px; position: relative; }
+        .plan-card.pro-c { background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 100%); border-color: #7c3aed; }
+        .plan-card.biz-c { background: linear-gradient(160deg, #1c1917 0%, #292524 100%); border-color: #d97706; }
+        .plan-card.starter-c { border-color: #0284c7; }
+        .plan-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+        .badge-free    { background: #f3f4f6; color: #6b7280; }
+        .badge-starter { background: #bae6fd; color: #0369a1; }
+        .badge-pro     { background: #7c3aed; color: white; }
+        .badge-biz     { background: #d97706; color: white; }
+        .crown-lnd { position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            background: #059669; color: white; font-size: 10px; font-weight: 700;
+            padding: 2px 12px; border-radius: 20px; white-space: nowrap; }
+        .plan-name { font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 2px; }
+        .plan-card.pro-c .plan-name,
+        .plan-card.biz-c .plan-name { color: white; }
+        .plan-price { font-size: 28px; font-weight: 800; color: #111827; margin: 8px 0 2px; }
+        .plan-price span { font-size: 13px; font-weight: 500; color: #6b7280; }
+        .plan-card.pro-c .plan-price,
+        .plan-card.biz-c .plan-price { color: white; }
+        .plan-card.pro-c .plan-price span,
+        .plan-card.biz-c .plan-price span { color: #94a3b8; }
+        .plan-desc { font-size: 11px; color: #6b7280; margin-bottom: 14px; line-height: 1.4; }
+        .plan-card.pro-c .plan-desc,
+        .plan-card.biz-c .plan-desc { color: #94a3b8; }
+        .plan-features { list-style: none; margin-bottom: 20px; }
+        .plan-features li { font-size: 12px; color: #374151; padding: 3px 0; display: flex; gap: 6px; align-items: flex-start; line-height: 1.4; }
+        .plan-card.pro-c .plan-features li,
+        .plan-card.biz-c .plan-features li { color: #cbd5e1; }
+        .check { color: #16a34a; flex-shrink: 0; }
+        .plan-card.pro-c .check,
+        .plan-card.biz-c .check { color: #34d399; }
+        .cross { color: #d1d5db; flex-shrink: 0; }
+        .btn-plan { display: block; width: 100%; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; text-align: center; }
+        .btn-free     { background: #f3f4f6; color: #374151; }
         .btn-free:hover { background: #e5e7eb; }
-        .btn-pro { background: #7c3aed; color: white; }
+        .btn-starter  { background: #0284c7; color: white; }
+        .btn-starter:hover { background: #0369a1; }
+        .btn-pro      { background: #7c3aed; color: white; }
         .btn-pro:hover { background: #6d28d9; }
+        .btn-biz      { background: #d97706; color: white; }
+        .btn-biz:hover { background: #b45309; }
+        .trial-note { text-align: center; margin-top: 20px; font-size: 13px; color: #6b7280; }
+        .trial-note strong { color: #059669; }
 
         .proof { background: white; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; padding: 64px 24px; margin-bottom: 80px; }
         .proof-inner { max-width: 900px; margin: 0 auto; }
@@ -120,7 +142,7 @@
         <a href="/registrati" class="btn-primary">🚀 Inizia gratis — nessuna carta</a>
         <a href="/login" class="btn-secondary">Ho già un account</a>
     </div>
-    <p class="hero-note">Piano Free per sempre · Piano Pro a €9,90/mese · Disdici quando vuoi</p>
+    <p class="hero-note">15 giorni di prova gratuita · Nessuna carta richiesta · Disdici quando vuoi</p>
 </section>
 
 <div class="mockup-wrap">
@@ -222,38 +244,76 @@
 <section class="pricing">
     <div class="section-title">
         <h2>Prezzi trasparenti, zero sorprese</h2>
-        <p>Inizia gratis. Passa a Pro quando sei pronto.</p>
+        <p>15 giorni di prova gratuita inclusi · Nessuna carta richiesta</p>
     </div>
     <div class="plans-grid">
+        <!-- FREE -->
         <div class="plan-card">
             <span class="plan-badge badge-free">Free</span>
             <div class="plan-name">Gratuito</div>
             <div class="plan-price">€0 <span>/ mese</span></div>
+            <div class="plan-desc">Per scoprire il gestionale.</div>
             <ul class="plan-features">
-                <li><span class="check">✓</span> Fino a 5 clienti</li>
+                <li><span class="check">✓</span> 5 clienti</li>
                 <li><span class="check">✓</span> Lavori e preventivi</li>
-                <li><span class="check">✓</span> Magazzino</li>
-                <li><span class="check">✓</span> PDF documenti</li>
+                <li><span class="check">✓</span> PDF, Agenda, Magazzino</li>
+                <li><span class="check">✓</span> Firma digitale</li>
                 <li><span class="cross">✗</span> FatturaPA XML</li>
-                <li><span class="cross">✗</span> Export Excel</li>
+                <li><span class="cross">✗</span> Export contabile</li>
             </ul>
             <a href="/registrati" class="btn-plan btn-free">Inizia gratis</a>
         </div>
-        <div class="plan-card pro">
+        <!-- STARTER -->
+        <div class="plan-card starter-c">
+            <span class="plan-badge badge-starter">Starter</span>
+            <div class="plan-name">Starter</div>
+            <div class="plan-price">€6,90 <span>/ mese</span></div>
+            <div class="plan-desc">Per il singolo artigiano.</div>
+            <ul class="plan-features">
+                <li><span class="check">✓</span> 30 clienti</li>
+                <li><span class="check">✓</span> Lavori e preventivi</li>
+                <li><span class="check">✓</span> PDF, Agenda, Magazzino</li>
+                <li><span class="check">✓</span> Firma digitale</li>
+                <li><span class="check">✓</span> <strong>FatturaPA XML</strong></li>
+                <li><span class="check">✓</span> <strong>Export contabile CSV</strong></li>
+            </ul>
+            <a href="/registrati" class="btn-plan btn-starter">Prova 15 giorni</a>
+        </div>
+        <!-- PRO -->
+        <div class="plan-card pro-c">
+            <div class="crown-lnd">⭐ Più popolare</div>
             <span class="plan-badge badge-pro">Pro</span>
             <div class="plan-name">Professionale</div>
-            <div class="plan-price">€9,90 <span>/ mese</span></div>
+            <div class="plan-price">€12,90 <span>/ mese</span></div>
+            <div class="plan-desc">Per chi è in crescita.</div>
             <ul class="plan-features">
-                <li><span class="check">✓</span> <strong style="color:white;">Clienti illimitati</strong></li>
+                <li><span class="check">✓</span> <strong>Clienti illimitati</strong></li>
                 <li><span class="check">✓</span> Lavori e preventivi</li>
-                <li><span class="check">✓</span> Magazzino</li>
-                <li><span class="check">✓</span> PDF documenti</li>
-                <li><span class="check">✓</span> <strong style="color:white;">FatturaPA XML</strong></li>
-                <li><span class="check">✓</span> <strong style="color:white;">Export Excel</strong></li>
+                <li><span class="check">✓</span> PDF, Agenda, Magazzino</li>
+                <li><span class="check">✓</span> <strong>FatturaPA XML</strong></li>
+                <li><span class="check">✓</span> <strong>3 collaboratori</strong></li>
+                <li><span class="check">✓</span> <strong>Backup automatico</strong></li>
             </ul>
-            <a href="/registrati" class="btn-plan btn-pro">Inizia con Pro</a>
+            <a href="/registrati" class="btn-plan btn-pro">Prova 15 giorni</a>
+        </div>
+        <!-- BUSINESS -->
+        <div class="plan-card biz-c">
+            <span class="plan-badge badge-biz">Business</span>
+            <div class="plan-name">Business</div>
+            <div class="plan-price">€24,90 <span>/ mese</span></div>
+            <div class="plan-desc">Per imprese strutturate.</div>
+            <ul class="plan-features">
+                <li><span class="check">✓</span> <strong>Clienti illimitati</strong></li>
+                <li><span class="check">✓</span> Lavori e preventivi</li>
+                <li><span class="check">✓</span> PDF, Agenda, Magazzino</li>
+                <li><span class="check">✓</span> <strong>FatturaPA XML</strong></li>
+                <li><span class="check">✓</span> <strong>Collaboratori illimitati</strong></li>
+                <li><span class="check">✓</span> <strong>Backup + supporto</strong></li>
+            </ul>
+            <a href="/registrati" class="btn-plan btn-biz">Prova 15 giorni</a>
         </div>
     </div>
+    <p class="trial-note"><strong>15 giorni gratis</strong> su tutti i piani · Nessuna carta · Disdici in qualsiasi momento</p>
 </section>
 
 <footer>
