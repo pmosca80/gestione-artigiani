@@ -42,9 +42,8 @@ def _send_resend(*, to: str, subject: str, html: str, from_: str, attachments: l
 # ── backend Brevo HTTP API ────────────────────────────────────────────────────
 
 def _send_brevo_api(*, to: str, subject: str, html: str, from_: str, attachments: list | None) -> None:
-    import json
     import base64
-    import urllib.request
+    import requests
 
     api_key = os.getenv("BREVO_API_KEY", "")
 
@@ -72,20 +71,13 @@ def _send_brevo_api(*, to: str, subject: str, html: str, from_: str, attachments
                 "content": base64.b64encode(content).decode("utf-8"),
             })
 
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
+    resp = requests.post(
         "https://api.brevo.com/v3/smtp/email",
-        data=data,
-        headers={
-            "api-key":      api_key,
-            "Content-Type": "application/json",
-            "Accept":       "application/json",
-        },
-        method="POST",
+        json=payload,
+        headers={"api-key": api_key, "Accept": "application/json"},
+        timeout=20,
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        if resp.status not in (200, 201):
-            raise RuntimeError(f"Brevo API error {resp.status}")
+    resp.raise_for_status()
 
 
 # ── backend SMTP (Brevo / qualsiasi SMTP) ────────────────────────────────────
@@ -136,10 +128,13 @@ def _send(
     sender = from_ or _sender()
     try:
         if os.getenv("RESEND_API_KEY"):
+            logger.info(f"Email backend: Resend → {to}")
             _send_resend(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         elif os.getenv("BREVO_API_KEY"):
+            logger.info(f"Email backend: Brevo API → {to}")
             _send_brevo_api(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         else:
+            logger.info(f"Email backend: SMTP → {to}")
             _send_smtp(to=to, subject=subject, html=html, from_=sender, attachments=attachments)
         logger.info(f"Email inviata a {to} — {subject}")
         return True
