@@ -93,8 +93,13 @@ function _mostraToastSWUpdate(newWorker) {
         {% if not request.session.get('is_collaboratore') %}
         <a href="/team">👥 Team</a>
         {% endif %}
-        {% if request.session.get('piano') == 'pro' %}
+        {% set _piano = request.session.get('piano') %}
+        {% if _piano == 'business' %}
+        <a href="/piani" style="font-weight:700;color:#d97706;">Business ✓</a>
+        {% elif _piano == 'pro' %}
         <a href="/piani" style="font-weight:700;color:#059669;">Pro ✓</a>
+        {% elif _piano == 'starter' %}
+        <a href="/piani" style="font-weight:700;color:#0284c7;">Starter ✓</a>
         {% else %}
         <a href="/piani" style="font-weight:700;color:#7c3aed;">Free →</a>
         {% endif %}
