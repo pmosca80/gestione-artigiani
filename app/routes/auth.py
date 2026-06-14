@@ -68,13 +68,6 @@ def login(
             context={"errore": "Credenziali errate"},
         )
 
-    # Blocca solo utenti nuovi (con token_verifica impostato) che non hanno ancora verificato
-    if user.token_verifica and not user.email_verificato:
-        return templates.TemplateResponse(
-            request=request, name="login.html",
-            context={"errore": "Devi verificare la tua email prima di accedere. Controlla la posta in arrivo."},
-        )
-
     request.session.clear()
     request.session["user_id"] = user.id
     request.session["username"] = user.username
@@ -160,19 +153,14 @@ def register(
     codice_promo_valido = os.getenv("CODICE_PROMO", "")
     promo_ok = bool(codice_promo and codice_promo_valido and codice_promo.strip() == codice_promo_valido)
 
-    from app.services.email import smtp_configurato, invia_verifica_email
-    smtp_ok = smtp_configurato()
-
-    token = secrets.token_urlsafe(32) if smtp_ok else None
-
     nuovo = Utente(
         username=username,
         email=email,
         password=hash_password(password),
         data_registrazione=datetime.now().strftime("%Y-%m-%d"),
-        attivo=1 if not smtp_ok else 0,
-        email_verificato=not smtp_ok,
-        token_verifica=token,
+        attivo=1,
+        email_verificato=True,
+        token_verifica=None,
         accetta_termini=True,
         piano="pro" if promo_ok else "free",
         pro_scadenza=(datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if promo_ok else None,
@@ -180,16 +168,6 @@ def register(
     db.add(nuovo)
     db.commit()
 
-    if smtp_ok:
-        import threading
-        threading.Thread(
-            target=invia_verifica_email,
-            args=(email, token, _base_url(request)),
-            daemon=True,
-        ).start()
-        return RedirectResponse(url="/register?pendente=1", status_code=303)
-
-    # SMTP non configurato: account attivo direttamente, accesso immediato
     return RedirectResponse(url="/login?verificato=1", status_code=303)
 
 
