@@ -13,11 +13,89 @@ from app.templates_config import templates
 router = APIRouter(prefix="/fatture", tags=["fatture"])
 
 
+def _fmt_data(d: str) -> str:
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except Exception:
+        return d
+
+
+def _componi_email_sollecito(
+    nome_cliente: str,
+    numero_fmt: str,
+    data_emissione: str,
+    importo: float,
+    nome_azienda: str,
+    data_scadenza: str | None,
+) -> str:
+    scad_txt = ""
+    if data_scadenza:
+        try:
+            scad_txt = f"(scadenza: <strong>{_fmt_data(data_scadenza)}</strong>) "
+        except Exception:
+            pass
+    return f"""
+    <html>
+    <body style="font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;padding:32px 0;margin:0;">
+    <div style="max-width:580px;margin:0 auto;background:white;border-radius:12px;
+                box-shadow:0 2px 16px rgba(0,0,0,0.08);overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:28px 32px;">
+        <p style="margin:0;color:#94a3b8;font-size:13px;">{nome_azienda}</p>
+        <h1 style="margin:6px 0 0;color:white;font-size:20px;">Sollecito di pagamento</h1>
+      </div>
+      <div style="padding:28px 32px;">
+        <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px;">
+          Gentile <strong>{nome_cliente}</strong>,
+        </p>
+        <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 20px;">
+          con la presente Le ricordiamo che la seguente fattura risulta ancora
+          <strong>non saldata</strong>:
+        </p>
+        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;
+                    padding:16px 20px;margin-bottom:20px;">
+          <table style="width:100%;font-size:14px;border-collapse:collapse;">
+            <tr>
+              <td style="color:#92400e;font-weight:600;padding:4px 0;">Fattura n°</td>
+              <td style="text-align:right;font-weight:700;color:#111827;">{numero_fmt}</td>
+            </tr>
+            <tr>
+              <td style="color:#92400e;font-weight:600;padding:4px 0;">Data emissione</td>
+              <td style="text-align:right;color:#374151;">{_fmt_data(data_emissione)}</td>
+            </tr>
+            <tr>
+              <td style="color:#92400e;font-weight:600;padding:8px 0 4px;">Importo dovuto</td>
+              <td style="text-align:right;font-weight:700;font-size:18px;color:#dc2626;padding-top:8px;">
+                € {importo:.2f}
+              </td>
+            </tr>
+          </table>
+        </div>
+        <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px;">
+          La invitiamo cortesemente a provvedere al saldo {scad_txt}entro
+          <strong>7 giorni</strong> dalla ricezione di questa comunicazione.
+        </p>
+        <p style="color:#374151;font-size:14px;line-height:1.7;margin:0;">
+          Per qualsiasi chiarimento non esiti a contattarci.
+          Cordiali saluti.
+        </p>
+      </div>
+      <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e5e7eb;">
+        <p style="margin:0;font-size:12px;color:#6b7280;">
+          <strong>{nome_azienda}</strong> — Comunicazione inviata tramite Mastro
+        </p>
+      </div>
+    </div>
+    </body>
+    </html>
+    """
+
+
 @router.get("/", response_class=HTMLResponse)
 def registro_fatture(
     request: Request,
     anno: int = None,
     inviata: int = None,
+    sollecito_ok: int = None,
     errore: str = None,
     msg: str = None,
     db: Session = Depends(get_db),
@@ -68,6 +146,7 @@ def registro_fatture(
             "smtp_ok": smtp_configurato(),
             "pec_ok": pec_configurata(azienda) if azienda else False,
             "flash_ok": inviata,
+            "flash_sollecito": sollecito_ok,
             "flash_err": _ERRORI.get(errore) if errore else None,
         },
     )
@@ -285,6 +364,61 @@ def export_csv_fatture(
     )
 
 
+@router.get("/liquidazione-iva", response_class=HTMLResponse)
+def liquidazione_iva(
+    request: Request,
+    anno: int = None,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from collections import defaultdict
+    _REGIMI_SENZA_IVA = {"RF19", "RF02"}
+
+    anni_disponibili = crud.get_anni_fatture(db, user_id)
+    anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
+
+    fatture = crud.get_fatture_registro(db, user_id, anno_sel)
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    regime = (azienda.regime_fiscale if azienda else "RF01") or "RF01"
+    forfettario = regime in _REGIMI_SENZA_IVA
+
+    quartali: dict[int, dict] = {
+        q: {"n": 0, "imponibile": 0.0, "iva": 0.0, "mesi": label}
+        for q, label in [
+            (1, "Gen – Mar"), (2, "Apr – Giu"),
+            (3, "Lug – Set"), (4, "Ott – Dic"),
+        ]
+    }
+    for f in fatture:
+        if (f.tipo_documento or "TD01") != "TD01":
+            continue
+        try:
+            mese = int(f.data_emissione[5:7])
+        except Exception:
+            continue
+        q = (mese - 1) // 3 + 1
+        quartali[q]["n"] += 1
+        quartali[q]["imponibile"] += float(f.importo_imponibile or 0)
+        quartali[q]["iva"] += float(f.importo_iva or 0)
+
+    tot_imponibile = sum(v["imponibile"] for v in quartali.values())
+    tot_iva = sum(v["iva"] for v in quartali.values())
+
+    return templates.TemplateResponse(
+        request=request,
+        name="liquidazione_iva.html",
+        context={
+            "anni_disponibili": anni_disponibili,
+            "anno_sel": anno_sel,
+            "quartali": quartali,
+            "tot_imponibile": tot_imponibile,
+            "tot_iva": tot_iva,
+            "forfettario": forfettario,
+            "regime": regime,
+        },
+    )
+
+
 @router.post("/{fattura_id}/invia-email")
 def invia_fattura_email(
     fattura_id: int,
@@ -421,6 +555,63 @@ def crea_nota_credito(
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
     return RedirectResponse(
         f"/fatture/?anno={nc.anno}&nc_creata={nc.id}", status_code=303
+    )
+
+
+@router.post("/{fattura_id}/sollecito-cliente")
+def sollecito_cliente(
+    fattura_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Invia email di sollecito pagamento direttamente al cliente."""
+    from app.models import FatturaEmessa
+    from app.services.email import invia_email, smtp_configurato
+
+    if not smtp_configurato():
+        return RedirectResponse("/fatture/?errore=smtp_non_configurato", status_code=303)
+
+    fattura = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id,
+        FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura:
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
+
+    lav = fattura.lavoro
+    if not lav:
+        return RedirectResponse("/fatture/?errore=lavoro_non_trovato", status_code=303)
+
+    cli = lav.cliente
+    if not cli or not (cli.email or "").strip():
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&errore=email_mancante",
+            status_code=303,
+        )
+
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    nome_az = (azienda.nome_azienda if azienda else "") or ""
+    numero_fmt = f"{fattura.anno}/{str(fattura.numero).zfill(3)}"
+    nome_cli = (
+        cli.ragione_sociale if cli.tipo_cliente == "azienda"
+        else f"{cli.nome or ''} {cli.cognome or ''}".strip()
+    ) or "Cliente"
+
+    oggetto = f"Sollecito pagamento — Fattura n. {numero_fmt}"
+    corpo = _componi_email_sollecito(
+        nome_cli, numero_fmt, fattura.data_emissione,
+        float(fattura.importo_totale or 0), nome_az,
+        lav.data_scadenza_pagamento,
+    )
+
+    if invia_email(cli.email.strip(), oggetto, corpo):
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&sollecito_ok={fattura_id}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        f"/fatture/?anno={fattura.anno}&errore=invio_fallito",
+        status_code=303,
     )
 
 

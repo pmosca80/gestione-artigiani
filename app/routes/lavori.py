@@ -458,6 +458,71 @@ def dashboard_preventivi(
         }
     )
 
+@router.get("/calendario", response_class=HTMLResponse)
+def calendario_lavori(
+    request: Request,
+    anno: int = None,
+    mese: int = None,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    import calendar as _cal
+    from collections import defaultdict
+    from datetime import date as _dt
+    from app.models import Lavoro as _Lavoro
+
+    oggi = datetime.now()
+    anno_sel = anno or oggi.year
+    mese_sel = mese or oggi.month
+    mese_sel = max(1, min(12, mese_sel))
+
+    primo = _dt(anno_sel, mese_sel, 1)
+    _, n_giorni = _cal.monthrange(anno_sel, mese_sel)
+    ultimo = _dt(anno_sel, mese_sel, n_giorni)
+
+    prev_mese, prev_anno = (12, anno_sel - 1) if mese_sel == 1 else (mese_sel - 1, anno_sel)
+    next_mese, next_anno = (1, anno_sel + 1) if mese_sel == 12 else (mese_sel + 1, anno_sel)
+
+    lavori_mese = (
+        db.query(_Lavoro)
+        .filter(
+            _Lavoro.utente_id == user_id,
+            _Lavoro.data_lavoro >= primo.isoformat(),
+            _Lavoro.data_lavoro <= ultimo.isoformat(),
+        )
+        .order_by(_Lavoro.data_lavoro)
+        .all()
+    )
+
+    lpg: dict[str, list] = defaultdict(list)
+    for l in lavori_mese:
+        lpg[l.data_lavoro].append(l)
+
+    MESI_IT = [
+        "", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
+    ]
+    settimane = _cal.monthcalendar(anno_sel, mese_sel)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="calendario_lavori.html",
+        context={
+            "anno_sel": anno_sel,
+            "mese_sel": mese_sel,
+            "mese_nome": MESI_IT[mese_sel],
+            "settimane": settimane,
+            "lpg": lpg,
+            "oggi": oggi.strftime("%Y-%m-%d"),
+            "prev_anno": prev_anno,
+            "prev_mese": prev_mese,
+            "next_anno": next_anno,
+            "next_mese": next_mese,
+            "n_lavori": len(lavori_mese),
+        },
+    )
+
+
 @router.get("/{lavoro_id}", response_class=HTMLResponse)
 def dettaglio_lavoro(
     lavoro_id: int,

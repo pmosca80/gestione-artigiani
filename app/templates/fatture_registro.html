@@ -209,6 +209,11 @@
         ✅ Fattura inviata via email con successo!
     </div>
     {% endif %}
+    {% if flash_sollecito %}
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#1e40af;">
+        📧 Sollecito inviato al cliente con successo!
+    </div>
+    {% endif %}
     {% if request.query_params.get('creata') %}
     <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#5b21b6;">
         🧾 Fattura creata nel registro! Scarica l'XML o inviala al cliente con i pulsanti qui sotto.
@@ -366,6 +371,19 @@
                                 <button type="submit" class="btn-az" style="background:#f59e0b;color:white;"
                                         title="Crea nota di credito TD04">📄 NC</button>
                             </form>
+                            {% if lav and lav.stato_pagamento != 'pagato' and cli and cli.email %}
+                            {% if smtp_ok %}
+                            <form class="stato-form" method="post" action="/fatture/{{ f.id }}/sollecito-cliente"
+                                  onsubmit="return confirm('Inviare un sollecito di pagamento a {{ cli.email }}?')">
+                                <button type="submit" class="btn-az"
+                                        style="background:#dc2626;color:white;"
+                                        title="Invia sollecito pagamento al cliente">🔔 Sollecito</button>
+                            </form>
+                            {% else %}
+                            <span class="btn-az btn-az-gray" style="opacity:0.45;cursor:not-allowed;"
+                                  title="SMTP non configurato per inviare solleciti">🔔</span>
+                            {% endif %}
+                            {% endif %}
                             {% endif %}
                             {% set cli = lav.cliente if lav else None %}
                             {% if cli and cli.telefono %}

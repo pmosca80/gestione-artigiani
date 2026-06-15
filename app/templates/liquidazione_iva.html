@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquidazione IVA — Mastro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p  { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .anno-bar {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .anno-bar span { font-size: 13px; color: #6b7280; font-weight: 500; }
+        .anno-pill {
+            display: inline-block; padding: 5px 14px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+            text-decoration: none; border: 1px solid #e5e7eb;
+            color: #374151; background: white;
+        }
+        .anno-pill.attivo { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+        .info-box {
+            border-radius: 12px; padding: 14px 18px;
+            font-size: 13px; line-height: 1.6; margin-bottom: 24px;
+        }
+        .info-box.green { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+        .info-box.yellow { background: #fefce8; border: 1px solid #fde68a; color: #92400e; }
+        .info-box.blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+        .iva-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .q-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .q-header {
+            background: #f8fafc;
+            padding: 12px 18px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .q-label { font-size: 12px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: 0.5px; color: #6b7280; }
+        .q-periodo { font-size: 13px; font-weight: 600; color: #374151; }
+        .q-body { padding: 16px 18px; }
+        .q-row { display: flex; justify-content: space-between;
+                  align-items: center; padding: 5px 0; }
+        .q-row-label { font-size: 13px; color: #6b7280; }
+        .q-row-val { font-family: 'DM Mono', monospace; font-size: 13px;
+                     font-weight: 600; color: #374151; }
+        .q-iva { font-size: 18px; font-weight: 700; color: #dc2626;
+                 font-family: 'DM Mono', monospace; }
+        .q-iva-zero { color: #9ca3af; }
+        .q-divider { border: none; border-top: 1px solid #f3f4f6; margin: 8px 0; }
+        .q-n { font-size: 11px; color: #9ca3af; font-weight: 600; }
+
+        .totale-card {
+            background: white;
+            border: 2px solid #7c3aed;
+            border-radius: 14px;
+            padding: 20px 24px;
+            display: flex; gap: 32px; flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .totale-item .label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                               letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 4px; }
+        .totale-item .val { font-size: 22px; font-weight: 700; color: #111827;
+                             font-family: 'DM Mono', monospace; }
+        .totale-item .val.purple { color: #7c3aed; }
+        .totale-item .val.red { color: #dc2626; }
+
+        .scadenze-table {
+            width: 100%; border-collapse: collapse;
+            background: white; border-radius: 12px; overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        .scadenze-table thead { background: #f8fafc; }
+        .scadenze-table th {
+            padding: 10px 16px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af;
+            text-align: left; border-bottom: 1px solid #e5e7eb;
+        }
+        .scadenze-table td {
+            padding: 12px 16px; font-size: 13px; color: #374151;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .scadenze-table tbody tr:last-child td { border-bottom: none; }
+        .chip { display: inline-block; padding: 2px 9px; border-radius: 20px;
+                font-size: 11px; font-weight: 700; }
+        .chip-q1 { background: #dbeafe; color: #1d4ed8; }
+        .chip-q2 { background: #dcfce7; color: #15803d; }
+        .chip-q3 { background: #fef3c7; color: #92400e; }
+        .chip-q4 { background: #fce7f3; color: #9d174d; }
+
+        @media (max-width: 600px) {
+            .iva-grid { grid-template-columns: 1fr; }
+            .totale-card { gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <h1>🧮 Liquidazione IVA</h1>
+        <p>Prospetto trimestrale IVA a debito sulle vendite — verifica con il tuo commercialista</p>
+    </div>
+
+    <div class="anno-bar">
+        <span>Anno:</span>
+        {% for a in anni_disponibili %}
+        <a href="/fatture/liquidazione-iva?anno={{ a }}"
+           class="anno-pill {% if a == anno_sel %}attivo{% endif %}">{{ a }}</a>
+        {% endfor %}
+    </div>
+
+    {% if forfettario %}
+    <div class="info-box green">
+        <strong>Regime forfettario ({{ regime }}) — IVA non applicata.</strong><br>
+        In regime forfettario non si addebita né si detrae l'IVA. Le fatture sono esenti
+        ai sensi dell'art. 1, commi 54-89, L. 190/2014.
+        Non è necessario presentare la liquidazione periodica IVA.
+        I dati mostrati si riferiscono solo all'imponibile fatturato.
+    </div>
+    {% else %}
+    <div class="info-box blue">
+        ℹ️ <strong>Solo IVA sulle vendite.</strong> Questo prospetto mostra l'IVA a debito
+        derivante dalle fatture emesse. Per calcolare il saldo netto occorre sottrarre
+        l'IVA sugli acquisti (detraibile) che il tuo commercialista calcola dalle fatture d'acquisto.
+    </div>
+    {% endif %}
+
+    <!-- Totale annuale -->
+    <div class="totale-card">
+        <div class="totale-item">
+            <div class="label">Anno</div>
+            <div class="val">{{ anno_sel }}</div>
+        </div>
+        <div class="totale-item">
+            <div class="label">Totale imponibile</div>
+            <div class="val purple">€ {{ "%.2f"|format(tot_imponibile) }}</div>
+        </div>
+        {% if not forfettario %}
+        <div class="totale-item">
+            <div class="label">IVA a debito (totale)</div>
+            <div class="val red">€ {{ "%.2f"|format(tot_iva) }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Card trimestrali -->
+    <div class="iva-grid">
+        {% for q, dati in quartali.items() %}
+        <div class="q-card">
+            <div class="q-header">
+                <span class="q-label">T{{ q }} {{ anno_sel }}</span>
+                <span class="q-periodo">{{ dati.mesi }}</span>
+            </div>
+            <div class="q-body">
+                {% if dati.n == 0 %}
+                <p style="color:#9ca3af;font-size:13px;margin:0;">Nessuna fattura</p>
+                {% else %}
+                <div class="q-row">
+                    <span class="q-row-label">Fatture emesse</span>
+                    <span class="q-n">{{ dati.n }}</span>
+                </div>
+                <div class="q-row">
+                    <span class="q-row-label">Imponibile</span>
+                    <span class="q-row-val">€ {{ "%.2f"|format(dati.imponibile) }}</span>
+                </div>
+                {% if not forfettario %}
+                <hr class="q-divider">
+                <div class="q-row">
+                    <span class="q-row-label" style="font-weight:700;">IVA a debito</span>
+                    <span class="q-iva {% if dati.iva == 0 %}q-iva-zero{% endif %}">
+                        € {{ "%.2f"|format(dati.iva) }}
+                    </span>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not forfettario %}
+    <!-- Tabella scadenze -->
+    <h2 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 12px;">Scadenze versamento (contribuenti trimestrali)</h2>
+    <table class="scadenze-table" style="margin-bottom:24px;">
+        <thead>
+            <tr>
+                <th>Trimestre</th>
+                <th>Periodo</th>
+                <th>Scadenza versamento</th>
+                <th>IVA stimata {{ anno_sel }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="chip chip-q1">T1</span></td>
+                <td>Gen – Mar {{ anno_sel }}</td>
+                <td>16 maggio {{ anno_sel }}<br><small style="color:#9ca3af;">(o 16 giugno + 0,40% interessi)</small></td>
+                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
+                    € {{ "%.2f"|format(quartali[1].iva) }}
+                </td>
+            </tr>
+            <tr>
+                <td><span class="chip chip-q2">T2</span></td>
+                <td>Apr – Giu {{ anno_sel }}</td>
+                <td>16 agosto {{ anno_sel }}</td>
+                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
+                    € {{ "%.2f"|format(quartali[2].iva) }}
+                </td>
+            </tr>
+            <tr>
+                <td><span class="chip chip-q3">T3</span></td>
+                <td>Lug – Set {{ anno_sel }}</td>
+                <td>16 novembre {{ anno_sel }}</td>
+                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
+                    € {{ "%.2f"|format(quartali[3].iva) }}
+                </td>
+            </tr>
+            <tr>
+                <td><span class="chip chip-q4">T4</span></td>
+                <td>Ott – Dic {{ anno_sel }}</td>
+                <td>16 febbraio {{ anno_sel + 1 }}<br><small style="color:#9ca3af;">(con la dichiarazione annuale IVA)</small></td>
+                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
+                    € {{ "%.2f"|format(quartali[4].iva) }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="info-box yellow">
+        ⚠️ <strong>Avviso:</strong> questo prospetto è indicativo e si basa sulle fatture registrate in Mastro.
+        Le scadenze effettive e l'importo da versare vanno verificati con il tuo commercialista,
+        che conosce anche l'IVA detraibile sugli acquisti e le eventuali compensazioni F24.
+    </div>
+
+    <div style="margin-top:16px;">
+        <a href="/fatture/?anno={{ anno_sel }}" style="font-size:13px;color:#7c3aed;font-weight:600;text-decoration:none;">
+            ← Torna al registro fatture
+        </a>
+        &nbsp;&nbsp;
+        <a href="/fatture/export-excel?anno={{ anno_sel }}"
+           style="font-size:13px;color:#16a34a;font-weight:600;text-decoration:none;">
+            📥 Scarica Excel {{ anno_sel }}
+        </a>
+    </div>
+
+</div>
+</body>
+</html>
