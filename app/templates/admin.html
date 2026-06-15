@@ -207,12 +207,10 @@
                                 </form>
                             {% endif %}
                             {% if utente.username != 'admin' %}
-                                <form method="post"
-                                      action="/impostazioni/admin/elimina/{{ utente.id }}"
-                                      style="display:inline;"
-                                      onsubmit="return confirm('Eliminare {{ utente.username }}? Tutti i suoi dati verranno persi.')">
-                                    <button class="btn-az btn-az-red">🗑</button>
-                                </form>
+                                <span id="del-wrap-{{ utente.id }}">
+                                    <button type="button" class="btn-az btn-az-red"
+                                            onclick="document.getElementById('del-wrap-{{ utente.id }}').innerHTML='<form method=\'post\' action=\'/impostazioni/admin/elimina/{{ utente.id }}\' style=\'display:inline\'><button type=\'submit\' class=\'btn-az btn-az-red\'>Conferma</button></form><button type=\'button\' class=\'btn-az btn-az-gray\' onclick=\'location.reload()\'>Annulla</button>'">🗑</button>
+                                </span>
                             {% endif %}
                         </div>
                     </td>
