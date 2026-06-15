@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from datetime import datetime, timedelta
 import io
 import re
@@ -223,10 +223,10 @@ def calendario_ics(token: str = "", db: Session = Depends(get_db)):
 
     user_id = utente.id
     azienda = crud.get_impostazioni_azienda(db, user_id)
-    nome_az = (azienda.nome_azienda or "Artigiani") if azienda else "Artigiani"
+    nome_az = (azienda.nome_azienda or "Mastro") if azienda else "Mastro"
 
     cal = Calendar()
-    cal.add("PRODID", f"-//Gestionale Artigiani//{nome_az}//IT")
+    cal.add("PRODID", f"-//Mastro//{nome_az}//IT")
     cal.add("VERSION", "2.0")
     cal.add("X-WR-CALNAME", f"{nome_az}")
     cal.add("X-WR-TIMEZONE", "Europe/Rome")

@@ -1,7 +1,7 @@
-{
-  "name": "Gestionale Artigiani",
-  "short_name": "Artigiani",
-  "description": "Gestionale per artigiani — clienti, lavori, magazzino, fatture",
+﻿{
+  "name": "Mastro",
+  "short_name": "Mastro",
+  "description": "Mastro — gestionale per artigiani: clienti, lavori, magazzino, fatture",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

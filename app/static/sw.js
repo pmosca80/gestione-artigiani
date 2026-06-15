@@ -1,4 +1,4 @@
-const CACHE = 'gestionale-v5';
+﻿const CACHE = 'gestionale-v5';
 const STATIC = [
   '/static/style.css',
   '/static/icons/icon-192.png',
@@ -32,7 +32,7 @@ self.addEventListener('message', e => {
 self.addEventListener('push', e => {
   let data = {};
   try { data = e.data ? e.data.json() : {}; } catch (_) {}
-  const title = data.titolo || 'Gestionale Artigiani';
+  const title = data.titolo || 'Mastro';
   const options = {
     body: data.corpo || '',
     icon: '/static/icons/icon-192.png',

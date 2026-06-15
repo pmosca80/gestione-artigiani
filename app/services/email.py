@@ -1,4 +1,4 @@
-import os
+﻿import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -9,7 +9,7 @@ from app.logger import get_logger
 
 logger = get_logger("email")
 
-_SENDER_DEFAULT = "Gestionale Artigiani <noreply@resend.dev>"
+_SENDER_DEFAULT = "Mastro <noreply@resend.dev>"
 
 
 def _detect_backend() -> str:
@@ -61,7 +61,7 @@ def _send_brevo_api(*, to: str, subject: str, html: str, from_: str, attachments
 
     api_key = os.getenv("BREVO_API_KEY", "")
 
-    sender_name = "Gestionale Artigiani"
+    sender_name = "Mastro"
     sender_email = from_
     if "<" in from_ and ">" in from_:
         sender_name = from_.split("<")[0].strip()
@@ -175,7 +175,7 @@ def invia_verifica_email(email: str, token: str, base_url: str) -> bool:
      box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
   <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px;text-align:center;">
     <div style="font-size:40px;">🔧</div>
-    <h1 style="color:white;font-size:22px;font-weight:700;margin:12px 0 4px;">Gestionale Artigiani</h1>
+    <h1 style="color:white;font-size:22px;font-weight:700;margin:12px 0 4px;">Mastro</h1>
     <p style="color:#bfdbfe;font-size:14px;margin:0;">Conferma il tuo indirizzo email</p>
   </div>
   <div style="padding:32px;">
@@ -196,7 +196,7 @@ def invia_verifica_email(email: str, token: str, base_url: str) -> bool:
   </div>
 </div>
 </body></html>"""
-    return invia_email(email, "Attiva il tuo account — Gestionale Artigiani", corpo)
+    return invia_email(email, "Attiva il tuo account — Mastro", corpo)
 
 
 def invia_reset_password(email: str, token: str, base_url: str) -> bool:
@@ -208,7 +208,7 @@ def invia_reset_password(email: str, token: str, base_url: str) -> bool:
      box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
   <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:32px;text-align:center;">
     <div style="font-size:40px;">🔑</div>
-    <h1 style="color:white;font-size:22px;font-weight:700;margin:12px 0 4px;">Gestionale Artigiani</h1>
+    <h1 style="color:white;font-size:22px;font-weight:700;margin:12px 0 4px;">Mastro</h1>
     <p style="color:#94a3b8;font-size:14px;margin:0;">Reimposta la tua password</p>
   </div>
   <div style="padding:32px;">
@@ -230,7 +230,7 @@ def invia_reset_password(email: str, token: str, base_url: str) -> bool:
   </div>
 </div>
 </body></html>"""
-    return invia_email(email, "Reimposta la password — Gestionale Artigiani", corpo)
+    return invia_email(email, "Reimposta la password — Mastro", corpo)
 
 
 def invia_benvenuto(username: str, piano: str = "free") -> None:
@@ -267,7 +267,7 @@ def invia_benvenuto(username: str, piano: str = "free") -> None:
         font-size:12px;color:#9ca3af;border-top:1px solid #f1f5f9;}}
 </style></head>
 <body><div class="wrap">
-  <div class="hdr"><h1>🔧 Gestionale Artigiani</h1>
+  <div class="hdr"><h1>🔧 Mastro</h1>
     <p>Il gestionale pensato per chi lavora con le mani</p></div>
   <div class="bdy">
     <h2>Benvenuto, {username}!</h2>
@@ -282,10 +282,10 @@ def invia_benvenuto(username: str, piano: str = "free") -> None:
       <a href="https://optimistic-courtesy-production.up.railway.app" class="btn">Accedi al gestionale →</a>
     </p>
   </div>
-  <div class="ftr">© 2026 Gestionale Artigiani · Hai domande? Rispondi a questa email.</div>
+  <div class="ftr">© 2026 Mastro · Hai domande? Rispondi a questa email.</div>
 </div></body></html>"""
 
-    _send(to=username, subject="Benvenuto su Gestionale Artigiani 🔧", html=corpo)
+    _send(to=username, subject="Benvenuto su Mastro 🔧", html=corpo)
 
 
 def invia_conferma_pro(username: str) -> None:
@@ -324,10 +324,10 @@ def invia_conferma_pro(username: str) -> None:
     <div class="ft"><span>💾</span><p><strong>Backup & export</strong> dati completo</p></div>
     <p><a href="https://optimistic-courtesy-production.up.railway.app" class="btn">Vai al gestionale →</a></p>
   </div>
-  <div class="ftr">© 2026 Gestionale Artigiani</div>
+  <div class="ftr">© 2026 Mastro</div>
 </div></body></html>"""
 
-    _send(to=username, subject="Piano Pro attivato ⭐ — Gestionale Artigiani", html=corpo)
+    _send(to=username, subject="Piano Pro attivato ⭐ — Mastro", html=corpo)
 
 
 def invia_notifica_firma_preventivo(
@@ -382,7 +382,7 @@ def invia_notifica_firma_preventivo(
   </div>
   <div style="background:#f8fafc;padding:14px 36px;text-align:center;
        font-size:12px;color:#9ca3af;border-top:1px solid #f1f5f9;">
-    {nome_azienda} · Gestionale Artigiani
+    {nome_azienda} · Mastro
   </div>
 </div>
 </body></html>"""

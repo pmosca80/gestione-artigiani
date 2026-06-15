@@ -213,7 +213,7 @@ def _run_migrations():
 _run_migrations()
 
 app = FastAPI(
-    title="Gestione Artigiani"
+    title="Mastro"
 )
 
 app.state.limiter = limiter

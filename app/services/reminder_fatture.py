@@ -1,4 +1,4 @@
-from collections import defaultdict
+﻿from collections import defaultdict
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -156,7 +156,7 @@ def _componi_email(voci: list[dict], nome_azienda: str) -> str:
                 box-shadow:0 2px 16px rgba(0,0,0,0.08);overflow:hidden;">
 
       <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:28px 32px;">
-        <p style="margin:0;color:#94a3b8;font-size:13px;">Gestionale Artigiani</p>
+        <p style="margin:0;color:#94a3b8;font-size:13px;">Mastro</p>
         <h1 style="margin:6px 0 0;color:white;font-size:20px;">
           ⚠️ Fatture non pagate {intestazione}
         </h1>
@@ -190,7 +190,7 @@ def _componi_email(voci: list[dict], nome_azienda: str) -> str:
 
       <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e5e7eb;">
         <p style="margin:0;font-size:11px;color:#9ca3af;">
-          Email inviata automaticamente dal Gestionale Artigiani.
+          Email inviata automaticamente dal Mastro.
           Per disattivare questi avvisi contatta il supporto.
         </p>
       </div>
