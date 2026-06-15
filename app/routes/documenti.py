@@ -13,6 +13,60 @@ from app.templates_config import templates
 router = APIRouter(prefix="/documenti", tags=["documenti"])
 
 
+@router.get("/lavori/{lavoro_id}/fattura.pdf")
+def scarica_fattura_pdf(
+    lavoro_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.services.pdf_fattura import genera_pdf_fattura
+
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro or not lavoro.numero_fattura:
+        raise HTTPException(status_code=404, detail="Fattura non trovata")
+
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    voci    = crud.get_voci_preventivo(db, user_id, lavoro_id)
+
+    pdf     = genera_pdf_fattura(lavoro, lavoro.cliente, azienda, voci=voci or None)
+    anno    = (lavoro.data_fattura or "")[:4] or "0000"
+    fname   = f"fattura_{anno}_{lavoro.numero_fattura:03d}.pdf"
+
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{fname}"'},
+    )
+
+
+@router.get("/lavori/{lavoro_id}/preventivo.pdf")
+def scarica_preventivo_pdf(
+    lavoro_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.services.pdf_fattura import genera_pdf_preventivo
+
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    if not lavoro:
+        raise HTTPException(status_code=404, detail="Lavoro non trovato")
+
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    voci    = crud.get_voci_preventivo(db, user_id, lavoro_id)
+
+    pdf   = genera_pdf_preventivo(lavoro, lavoro.cliente, azienda, voci=voci or None)
+    num   = lavoro.numero_preventivo or str(lavoro_id)
+    fname = f"preventivo_{num}.pdf"
+
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{fname}"'},
+    )
+
+
 @router.get("/", response_class=HTMLResponse)
 def archivio_documenti(request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 

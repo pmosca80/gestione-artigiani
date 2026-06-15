@@ -544,7 +544,15 @@
                 <a href="/lavori/{{ lavoro.id }}/sal" class="btn-hero btn-hero-outline">📊 SAL</a>
                 <a href="/lavori/{{ lavoro.id }}/rapportini" class="btn-hero btn-hero-outline">📋 Rapportini</a>
                 <a href="/lavori/{{ lavoro.id }}/timesheet" class="btn-hero btn-hero-outline">⏱ Timesheet</a>
-                <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF</a>
+                <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF interno</a>
+                {% if lavoro.stato in ['preventivo', 'preventivo_inviato', 'preventivo_accettato'] %}
+                <a href="/documenti/lavori/{{ lavoro.id }}/preventivo.pdf" target="_blank"
+                   class="btn-hero btn-hero-white" style="background:#0d9488;color:white;">📄 Preventivo PDF</a>
+                {% endif %}
+                {% if lavoro.numero_fattura %}
+                <a href="/documenti/lavori/{{ lavoro.id }}/fattura.pdf" target="_blank"
+                   class="btn-hero btn-hero-white" style="background:#7c3aed;color:white;">📄 Fattura PDF</a>
+                {% endif %}
                 {% if lavoro.cliente and lavoro.cliente.telefono %}
                 {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
                 <button class="btn-hero btn-hero-white" style="background:#25d366;color:#fff;border-color:#128c7e;"
