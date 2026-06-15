@@ -11,7 +11,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
+from app.logger import get_logger
 from openpyxl import Workbook
+
+logger = get_logger("admin")
 
 import zipfile
 
@@ -550,8 +553,14 @@ def elimina_utente(utente_id: int, request: Request, db: Session = Depends(get_d
     # Sgancia collaboratori prima di eliminare il titolare
     db.execute(sql_text("UPDATE utenti SET titolare_id = NULL WHERE titolare_id = :uid"), uid)
 
-    db.delete(utente)
-    db.commit()
+    try:
+        db.delete(utente)
+        db.commit()
+        logger.info(f"Admin: utente {utente_id} eliminato")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Admin: errore eliminazione utente {utente_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore eliminazione: {e}")
 
     return RedirectResponse(url="/impostazioni/admin", status_code=303)
 
