@@ -149,6 +149,9 @@
         .badge-da_pagare  { background: #fef3c7; color: #92400e; }
         .badge-parziale   { background: #fee2e2; color: #b91c1c; }
         .badge-pagato     { background: #d1fae5; color: #065f46; }
+        .badge-nc         { background: #fce7f3; color: #9d174d; }
+        .summary-card.red { border-top: 3px solid #ef4444; }
+        .summary-card.red .value { color: #dc2626; }
 
         /* Azioni */
         .azioni-cell { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
@@ -211,6 +214,11 @@
         🧾 Fattura creata nel registro! Scarica l'XML o inviala al cliente con i pulsanti qui sotto.
     </div>
     {% endif %}
+    {% if request.query_params.get('nc_creata') %}
+    <div style="background:#fce7f3;border:1px solid #f9a8d4;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#9d174d;">
+        📄 Nota di credito creata! Scarica l'XML (TD04) con il pulsante ↓ XML.
+    </div>
+    {% endif %}
     {% if flash_err %}
     <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#991b1b;">
         ⚠️ {{ flash_err }}
@@ -267,6 +275,10 @@
             <div class="label">Totale fatturato</div>
             <div class="value">€ {{ "%.2f"|format(tot_totale) }}</div>
         </div>
+        <div class="summary-card red">
+            <div class="label">Da incassare</div>
+            <div class="value">€ {{ "%.2f"|format(tot_da_incassare) }}</div>
+        </div>
     </div>
 
     <!-- Tabella -->
@@ -292,8 +304,9 @@
                 {% set cli = lav.cliente if lav else None %}
                 <tr>
                     <td>
-                        <span class="num-icon">🧾</span>
+                        <span class="num-icon">{% if f.tipo_documento == 'TD04' %}📄{% else %}🧾{% endif %}</span>
                         <span class="num-cell">{{ f.anno }}/{{ "%03d"|format(f.numero) }}</span>
+                        {% if f.tipo_documento == 'TD04' %}<span class="badge badge-nc" style="margin-left:4px;">NC</span>{% endif %}
                     </td>
                     <td class="mono">{{ f.data_emissione }}</td>
                     <td>
@@ -335,6 +348,24 @@
                                class="btn-az btn-az-purple">↓ XML</a>
                             <a href="/lavori/{{ lav.id }}"
                                class="btn-az btn-az-gray">📋 Lavoro</a>
+                            {% endif %}
+                            {% if (f.tipo_documento or 'TD01') == 'TD01' %}
+                            {% if lav and lav.stato_pagamento == 'pagato' %}
+                            <form class="stato-form" method="post" action="/fatture/{{ f.id }}/pagamento">
+                                <button type="submit" name="stato" value="da_pagare"
+                                        class="btn-az btn-az-gray" title="Segna come da pagare">↩ Aperta</button>
+                            </form>
+                            {% else %}
+                            <form class="stato-form" method="post" action="/fatture/{{ f.id }}/pagamento">
+                                <button type="submit" name="stato" value="pagato"
+                                        class="btn-az btn-az-green" title="Segna come pagata">✓ Pagata</button>
+                            </form>
+                            {% endif %}
+                            <form class="stato-form" method="post" action="/fatture/{{ f.id }}/nota-credito"
+                                  onsubmit="return confirm('Creare una nota di credito (TD04) a storno totale della fattura {{ f.anno }}/{{ \"%03d\"|format(f.numero) }}?')">
+                                <button type="submit" class="btn-az" style="background:#f59e0b;color:white;"
+                                        title="Crea nota di credito TD04">📄 NC</button>
+                            </form>
                             {% endif %}
                             {% set cli = lav.cliente if lav else None %}
                             {% if cli and cli.telefono %}

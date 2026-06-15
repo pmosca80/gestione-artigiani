@@ -313,6 +313,10 @@ class FatturaEmessa(Base):
     stato = Column(String, nullable=False, default="emessa")
     reminder_inviato = Column(Integer, default=0, nullable=False)
 
+    tipo_documento = Column(String, nullable=True, default="TD01")
+    fattura_rif_numero = Column(Integer, nullable=True)
+    fattura_rif_anno = Column(Integer, nullable=True)
+
     data_creazione = Column(String, nullable=False)
 
     lavoro = relationship("Lavoro", back_populates="fatture_emesse")

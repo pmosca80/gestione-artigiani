@@ -84,10 +84,17 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE utenti ADD COLUMN ruolo VARCHAR DEFAULT 'titolare'"))
         if "onboarding_done" not in cols:
             conn.execute(text("ALTER TABLE utenti ADD COLUMN onboarding_done BOOLEAN DEFAULT FALSE NOT NULL"))
-        # Fatture: reminder_inviato
+        # Fatture: reminder_inviato + nota di credito
         fat_cols = [c["name"] for c in insp.get_columns("fatture_emesse")]
         if "reminder_inviato" not in fat_cols:
             conn.execute(text("ALTER TABLE fatture_emesse ADD COLUMN reminder_inviato INTEGER DEFAULT 0"))
+        for col, defn in [
+            ("tipo_documento",    "VARCHAR DEFAULT 'TD01'"),
+            ("fattura_rif_numero", "INTEGER"),
+            ("fattura_rif_anno",   "INTEGER"),
+        ]:
+            if col not in fat_cols:
+                conn.execute(text(f"ALTER TABLE fatture_emesse ADD COLUMN {col} {defn}"))
         # Impostazioni azienda: PEC per invio SDI + contatori fattura
         imp_cols = [c["name"] for c in insp.get_columns("impostazioni_azienda")]
         for col, defn in [

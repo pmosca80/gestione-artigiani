@@ -34,6 +34,13 @@ def registro_fatture(
     tot_imponibile = sum(f.importo_imponibile or 0 for f in fatture)
     tot_iva = sum(f.importo_iva or 0 for f in fatture)
     tot_totale = sum(f.importo_totale or 0 for f in fatture)
+    tot_da_incassare = sum(
+        f.importo_totale or 0
+        for f in fatture
+        if (f.tipo_documento or "TD01") == "TD01"
+        and f.lavoro
+        and (f.lavoro.stato_pagamento or "da_pagare") not in ("pagato",)
+    )
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
 
@@ -57,6 +64,7 @@ def registro_fatture(
             "tot_imponibile": tot_imponibile,
             "tot_iva": tot_iva,
             "tot_totale": tot_totale,
+            "tot_da_incassare": tot_da_incassare,
             "smtp_ok": smtp_configurato(),
             "pec_ok": pec_configurata(azienda) if azienda else False,
             "flash_ok": inviata,
@@ -389,6 +397,33 @@ def invia_fattura_sdi(
         )
 
 
+@router.post("/{fattura_id}/pagamento")
+def aggiorna_pagamento(
+    fattura_id: int,
+    stato: str = Form(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Segna la fattura come pagata / da pagare aggiornando il Lavoro collegato."""
+    crud.aggiorna_pagamento_fattura(db, fattura_id, user_id, stato)
+    return RedirectResponse("/fatture/", status_code=303)
+
+
+@router.post("/{fattura_id}/nota-credito")
+def crea_nota_credito(
+    fattura_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Crea una nota di credito (TD04) a storno totale della fattura originale."""
+    nc = crud.crea_nota_credito(db, user_id, fattura_id)
+    if not nc:
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
+    return RedirectResponse(
+        f"/fatture/?anno={nc.anno}&nc_creata={nc.id}", status_code=303
+    )
+
+
 @router.post("/{fattura_id}/stato")
 def aggiorna_stato(
     fattura_id: int,
@@ -520,7 +555,12 @@ def scarica_xml_da_registro(
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
     voci = crud.get_voci_preventivo(db, user_id, lav.id)
-    xml_bytes = genera_xml_fatturapa(lav, lav.cliente, azienda, voci=voci or None)
+    xml_bytes = genera_xml_fatturapa(
+        lav, lav.cliente, azienda, voci=voci or None,
+        tipo_documento=fattura.tipo_documento or "TD01",
+        fattura_rif_numero=fattura.fattura_rif_numero,
+        fattura_rif_anno=fattura.fattura_rif_anno,
+    )
     filename = fattura.nome_file or nome_file_fatturapa(azienda, lav)
 
     return Response(

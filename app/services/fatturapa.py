@@ -45,11 +45,15 @@ def errori_fatturapa(lavoro, cliente, azienda) -> list:
     return errori
 
 
-def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
+def genera_xml_fatturapa(
+    lavoro, cliente, azienda, voci=None,
+    tipo_documento="TD01",
+    fattura_rif_numero=None, fattura_rif_anno=None,
+) -> bytes:
     """
     Genera XML FatturaPA formato FPR12.
-    Se voci (lista di VocePreventivo) viene passata, genera una riga per voce.
-    Aggiunge sempre il blocco DatiPagamento.
+    tipo_documento: TD01 = fattura, TD04 = nota di credito.
+    Se voci viene passata, genera una riga per voce.
     """
 
     def e(v):
@@ -203,19 +207,34 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
             f"      </DettaglioLinee>\n"
         )
 
-    # ── DatiPagamento ────────────────────────────────────────────────────────
-    data_scad = (lavoro.data_scadenza_pagamento or "").strip()
-    scad_tag  = f"        <DataScadenzaPagamento>{data_scad}</DataScadenzaPagamento>\n" if data_scad else ""
-    dati_pagamento = (
-        "    <DatiPagamento>\n"
-        "      <CondizioniPagamento>TP02</CondizioniPagamento>\n"
-        "      <DettaglioPagamento>\n"
-        "        <ModalitaPagamento>MP05</ModalitaPagamento>\n"
-        + scad_tag
-        + f"        <ImportoPagamento>{totale_netto:.2f}</ImportoPagamento>\n"
-        "      </DettaglioPagamento>\n"
-        "    </DatiPagamento>\n"
-    )
+    # ── DatiPagamento (omesso per le note di credito TD04) ───────────────────
+    if tipo_documento == "TD04":
+        dati_pagamento = ""
+    else:
+        data_scad = (lavoro.data_scadenza_pagamento or "").strip()
+        scad_tag  = f"        <DataScadenzaPagamento>{data_scad}</DataScadenzaPagamento>\n" if data_scad else ""
+        dati_pagamento = (
+            "    <DatiPagamento>\n"
+            "      <CondizioniPagamento>TP02</CondizioniPagamento>\n"
+            "      <DettaglioPagamento>\n"
+            "        <ModalitaPagamento>MP05</ModalitaPagamento>\n"
+            + scad_tag
+            + f"        <ImportoPagamento>{totale_netto:.2f}</ImportoPagamento>\n"
+            "      </DettaglioPagamento>\n"
+            "    </DatiPagamento>\n"
+        )
+
+    # ── DatiFattureCollegate (solo per TD04 — nota di credito) ───────────────
+    dati_rif_block = ""
+    if tipo_documento == "TD04" and fattura_rif_numero:
+        rif_anno = fattura_rif_anno or anno_fattura
+        rif_id   = f"{rif_anno}/{str(fattura_rif_numero).zfill(3)}"
+        dati_rif_block = (
+            "    <DatiFattureCollegate>\n"
+            f"      <IdDocumento>{_esc(rif_id)}</IdDocumento>\n"
+            f"      <Anno>{rif_anno}</Anno>\n"
+            "    </DatiFattureCollegate>\n"
+        )
 
     # ── Assemblaggio XML ─────────────────────────────────────────────────────
     xml = (
@@ -274,7 +293,7 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         "  <FatturaElettronicaBody>\n"
         "    <DatiGenerali>\n"
         "      <DatiGeneraliDocumento>\n"
-        "        <TipoDocumento>TD01</TipoDocumento>\n"
+        f"        <TipoDocumento>{tipo_documento}</TipoDocumento>\n"
         "        <Divisa>EUR</Divisa>\n"
         f"        <Data>{data_fattura}</Data>\n"
         f"        <Numero>{numero_formattato}</Numero>\n"
@@ -282,7 +301,8 @@ def genera_xml_fatturapa(lavoro, cliente, azienda, voci=None) -> bytes:
         + dati_bollo_block
         + dati_ritenuta_block
         + "      </DatiGeneraliDocumento>\n"
-        "    </DatiGenerali>\n"
+        + dati_rif_block
+        + "    </DatiGenerali>\n"
         "    <DatiBeniServizi>\n"
         + dettaglio_xml
         + "      <DatiRiepilogo>\n"

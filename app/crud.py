@@ -2595,6 +2595,58 @@ def aggiorna_stato_fattura(db: Session, fattura_id: int, utente_id: int, nuovo_s
         db.refresh(f)
     return f
 
+
+def aggiorna_pagamento_fattura(db: Session, fattura_id: int, utente_id: int, stato_pag: str):
+    """Aggiorna stato_pagamento sul Lavoro collegato alla fattura."""
+    f = (
+        db.query(FatturaEmessa)
+        .filter(FatturaEmessa.id == fattura_id, FatturaEmessa.utente_id == utente_id)
+        .first()
+    )
+    if f and f.lavoro_id:
+        lav = db.query(Lavoro).filter(Lavoro.id == f.lavoro_id, Lavoro.utente_id == utente_id).first()
+        if lav:
+            lav.stato_pagamento = stato_pag
+            db.commit()
+    return f
+
+
+def crea_nota_credito(db: Session, utente_id: int, fattura_id: int):
+    """Crea una nota di credito (TD04) collegata alla fattura originale."""
+    from datetime import date as _d
+    orig = (
+        db.query(FatturaEmessa)
+        .filter(FatturaEmessa.id == fattura_id, FatturaEmessa.utente_id == utente_id)
+        .first()
+    )
+    if not orig:
+        return None
+    anno_gen, numero_gen = genera_numero_fattura(db, utente_id)
+    oggi = _d.today().isoformat()
+    azienda = get_impostazioni_azienda(db, utente_id)
+    piva = (azienda.partita_iva or "XXXXXXXX").strip()
+    nc = FatturaEmessa(
+        utente_id=utente_id,
+        lavoro_id=orig.lavoro_id,
+        numero=numero_gen,
+        anno=anno_gen,
+        data_emissione=oggi,
+        importo_imponibile=orig.importo_imponibile,
+        importo_iva=orig.importo_iva,
+        importo_totale=orig.importo_totale,
+        nome_file=f"IT{piva}_{str(numero_gen).zfill(5)}.xml",
+        regime=orig.regime,
+        stato="emessa",
+        tipo_documento="TD04",
+        fattura_rif_numero=orig.numero,
+        fattura_rif_anno=orig.anno,
+        data_creazione=oggi,
+    )
+    db.add(nc)
+    db.commit()
+    db.refresh(nc)
+    return nc
+
 # ========================
 # TEMPLATE PREVENTIVI
 # ========================
