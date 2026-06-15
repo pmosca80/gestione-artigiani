@@ -20,7 +20,6 @@
         .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
         .page-header p { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
 
-        /* KPI */
         .kpi-strip {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -49,7 +48,6 @@
         .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 6px; }
         .kpi-val { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
 
-        /* TABELLA */
         .a-table-wrap {
             background: white;
             border: 1px solid #e5e7eb;
@@ -69,7 +67,7 @@
             white-space: nowrap;
         }
         .a-table td {
-            padding: 14px 16px;
+            padding: 12px 16px;
             border-bottom: 1px solid #f8fafc;
             font-size: 13px;
             color: #374151;
@@ -83,19 +81,17 @@
         .data-cell { color: #6b7280; font-family: 'DM Mono', monospace; font-size: 12px; }
 
         .lb { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-        .lb-green { background: #dcfce7; color: #166534; }
+        .lb-green  { background: #dcfce7; color: #166534; }
         .lb-orange { background: #ffedd5; color: #9a3412; }
-        .lb-red { background: #fee2e2; color: #991b1b; }
-        .lb-blue { background: #dbeafe; color: #1e40af; }
+        .lb-red    { background: #fee2e2; color: #991b1b; }
+        .lb-blue   { background: #dbeafe; color: #1e40af; }
+        .lb-purple { background: #ede9fe; color: #5b21b6; }
+        .lb-gray   { background: #f3f4f6; color: #374151; }
 
-        .giorni-val {
-            font-family: 'DM Mono', monospace;
-            font-weight: 700;
-            font-size: 13px;
-        }
-        .giorni-val.green { color: #16a34a; }
+        .giorni-val { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 13px; }
+        .giorni-val.green  { color: #16a34a; }
         .giorni-val.orange { color: #f97316; }
-        .giorni-val.red { color: #dc2626; }
+        .giorni-val.red    { color: #dc2626; }
 
         .btn-az {
             padding: 5px 10px;
@@ -108,12 +104,44 @@
             cursor: pointer;
             border: none;
             font-family: 'DM Sans', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         .btn-az:hover { opacity: 0.82; }
-        .btn-az-green { background: #16a34a; color: white; }
-        .btn-az-gray { background: #f3f4f6; color: #374151; }
-        .btn-az-red { background: #dc2626; color: white; }
-        .azioni-cell { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-az-green  { background: #16a34a; color: white; }
+        .btn-az-gray   { background: #f3f4f6; color: #374151; }
+        .btn-az-red    { background: #dc2626; color: white; }
+        .btn-az-blue   { background: #2563eb; color: white; }
+
+        .azioni-cell { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+
+        /* Piano form inline */
+        .piano-form {
+            display: none;
+            margin-top: 8px;
+            padding: 10px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .piano-form.visible { display: flex; }
+        .piano-form select, .piano-form input[type=date] {
+            padding: 5px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+            font-size: 12px;
+            font-family: 'DM Sans', sans-serif;
+            background: white;
+        }
+        .piano-form label { font-size: 11px; color: #6b7280; font-weight: 600; }
+
+        /* Delete confirm inline */
+        .del-confirm { display: none; }
+        .del-confirm.visible { display: inline-flex; gap: 4px; align-items: center; }
 
         @media (max-width: 900px) {
             .a-table-wrap { overflow-x: auto; }
@@ -126,7 +154,6 @@
 
 <div class="container">
 
-    <!-- HEADER -->
     <div class="page-header">
         <div>
             <h1>🔧 Pannello Admin</h1>
@@ -134,7 +161,6 @@
         </div>
     </div>
 
-    <!-- KPI -->
     <div class="kpi-strip">
         <div class="kpi-tile gray">
             <div class="kpi-label">Utenti totali</div>
@@ -154,14 +180,15 @@
         </div>
     </div>
 
-    <!-- TABELLA UTENTI -->
     <div class="a-table-wrap">
         <table class="a-table">
             <thead>
                 <tr>
                     <th>Utente</th>
-                    <th>Registrato il</th>
-                    <th>Giorni rimasti</th>
+                    <th>Registrato</th>
+                    <th>Piano</th>
+                    <th>Scadenza</th>
+                    <th>Giorni</th>
                     <th>Stato</th>
                     <th>Azioni</th>
                 </tr>
@@ -171,15 +198,29 @@
                 <tr>
                     <td>
                         <div class="user-name">{{ utente.username }}</div>
+                        {% if utente.email %}<div class="user-id">{{ utente.email }}</div>{% endif %}
                         <div class="user-id">#{{ utente.id }}</div>
                     </td>
                     <td class="data-cell">{{ utente.data_registrazione or '—' }}</td>
                     <td>
+                        {% set p = utente.piano or 'free' %}
+                        {% if p == 'pro' %}
+                            <span class="lb lb-purple">⭐ Pro</span>
+                        {% elif p == 'business' %}
+                            <span class="lb lb-blue">🏢 Business</span>
+                        {% elif p == 'starter' %}
+                            <span class="lb lb-orange">🚀 Starter</span>
+                        {% else %}
+                            <span class="lb lb-gray">Free</span>
+                        {% endif %}
+                    </td>
+                    <td class="data-cell">{{ utente.pro_scadenza or '—' }}</td>
+                    <td>
                         {% if utente.attivo == 2 %}
-                            <span class="giorni-val green">∞ Permanente</span>
+                            <span class="giorni-val green">∞</span>
                         {% elif utente.giorni_rimasti is not none and utente.giorni_rimasti > 0 %}
                             <span class="giorni-val {% if utente.giorni_rimasti > 10 %}green{% elif utente.giorni_rimasti > 3 %}orange{% else %}red{% endif %}">
-                                {{ utente.giorni_rimasti }} giorni
+                                {{ utente.giorni_rimasti }}g
                             </span>
                         {% else %}
                             <span class="giorni-val red">Scaduto</span>
@@ -206,13 +247,47 @@
                                     <button class="btn-az btn-az-gray">🔒 Blocca</button>
                                 </form>
                             {% endif %}
+
+                            <!-- Modifica piano -->
+                            <button type="button" class="btn-az btn-az-blue"
+                                    onclick="togglePiano({{ utente.id }})">✏️ Piano</button>
+
                             {% if utente.username != 'admin' %}
-                                <span id="del-wrap-{{ utente.id }}">
-                                    <button type="button" class="btn-az btn-az-red"
-                                            onclick="document.getElementById('del-wrap-{{ utente.id }}').innerHTML='<form method=\'post\' action=\'/impostazioni/admin/elimina/{{ utente.id }}\' style=\'display:inline\'><button type=\'submit\' class=\'btn-az btn-az-red\'>Conferma</button></form><button type=\'button\' class=\'btn-az btn-az-gray\' onclick=\'location.reload()\'>Annulla</button>'">🗑</button>
+                                <!-- Delete con conferma mobile-safe -->
+                                <button type="button" class="btn-az btn-az-red"
+                                        id="del-btn-{{ utente.id }}"
+                                        onclick="showDelConfirm({{ utente.id }})">🗑</button>
+                                <span class="del-confirm" id="del-confirm-{{ utente.id }}">
+                                    <form method="post" action="/impostazioni/admin/elimina/{{ utente.id }}" style="display:inline;">
+                                        <button type="submit" class="btn-az btn-az-red">Conferma</button>
+                                    </form>
+                                    <button type="button" class="btn-az btn-az-gray"
+                                            onclick="hideDelConfirm({{ utente.id }})">Annulla</button>
                                 </span>
                             {% endif %}
                         </div>
+
+                        <!-- Form modifica piano (inline, nascosta) -->
+                        <form method="post" action="/impostazioni/admin/piano/{{ utente.id }}"
+                              class="piano-form" id="piano-form-{{ utente.id }}">
+                            <div>
+                                <label>Piano</label><br>
+                                <select name="piano">
+                                    <option value="free"     {% if (utente.piano or 'free') == 'free'     %}selected{% endif %}>Free</option>
+                                    <option value="starter"  {% if (utente.piano or 'free') == 'starter'  %}selected{% endif %}>Starter</option>
+                                    <option value="pro"      {% if (utente.piano or 'free') == 'pro'      %}selected{% endif %}>Pro</option>
+                                    <option value="business" {% if (utente.piano or 'free') == 'business' %}selected{% endif %}>Business</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Scadenza</label><br>
+                                <input type="date" name="pro_scadenza"
+                                       value="{{ utente.pro_scadenza or '' }}">
+                            </div>
+                            <button type="submit" class="btn-az btn-az-blue">Salva</button>
+                            <button type="button" class="btn-az btn-az-gray"
+                                    onclick="togglePiano({{ utente.id }})">Annulla</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}
@@ -221,6 +296,21 @@
     </div>
 
 </div>
+
+<script>
+function togglePiano(id) {
+    var f = document.getElementById('piano-form-' + id);
+    f.classList.toggle('visible');
+}
+function showDelConfirm(id) {
+    document.getElementById('del-btn-' + id).style.display = 'none';
+    document.getElementById('del-confirm-' + id).classList.add('visible');
+}
+function hideDelConfirm(id) {
+    document.getElementById('del-confirm-' + id).classList.remove('visible');
+    document.getElementById('del-btn-' + id).style.display = '';
+}
+</script>
 
 </body>
 </html>

@@ -565,6 +565,29 @@ def elimina_utente(utente_id: int, request: Request, db: Session = Depends(get_d
     return RedirectResponse(url="/impostazioni/admin", status_code=303)
 
 
+@router.post("/admin/piano/{utente_id}")
+def cambia_piano_utente(
+    utente_id: int,
+    request: Request,
+    piano: str = Form(...),
+    pro_scadenza: str = Form(""),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    utente_corrente = db.query(Utente).filter(Utente.id == user_id).first()
+    if not utente_corrente or utente_corrente.username != "admin":
+        raise HTTPException(status_code=403, detail="Accesso negato")
+
+    utente = db.query(Utente).filter(Utente.id == utente_id).first()
+    if utente:
+        utente.piano = piano
+        utente.pro_scadenza = pro_scadenza.strip() or None
+        db.commit()
+        logger.info(f"Admin: piano utente {utente_id} → {piano} (scadenza: {pro_scadenza or 'nessuna'})")
+
+    return RedirectResponse(url="/impostazioni/admin", status_code=303)
+
+
 # ── PROFILO UTENTE ────────────────────────────────────────────────────────────
 
 @router.get("/profilo", response_class=HTMLResponse)
