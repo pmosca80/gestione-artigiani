@@ -367,7 +367,7 @@
                             </form>
                             {% endif %}
                             <form class="stato-form" method="post" action="/fatture/{{ f.id }}/nota-credito"
-                                  onsubmit="return confirm('Creare una nota di credito (TD04) a storno totale della fattura {{ f.anno }}/{{ \"%03d\"|format(f.numero) }}?')">
+                                  onsubmit="return confirm('Creare una nota di credito (TD04) a storno totale della fattura {{ f.anno }}/{{ '%03d'|format(f.numero) }}?')">
                                 <button type="submit" class="btn-az" style="background:#f59e0b;color:white;"
                                         title="Crea nota di credito TD04">📄 NC</button>
                             </form>
