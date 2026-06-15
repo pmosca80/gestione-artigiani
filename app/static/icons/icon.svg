@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#3b0764"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sfondo rounded square -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+  <!-- Lucentezza in alto -->
+  <rect width="512" height="256" rx="96" ry="96" fill="url(#shine)"/>
+
+  <!-- Martello ruotato -42° -->
+  <g transform="translate(264,272) rotate(-42)">
+    <!-- Manico -->
+    <rect x="-22" y="26" width="44" height="196" rx="22" fill="white" opacity="0.93"/>
+    <!-- Testa martello -->
+    <rect x="-108" y="-106" width="216" height="98" rx="22" fill="white" opacity="0.93"/>
+    <!-- Linea di separazione testa/manico (dettaglio realistico) -->
+    <rect x="-22" y="26" width="44" height="14" fill="white" opacity="0.3"/>
+  </g>
+</svg>
