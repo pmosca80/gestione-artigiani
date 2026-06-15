@@ -1,17 +1,18 @@
-﻿from collections import defaultdict
+from collections import defaultdict
 from datetime import datetime
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import FatturaEmessa, ImpostazioniAzienda, Utente
+from app.models import FatturaEmessa, ImpostazioniAzienda
 from app.services.email import invia_email
 from app.services.push import invia_push
 from app.logger import get_logger
 
 logger = get_logger("reminder_fatture")
 
-# Prima email dopo 30 giorni dalla data emissione, seconda dopo 60
+# Prima email dopo 30 giorni dalla scadenza, seconda dopo 60
 SOGLIE = [30, 60]
 
 
@@ -29,39 +30,58 @@ def controlla_fatture_non_pagate() -> None:
 def _esegui(db: Session) -> None:
     oggi = datetime.now().date()
 
-    # Carica tutte le fatture emesse non ancora pagate con reminder non ancora esauriti
+    # Solo TD01 (fatture ordinarie), escluse note di credito TD04
     fatture = (
         db.query(FatturaEmessa)
         .filter(
             FatturaEmessa.stato == "emessa",
             FatturaEmessa.reminder_inviato < len(SOGLIE),
+            or_(
+                FatturaEmessa.tipo_documento == None,
+                FatturaEmessa.tipo_documento == "TD01",
+            ),
         )
         .all()
     )
 
-    # Raggruppa per utente le fatture che hanno raggiunto una nuova soglia
     da_notificare: dict[int, list[dict]] = defaultdict(list)
     aggiornamenti: list[tuple[FatturaEmessa, int]] = []
 
     for fattura in fatture:
-        try:
-            data_em = datetime.strptime(fattura.data_emissione, "%Y-%m-%d").date()
-        except Exception:
+        lavoro = fattura.lavoro
+
+        # Salta se il lavoro è già stato marcato come pagato
+        if lavoro and (lavoro.stato_pagamento or "da_pagare") == "pagato":
             continue
 
-        giorni = (oggi - data_em).days
-        livello_attuale = fattura.reminder_inviato or 0
+        # Data di riferimento: usa data_scadenza_pagamento del lavoro se disponibile
+        data_rif = None
+        ha_scadenza = False
+        if lavoro and lavoro.data_scadenza_pagamento:
+            try:
+                data_rif = datetime.strptime(lavoro.data_scadenza_pagamento, "%Y-%m-%d").date()
+                ha_scadenza = True
+            except Exception:
+                pass
+        if not data_rif:
+            try:
+                data_rif = datetime.strptime(fattura.data_emissione, "%Y-%m-%d").date()
+            except Exception:
+                continue
 
-        # Determina se va inviato un nuovo reminder
+        giorni = (oggi - data_rif).days
+        if giorni < 0:
+            continue  # non ancora scaduta
+
+        livello_attuale = fattura.reminder_inviato or 0
         nuovo_livello = livello_attuale
         for i, soglia in enumerate(SOGLIE):
             if giorni >= soglia and livello_attuale <= i:
                 nuovo_livello = i + 1
 
         if nuovo_livello <= livello_attuale:
-            continue  # nessuna nuova soglia raggiunta
+            continue
 
-        lavoro = fattura.lavoro
         cliente = lavoro.cliente if lavoro else None
         nome_cliente = "—"
         if cliente:
@@ -76,14 +96,14 @@ def _esegui(db: Session) -> None:
                 "numero": fattura.numero,
                 "anno": fattura.anno,
                 "importo": fattura.importo_totale,
-                "data_emissione": data_em.strftime("%d/%m/%Y"),
+                "data_emissione": datetime.strptime(fattura.data_emissione, "%Y-%m-%d").date().strftime("%d/%m/%Y"),
                 "giorni": giorni,
                 "cliente": nome_cliente,
+                "ha_scadenza": ha_scadenza,
             }
         )
         aggiornamenti.append((fattura, nuovo_livello))
 
-    # Invia un'email digest per ogni artigiano
     email_inviate = 0
     for utente_id, voci in da_notificare.items():
         azienda = (
@@ -101,7 +121,6 @@ def _esegui(db: Session) -> None:
         if invia_email(email_dest, oggetto, corpo):
             email_inviate += 1
 
-        n = len(voci)
         invia_push(
             db, utente_id,
             titolo=f"{n} fattur{'a non pagata' if n == 1 else 'e non pagate'}",
@@ -109,7 +128,7 @@ def _esegui(db: Session) -> None:
             url="/fatture/",
         )
 
-    # Aggiorna reminder_inviato solo dopo aver inviato le email
+    # Aggiorna reminder_inviato solo per utenti con email configurata
     for fattura, livello in aggiornamenti:
         utente_id = fattura.utente_id
         if utente_id in da_notificare:
@@ -132,6 +151,11 @@ def _componi_email(voci: list[dict], nome_azienda: str) -> str:
     righe = ""
     for v in sorted(voci, key=lambda x: x["giorni"], reverse=True):
         colore_giorni = "#dc2626" if v["giorni"] >= 60 else "#d97706"
+        label_ritardo = (
+            f"{v['giorni']} gg oltre scadenza"
+            if v["ha_scadenza"]
+            else f"{v['giorni']} gg dall'emissione"
+        )
         righe += f"""
         <tr>
             <td style="padding:9px 12px;border:1px solid #e5e7eb;font-weight:600;">
@@ -140,7 +164,7 @@ def _componi_email(voci: list[dict], nome_azienda: str) -> str:
             <td style="padding:9px 12px;border:1px solid #e5e7eb;">{v['cliente']}</td>
             <td style="padding:9px 12px;border:1px solid #e5e7eb;">{v['data_emissione']}</td>
             <td style="padding:9px 12px;border:1px solid #e5e7eb;font-weight:700;color:{colore_giorni};">
-                {v['giorni']} giorni
+                {label_ritardo}
             </td>
             <td style="padding:9px 12px;border:1px solid #e5e7eb;font-weight:700;">
                 € {v['importo']:.2f}
@@ -174,7 +198,7 @@ def _componi_email(voci: list[dict], nome_azienda: str) -> str:
               <th style="padding:9px 12px;border:1px solid #e5e7eb;text-align:left;">Fattura</th>
               <th style="padding:9px 12px;border:1px solid #e5e7eb;text-align:left;">Cliente</th>
               <th style="padding:9px 12px;border:1px solid #e5e7eb;text-align:left;">Emessa il</th>
-              <th style="padding:9px 12px;border:1px solid #e5e7eb;text-align:left;">Scaduta da</th>
+              <th style="padding:9px 12px;border:1px solid #e5e7eb;text-align:left;">Ritardo</th>
               <th style="padding:9px 12px;border:1px solid #e5e7eb;text-align:left;">Importo</th>
             </tr>
           </thead>
@@ -183,14 +207,14 @@ def _componi_email(voci: list[dict], nome_azienda: str) -> str:
 
         <div style="margin-top:24px;padding:16px;background:#fef3c7;border:1px solid #fcd34d;
                     border-radius:8px;font-size:13px;color:#92400e;">
-          💡 Puoi aggiornare lo stato delle fatture dalla sezione
+          💡 Puoi segnare le fatture come pagate dalla sezione
           <strong>Fatture</strong> del gestionale.
         </div>
       </div>
 
       <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e5e7eb;">
         <p style="margin:0;font-size:11px;color:#9ca3af;">
-          Email inviata automaticamente dal Mastro.
+          Email inviata automaticamente dal Mastro — ogni mattina alle 08:30.
           Per disattivare questi avvisi contatta il supporto.
         </p>
       </div>
