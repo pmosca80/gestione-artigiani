@@ -400,7 +400,10 @@ def home(
     # Risolve l'ID effettivo: per i collaboratori usa l'ID del titolare
     from app.models import Utente as _Utente
     _raw_utente = db.query(_Utente).filter(_Utente.id == raw_user_id).first()
-    user_id = (getattr(_raw_utente, "titolare_id", None) or raw_user_id) if _raw_utente else raw_user_id
+    if not _raw_utente or _raw_utente.attivo == 0:
+        request.session.clear()
+        return RedirectResponse(url="/login", status_code=303)
+    user_id = getattr(_raw_utente, "titolare_id", None) or raw_user_id
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
     if not _raw_utente.onboarding_done and not request.session.get("is_collaboratore"):

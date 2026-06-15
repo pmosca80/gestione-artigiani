@@ -733,8 +733,12 @@ def get_impostazioni_azienda(db: Session, utente_id: int):
             ultimo_numero_pdf=0
         )
         db.add(impostazioni)
-        db.commit()
-        db.refresh(impostazioni)
+        try:
+            db.commit()
+            db.refresh(impostazioni)
+        except Exception:
+            db.rollback()
+            return None
 
     return impostazioni
 
