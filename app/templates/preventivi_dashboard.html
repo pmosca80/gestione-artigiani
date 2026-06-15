@@ -282,6 +282,8 @@
                         <td>
                             <div class="azioni-cell">
                                 <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋</a>
+                                <a href="/lavori/{{ lavoro.id }}/voci" class="btn-az btn-az-gray">📝 Voci</a>
+                                <a href="/lavori/{{ lavoro.id }}/materiali" class="btn-az btn-az-blue">📦 Mat.</a>
                                 <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az btn-az-blue">PDF</a>
                                 {% if lavoro.cliente and lavoro.cliente.telefono %}
                                 {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}

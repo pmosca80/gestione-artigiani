@@ -206,11 +206,17 @@
                                 <button type="button"
                                         onclick="apriModifica({{ v.id }}, '{{ v.descrizione|replace("'", "\\'") }}', '{{ v.unita_misura or '' }}', {{ v.prezzo_unitario or 0 }}, '{{ v.categoria or '' }}')"
                                         class="btn-az btn-az-violet">✏️ Modifica</button>
-                                <form method="post" action="/listino/{{ v.id }}/elimina"
-                                      onsubmit="return confirm('Eliminare questa voce dal listino?')"
-                                      style="display:inline;">
-                                    <button class="btn-az btn-az-red">🗑 Elimina</button>
-                                </form>
+                                <span id="del-btn-{{ v.id }}">
+                                    <button type="button" class="btn-az btn-az-red"
+                                            onclick="showDelVoce({{ v.id }})">🗑 Elimina</button>
+                                </span>
+                                <span id="del-conf-{{ v.id }}" style="display:none;gap:4px;align-items:center;">
+                                    <form method="post" action="/listino/{{ v.id }}/elimina" style="display:inline;">
+                                        <button type="submit" class="btn-az btn-az-red">Conferma</button>
+                                    </form>
+                                    <button type="button" class="btn-az btn-az-gray"
+                                            onclick="hideDelVoce({{ v.id }})">Annulla</button>
+                                </span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -265,6 +271,15 @@
 </div>
 
 <script>
+function showDelVoce(id) {
+    document.getElementById('del-btn-' + id).style.display = 'none';
+    var c = document.getElementById('del-conf-' + id);
+    c.style.display = 'inline-flex';
+}
+function hideDelVoce(id) {
+    document.getElementById('del-conf-' + id).style.display = 'none';
+    document.getElementById('del-btn-' + id).style.display = '';
+}
 function apriModifica(id, descrizione, um, prezzo, categoria) {
     document.getElementById('form-modifica').action = '/listino/' + id + '/modifica';
     document.getElementById('m-descrizione').value = descrizione;

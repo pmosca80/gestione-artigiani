@@ -34,8 +34,11 @@ def _find_user(db: Session, identifier: str):
 # ── LOGIN ────────────────────────────────────────────────────────────────────
 
 @router.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse(request=request, name="login.html", context={})
+def login_page(request: Request, account_cancellato: str = None):
+    ctx = {}
+    if account_cancellato:
+        ctx["successo"] = "Account cancellato. Ci dispiace vederti andare."
+    return templates.TemplateResponse(request=request, name="login.html", context=ctx)
 
 
 @router.post("/login")

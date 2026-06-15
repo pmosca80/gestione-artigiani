@@ -135,6 +135,57 @@
     <div style="margin-top:20px;">
         <a href="/impostazioni/azienda" style="font-size:13px;color:#6b7280;">← Torna alle impostazioni azienda</a>
     </div>
+
+    {% if utente.username != 'admin' %}
+    <div class="form-card" style="border-color:#fecaca; margin-top: 28px;">
+        <div class="form-section-title" style="color:#dc2626; border-color:#fecaca;">⚠️ Zona pericolosa</div>
+        <p style="font-size:13px;color:#6b7280;margin:0 0 16px;line-height:1.6;">
+            La cancellazione rende l'account inaccessibile e anonimizza tutti i tuoi dati.
+            I contenuti (lavori, clienti, fatture) rimarranno nel sistema ma non saranno più raggiungibili.
+            Questa operazione <strong>non è reversibile</strong>.
+        </p>
+        <div id="del-account-btn">
+            <button type="button" onclick="showDelAccount()"
+                    style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:9px;
+                           padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                🗑 Cancella il mio account
+            </button>
+        </div>
+        <div id="del-account-form" style="display:none;">
+            <form method="post" action="/impostazioni/cancella-account">
+                <div class="form-group">
+                    <label>Scrivi CANCELLA per confermare</label>
+                    <input type="text" name="conferma_testo"
+                           placeholder="CANCELLA" autocomplete="off"
+                           style="border-color:#fecaca; text-transform:uppercase;">
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+                    <button type="submit"
+                            style="background:#dc2626;color:white;border:none;border-radius:9px;
+                                   padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                        Conferma cancellazione definitiva
+                    </button>
+                    <button type="button" onclick="hideDelAccount()"
+                            style="background:#f3f4f6;color:#374151;border:none;border-radius:9px;
+                                   padding:11px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                        Annulla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
+<script>
+function showDelAccount() {
+    document.getElementById('del-account-btn').style.display = 'none';
+    document.getElementById('del-account-form').style.display = 'block';
+}
+function hideDelAccount() {
+    document.getElementById('del-account-form').style.display = 'none';
+    document.getElementById('del-account-btn').style.display = '';
+}
+</script>
 </body>
 </html>

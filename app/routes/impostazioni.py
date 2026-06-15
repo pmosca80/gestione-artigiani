@@ -590,12 +590,23 @@ def cambia_piano_utente(
 
 # ── PROFILO UTENTE ────────────────────────────────────────────────────────────
 
+_ERRORI_PROFILO = {
+    "admin_no_delete": "L'account admin non può essere cancellato.",
+    "conferma_errata": "Hai inserito un testo sbagliato. Scrivi CANCELLA per confermare.",
+}
+
 @router.get("/profilo", response_class=HTMLResponse)
-def form_profilo(request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+def form_profilo(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+    errore: str = None,
+):
     utente = db.query(Utente).filter(Utente.id == user_id).first()
+    msg_errore = _ERRORI_PROFILO.get(errore) if errore else None
     return templates.TemplateResponse(
         request=request, name="impostazioni_profilo.html",
-        context={"utente": utente, "errore": None, "successo": None}
+        context={"utente": utente, "errore": msg_errore, "successo": None}
     )
 
 
@@ -656,3 +667,32 @@ def salva_profilo(
         request=request, name="impostazioni_profilo.html",
         context={"utente": utente, "errore": errore, "successo": successo}
     )
+
+
+@router.post("/cancella-account")
+def cancella_account(
+    request: Request,
+    conferma_testo: str = Form(""),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    import secrets as _secrets
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    if not utente or utente.username == "admin":
+        return RedirectResponse("/impostazioni/profilo?errore=admin_no_delete", status_code=303)
+    if conferma_testo.strip().upper() != "CANCELLA":
+        return RedirectResponse("/impostazioni/profilo?errore=conferma_errata", status_code=303)
+
+    utente.email = None
+    utente.attivo = 0
+    utente.username = f"deleted_{user_id}_{_secrets.token_hex(4)}"
+    utente.password = _secrets.token_hex(32)
+    utente.token_verifica = None
+    utente.token_reset = None
+    utente.token_reset_scadenza = None
+    utente.stripe_customer_id = None
+    utente.stripe_subscription_id = None
+    db.commit()
+
+    request.session.clear()
+    return RedirectResponse("/login?account_cancellato=1", status_code=303)
