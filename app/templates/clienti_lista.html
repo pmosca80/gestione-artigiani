@@ -202,6 +202,30 @@
         }
         .risultati-info strong { color: #374151; }
 
+        /* ── MOBILE CARD ── */
+        .clienti-cards-mobile { display: none; }
+        .cli-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+        .cli-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .cli-tel { display: block; font-size: 14px; color: #374151; text-decoration: none; font-weight: 600; margin-bottom: 10px; }
+        .cli-tel:hover { color: #2563eb; }
+        .cli-actions { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+        .cli-actions .btn-azione { flex: 1; text-align: center; }
+        .pagination-outer { background: white; border: 1px solid #e5e7eb; border-radius: 14px; margin-top: 10px; }
+
+        @media (max-width: 900px) {
+            .clienti-table-wrap { display: none; }
+            .clienti-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            .search-bar { flex-direction: column; align-items: stretch; padding: 12px 14px; gap: 8px; }
+            .search-bar input[type="text"] { min-width: 0; }
+            .search-bar .btn-search { width: 100%; }
+            .search-bar .btn-reset { width: 100%; text-align: center; }
+        }
+
         .pagination-wrap {
             padding: 16px 20px;
             border-top: 1px solid #f1f5f9;
@@ -263,6 +287,7 @@
             <strong>{{ totale }}</strong> cliente/i trovato/i
         </p>
 
+        <!-- TABELLA (desktop) -->
         <div class="clienti-table-wrap">
             <table class="clienti-table">
                 <thead>
@@ -317,32 +342,67 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
 
-            <!-- PAGINATION -->
-            {% if pagine_totali > 1 %}
-            <div class="pagination-wrap">
-                <span class="pag-info">Pagina {{ pagina }} di {{ pagine_totali }}</span>
-                <div class="pag-links">
-                    {% if pagina > 1 %}
-                        <a href="?cerca={{ cerca }}&pagina={{ pagina - 1 }}" class="pag-link">‹ Prec</a>
-                    {% endif %}
-                    {% for p in range(1, pagine_totali + 1) %}
-                        {% if p == pagina %}
-                            <span class="pag-link active">{{ p }}</span>
-                        {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
-                            <a href="?cerca={{ cerca }}&pagina={{ p }}" class="pag-link">{{ p }}</a>
-                        {% elif p == pagina - 3 or p == pagina + 3 %}
-                            <span style="padding: 6px 4px; color:#9ca3af;">…</span>
-                        {% endif %}
-                    {% endfor %}
-                    {% if pagina < pagine_totali %}
-                        <a href="?cerca={{ cerca }}&pagina={{ pagina + 1 }}" class="pag-link">Succ ›</a>
+        <!-- CARD VIEW (mobile) -->
+        <div class="clienti-cards-mobile">
+            {% for cliente in clienti %}
+            {% set res = cliente.totale_residuo or 0 %}
+            <div class="cli-card">
+                <div class="cli-header">
+                    <div style="flex:1;min-width:0;">
+                        <div class="cliente-name">
+                            {% if cliente.ragione_sociale %}
+                                🏢 {{ cliente.ragione_sociale }}
+                            {% else %}
+                                {{ cliente.nome or '' }} {{ cliente.cognome or '' }}
+                            {% endif %}
+                        </div>
+                        <div class="cliente-id">#{{ cliente.id }}{% if cliente.email %} · {{ cliente.email }}{% endif %}</div>
+                    </div>
+                    {% if res > 1000 %}
+                        <span class="residuo-badge residuo-danger" style="flex-shrink:0;">€ {{ "%.2f"|format(res) }}</span>
+                    {% elif res > 0 %}
+                        <span class="residuo-badge residuo-warn" style="flex-shrink:0;">€ {{ "%.2f"|format(res) }}</span>
+                    {% else %}
+                        <span class="residuo-badge residuo-ok" style="flex-shrink:0;">✓ Saldato</span>
                     {% endif %}
                 </div>
+                {% if cliente.telefono %}
+                <a href="tel:{{ cliente.telefono }}" class="cli-tel">📞 {{ cliente.telefono }}</a>
+                {% endif %}
+                <div class="cli-actions">
+                    <a href="/clienti/{{ cliente.id }}" class="btn-azione btn-scheda">📋 Scheda</a>
+                    <a href="/lavori/nuovo/{{ cliente.id }}" class="btn-azione btn-lavoro">+ Lavoro</a>
+                    <a href="/clienti/{{ cliente.id }}/modifica" class="btn-azione btn-modifica">✏️ Modifica</a>
+                </div>
             </div>
-            {% endif %}
-
+            {% endfor %}
         </div>
+
+        <!-- PAGINATION -->
+        {% if pagine_totali > 1 %}
+        <div class="pagination-wrap pagination-outer">
+            <span class="pag-info">Pagina {{ pagina }} di {{ pagine_totali }}</span>
+            <div class="pag-links">
+                {% if pagina > 1 %}
+                    <a href="?cerca={{ cerca }}&pagina={{ pagina - 1 }}" class="pag-link">‹ Prec</a>
+                {% endif %}
+                {% for p in range(1, pagine_totali + 1) %}
+                    {% if p == pagina %}
+                        <span class="pag-link active">{{ p }}</span>
+                    {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
+                        <a href="?cerca={{ cerca }}&pagina={{ p }}" class="pag-link">{{ p }}</a>
+                    {% elif p == pagina - 3 or p == pagina + 3 %}
+                        <span style="padding: 6px 4px; color:#9ca3af;">…</span>
+                    {% endif %}
+                {% endfor %}
+                {% if pagina < pagine_totali %}
+                    <a href="?cerca={{ cerca }}&pagina={{ pagina + 1 }}" class="pag-link">Succ ›</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
     {% else %}
         <div class="clienti-table-wrap">

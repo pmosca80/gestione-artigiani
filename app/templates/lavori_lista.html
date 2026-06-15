@@ -213,9 +213,42 @@
         }
         .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; }
 
+        /* ── MOBILE CARD VIEW ── */
+        .lavori-cards-mobile { display: none; }
+        .card-m {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+        .card-m.scaduto { background: #fff8f8; border-color: #fecaca; }
+        .cm-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+        .cm-titolo { font-weight: 700; color: #111827; font-size: 15px; line-height: 1.3; }
+        .cm-id { font-size: 11px; color: #9ca3af; font-family: 'DM Mono', monospace; margin-top: 2px; }
+        .cm-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #374151;
+        }
+        .cm-lbl { color: #9ca3af; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+        .cm-actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+        .cm-actions .btn-az { flex: 1; text-align: center; justify-content: center; padding: 9px 6px; display: flex; align-items: center; gap: 4px; }
+        .cm-actions form { flex: 1; display: flex; }
+        .cm-actions form .btn-az { width: 100%; }
+        .pagination-outer { background: white; border: 1px solid #e5e7eb; border-radius: 14px; margin-top: 10px; }
+
         @media (max-width: 900px) {
-            .lavori-kpi { grid-template-columns: 1fr; }
-            .lavori-table-wrap { overflow-x: auto; }
+            .lavori-kpi { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .lkpi { padding: 10px 12px; }
+            .lkpi-val { font-size: 17px; }
+            .lkpi-label { font-size: 10px; }
+            .lavori-table-wrap { display: none; }
+            .lavori-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            .filtri-bar { flex-direction: column; padding: 12px 14px; }
+            .filtro-group { width: 100%; }
+            .filtro-group input, .filtro-group select { min-width: 0; width: 100%; }
+            .filtri-actions { width: 100%; display: flex; }
+            .filtri-actions .btn-cerca { flex: 1; }
+            .filtri-actions .btn-reset { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
         }
     </style>
 </head>
@@ -311,7 +344,7 @@
             </div>
         </div>
 
-        <!-- TABELLA -->
+        <!-- TABELLA (desktop) -->
         <div class="lavori-table-wrap">
             <table class="lavori-table">
                 <thead>
@@ -423,32 +456,99 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
 
-            <!-- PAGINATION -->
-            {% if pagine_totali > 1 %}
-            <div class="pagination-wrap">
-                <span class="pag-info">Pagina {{ pagina }} di {{ pagine_totali }} — {{ totale }} lavori</span>
-                <div class="pag-links">
-                    {% if pagina > 1 %}
-                        <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ pagina - 1 }}" class="pag-link">‹</a>
-                    {% endif %}
-                    {% for p in range(1, pagine_totali + 1) %}
-                        {% if p == pagina %}
-                            <span class="pag-link active">{{ p }}</span>
-                        {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
-                            <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ p }}" class="pag-link">{{ p }}</a>
-                        {% elif p == pagina - 3 or p == pagina + 3 %}
-                            <span style="padding:6px 4px; color:#9ca3af;">…</span>
-                        {% endif %}
-                    {% endfor %}
-                    {% if pagina < pagine_totali %}
-                        <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ pagina + 1 }}" class="pag-link">›</a>
+        <!-- CARD VIEW (mobile) -->
+        <div class="lavori-cards-mobile">
+            {% for lavoro in lavori %}
+            <div class="card-m {% if lavoro.data_scadenza_pagamento and lavoro.data_scadenza_pagamento < oggi and lavoro.stato_pagamento != 'pagato' %}scaduto{% endif %}">
+                <div class="cm-header">
+                    <div style="flex:1;min-width:0;">
+                        <div class="cm-titolo">{{ lavoro.titolo }}</div>
+                        <div class="cm-id">#{{ lavoro.id }} · {{ lavoro.data_lavoro }}</div>
+                    </div>
+                    {% if lavoro.stato == "completato" %}
+                        <span class="lb lb-green" style="flex-shrink:0;">✓ Completato</span>
+                    {% elif lavoro.stato == "in_corso" %}
+                        <span class="lb lb-orange" style="flex-shrink:0;">⚡ In corso</span>
+                    {% elif lavoro.stato == "annullato" %}
+                        <span class="lb lb-red" style="flex-shrink:0;">✗ Annullato</span>
+                    {% elif lavoro.stato == "preventivo" %}
+                        <span class="lb lb-blue" style="flex-shrink:0;">📑 Preventivo</span>
+                    {% else %}
+                        <span class="lb lb-gray" style="flex-shrink:0;">📝 Da fare</span>
                     {% endif %}
                 </div>
+                {% if lavoro.cliente %}
+                <div style="font-size:13px;color:#2563eb;font-weight:500;margin-bottom:8px;">
+                    👤 <a href="/clienti/{{ lavoro.cliente.id }}" style="color:#2563eb;text-decoration:none;">{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}</a>
+                </div>
+                {% endif %}
+                <div class="cm-row">
+                    <span class="cm-lbl">Totale</span>
+                    <span class="importo">€ {{ "%.2f"|format(lavoro.totale_documento or 0) }}</span>
+                </div>
+                <div class="cm-row">
+                    <span class="cm-lbl">Pagamento</span>
+                    {% if lavoro.stato_pagamento == "pagato" %}
+                        <span class="lb lb-green">✓ Pagato</span>
+                    {% elif lavoro.stato_pagamento == "acconto" %}
+                        <span class="lb lb-orange">↗ Acconto</span>
+                    {% else %}
+                        <span class="lb lb-red">✗ Da pagare{% if lavoro.giorni_ritardo and lavoro.giorni_ritardo > 0 %} ({{ lavoro.giorni_ritardo }}gg){% endif %}</span>
+                    {% endif %}
+                </div>
+                {% if (lavoro.residuo_pagamento or 0) > 0 %}
+                <div class="cm-row" style="border-bottom:none;">
+                    <span class="cm-lbl">Residuo</span>
+                    <span class="lb lb-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span>
+                </div>
+                {% endif %}
+                <div class="cm-actions">
+                    <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">📋 Apri</a>
+                    {% if lavoro.stato == "da_fare" %}
+                    <form method="post" action="/lavori/{{ lavoro.id }}/cambia-stato" style="flex:1;display:flex;">
+                        <input type="hidden" name="nuovo_stato" value="in_corso">
+                        <input type="hidden" name="redirect_to" value="{{ request.url }}">
+                        <button class="btn-az" style="background:#16a34a;color:white;width:100%;justify-content:center;">⚡ Inizia</button>
+                    </form>
+                    {% elif lavoro.stato == "in_corso" %}
+                    <form method="post" action="/lavori/{{ lavoro.id }}/cambia-stato" style="flex:1;display:flex;">
+                        <input type="hidden" name="nuovo_stato" value="completato">
+                        <input type="hidden" name="redirect_to" value="{{ request.url }}">
+                        <button class="btn-az" style="background:#16a34a;color:white;width:100%;justify-content:center;">✓ Completa</button>
+                    </form>
+                    {% endif %}
+                    <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az btn-az-green">💳</a>
+                    <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az btn-az-red">PDF</a>
+                </div>
             </div>
-            {% endif %}
-
+            {% endfor %}
         </div>
+
+        <!-- PAGINATION -->
+        {% if pagine_totali > 1 %}
+        <div class="pagination-wrap pagination-outer">
+            <span class="pag-info">Pagina {{ pagina }} di {{ pagine_totali }} — {{ totale }} lavori</span>
+            <div class="pag-links">
+                {% if pagina > 1 %}
+                    <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ pagina - 1 }}" class="pag-link">‹</a>
+                {% endif %}
+                {% for p in range(1, pagine_totali + 1) %}
+                    {% if p == pagina %}
+                        <span class="pag-link active">{{ p }}</span>
+                    {% elif p == 1 or p == pagine_totali or (p >= pagina - 2 and p <= pagina + 2) %}
+                        <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ p }}" class="pag-link">{{ p }}</a>
+                    {% elif p == pagina - 3 or p == pagina + 3 %}
+                        <span style="padding:6px 4px; color:#9ca3af;">…</span>
+                    {% endif %}
+                {% endfor %}
+                {% if pagina < pagine_totali %}
+                    <a href="?stato={{ stato }}&pagamento={{ pagamento }}&ricerca={{ ricerca }}&ordinamento={{ ordinamento }}&pagina={{ pagina + 1 }}" class="pag-link">›</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
     {% else %}
 
