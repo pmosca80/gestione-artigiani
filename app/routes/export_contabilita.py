@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
