@@ -1,9 +1,21 @@
+import os
 from datetime import date as _date_type
 
-from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float, Date
+from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float, Date, DateTime, func
 from sqlalchemy.types import TypeDecorator
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, declared_attr
 from app.database import Base
+
+
+def _get_fernet():
+    key = os.environ.get("FERNET_KEY", "")
+    if not key:
+        return None
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(key.encode() if isinstance(key, str) else key)
+    except Exception:
+        return None
 
 
 class FlexDate(TypeDecorator):
@@ -19,11 +31,44 @@ class FlexDate(TypeDecorator):
         return _date_type.fromisoformat(str(value)[:10])
 
 
+class EncryptedString(TypeDecorator):
+    """Cifra il valore con Fernet (FERNET_KEY env var); fallback plaintext se la chiave manca."""
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if not value:
+            return value
+        f = _get_fernet()
+        if not f:
+            return value
+        return f.encrypt(value.encode()).decode()
+
+    def process_result_value(self, value, dialect):
+        if not value:
+            return value
+        f = _get_fernet()
+        if not f:
+            return value
+        try:
+            return f.decrypt(value.encode()).decode()
+        except Exception:
+            return value  # valore precedente in chiaro: restituito as-is
+
+
+class TimestampMixin:
+    """Aggiunge data_aggiornamento aggiornato automaticamente ad ogni UPDATE ORM."""
+    @declared_attr
+    def data_aggiornamento(cls):
+        return Column(DateTime(timezone=True), nullable=True,
+                      server_default=func.now(), onupdate=func.now())
+
+
 # ========================
-# CLIENTE
+# UTENTE
 # ========================
 
-class Utente(Base):
+class Utente(TimestampMixin, Base):
     __tablename__ = "utenti"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -50,13 +95,18 @@ class Utente(Base):
     titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
     ruolo = Column(String, nullable=True, default="titolare")  # "titolare" | "collaboratore"
 
-class Cliente(Base):
+
+# ========================
+# CLIENTE
+# ========================
+
+class Cliente(TimestampMixin, Base):
     __tablename__ = "clienti"
 
     id = Column(Integer, primary_key=True, index=True)
 
     utente_id = Column(Integer, ForeignKey("utenti.id"))
-    
+
     tipo_cliente = Column(String, nullable=False, default="privato")
 
     nome = Column(String, nullable=True)
@@ -83,7 +133,6 @@ class Cliente(Base):
 
     data_creazione = Column(String, nullable=False)
 
-    # relazione con lavori
     lavori = relationship(
         "Lavoro",
         back_populates="cliente",
@@ -94,7 +143,8 @@ class Cliente(Base):
 # ========================
 # LAVORO
 # ========================
-class Lavoro(Base):
+
+class Lavoro(TimestampMixin, Base):
     __tablename__ = "lavori"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -147,7 +197,7 @@ class Lavoro(Base):
     fatture_emesse = relationship("FatturaEmessa", back_populates="lavoro", cascade="all, delete-orphan")
 
 
-class Materiale(Base):
+class Materiale(TimestampMixin, Base):
     __tablename__ = "materiali"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -168,6 +218,7 @@ class Materiale(Base):
     note = Column(Text, nullable=True)
     data_creazione = Column(String, nullable=False)
 
+
 class CaricoMateriale(Base):
     __tablename__ = "carichi_materiale"
 
@@ -184,6 +235,8 @@ class CaricoMateriale(Base):
 
     note = Column(Text, nullable=True)
     data_carico = Column(String, nullable=False)
+
+
 class MovimentoMagazzino(Base):
     __tablename__ = "movimenti_magazzino"
 
@@ -197,6 +250,7 @@ class MovimentoMagazzino(Base):
 
     note = Column(Text, nullable=True)
     data_movimento = Column(String, nullable=False)
+
 
 class MaterialeUsatoLavoro(Base):
     __tablename__ = "materiali_usati_lavoro"
@@ -216,7 +270,8 @@ class MaterialeUsatoLavoro(Base):
 
     data_creazione = Column(String, nullable=False)
 
-class ImpostazioniAzienda(Base):
+
+class ImpostazioniAzienda(TimestampMixin, Base):
     __tablename__ = "impostazioni_azienda"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -245,7 +300,8 @@ class ImpostazioniAzienda(Base):
     pec_indirizzo = Column(String, nullable=True)
     pec_smtp_host = Column(String, nullable=True)
     pec_smtp_port = Column(Integer, nullable=True, default=465)
-    pec_smtp_password = Column(String, nullable=True)
+    pec_smtp_password = Column(EncryptedString, nullable=True)
+
 
 class DocumentoPDF(Base):
     __tablename__ = "documenti_pdf"
@@ -261,6 +317,7 @@ class DocumentoPDF(Base):
 
     data_creazione = Column(String, nullable=False)
 
+
 class FotoLavoro(Base):
     __tablename__ = "foto_lavori"
 
@@ -274,6 +331,7 @@ class FotoLavoro(Base):
 
     descrizione = Column(Text, nullable=True)
     data_creazione = Column(String, nullable=False)
+
 
 class PagamentoLavoro(Base):
     __tablename__ = "pagamenti_lavoro"
@@ -292,6 +350,7 @@ class PagamentoLavoro(Base):
 
     data_creazione = Column(String, nullable=False)
 
+
 class AllegatoLavoro(Base):
     __tablename__ = "allegati_lavoro"
 
@@ -308,7 +367,7 @@ class AllegatoLavoro(Base):
     data_creazione = Column(String, nullable=False)
 
 
-class FatturaEmessa(Base):
+class FatturaEmessa(TimestampMixin, Base):
     __tablename__ = "fatture_emesse"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -338,7 +397,7 @@ class FatturaEmessa(Base):
     lavoro = relationship("Lavoro", back_populates="fatture_emesse")
 
 
-class TemplatePreventivo(Base):
+class TemplatePreventivo(TimestampMixin, Base):
     __tablename__ = "template_preventivi"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -353,7 +412,7 @@ class TemplatePreventivo(Base):
     creato_il = Column(String, nullable=True)
 
 
-class VocePreventivo(Base):
+class VocePreventivo(TimestampMixin, Base):
     __tablename__ = "voci_preventivo"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -377,7 +436,7 @@ class SessioneLavoro(Base):
     ore_calcolate = Column(Float, nullable=True)
 
 
-class Garanzia(Base):
+class Garanzia(TimestampMixin, Base):
     __tablename__ = "garanzie"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -400,7 +459,7 @@ class Garanzia(Base):
     lavoro = relationship("Lavoro")
 
 
-class VocePrimaNota(Base):
+class VocePrimaNota(TimestampMixin, Base):
     __tablename__ = "prima_nota"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -410,12 +469,12 @@ class VocePrimaNota(Base):
     descrizione = Column(String, nullable=False)
     importo = Column(Float, nullable=False)
     tipo = Column(String, nullable=False, default="uscita")  # "entrata" | "uscita"
-    categoria = Column(String, nullable=True)  # carburante, materiali, attrezzatura, compenso, varie
+    categoria = Column(String, nullable=True)
 
     data_creazione = Column(String, nullable=False)
 
 
-class ListinoVoce(Base):
+class ListinoVoce(TimestampMixin, Base):
     __tablename__ = "listino_voci"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -427,7 +486,7 @@ class ListinoVoce(Base):
     data_creazione = Column(String, nullable=False)
 
 
-class SalLavoro(Base):
+class SalLavoro(TimestampMixin, Base):
     __tablename__ = "sal_lavoro"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -443,7 +502,7 @@ class SalLavoro(Base):
     data_creazione = Column(String, nullable=False)
 
 
-class RapportinoLavoro(Base):
+class RapportinoLavoro(TimestampMixin, Base):
     __tablename__ = "rapportini_lavoro"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -457,7 +516,7 @@ class RapportinoLavoro(Base):
     data_creazione = Column(String, nullable=False)
 
 
-class PromemoriaCliente(Base):
+class PromemoriaCliente(TimestampMixin, Base):
     __tablename__ = "promemoria_clienti"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -466,14 +525,14 @@ class PromemoriaCliente(Base):
     titolo = Column(String, nullable=False)
     note = Column(Text, nullable=True, default="")
     data_promemoria = Column(FlexDate, nullable=False)
-    tipo = Column(String, nullable=False, default="manutenzione")  # manutenzione/revisione/chiamata/ispezione
-    stato = Column(String, nullable=False, default="attivo")  # attivo/completato
+    tipo = Column(String, nullable=False, default="manutenzione")
+    stato = Column(String, nullable=False, default="attivo")
     data_creazione = Column(String, nullable=False)
 
     cliente = relationship("Cliente")
 
 
-class TimesheetCollab(Base):
+class TimesheetCollab(TimestampMixin, Base):
     __tablename__ = "timesheet_collab"
 
     id = Column(Integer, primary_key=True, index=True)
