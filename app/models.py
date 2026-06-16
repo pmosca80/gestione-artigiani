@@ -191,10 +191,34 @@ class Lavoro(TimestampMixin, Base):
     firma_nome_cliente = Column(String, nullable=True)
     firma_ip = Column(String, nullable=True)
 
+    data_fine_prevista = Column(FlexDate, nullable=True)
+
     data_creazione = Column(String, nullable=False)
 
     cliente = relationship("Cliente", back_populates="lavori")
     fatture_emesse = relationship("FatturaEmessa", back_populates="lavoro", cascade="all, delete-orphan")
+
+
+class Fornitore(TimestampMixin, Base):
+    __tablename__ = "fornitori"
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+
+    nome = Column(String, nullable=False)
+    partita_iva = Column(String, nullable=True)
+    codice_fiscale = Column(String, nullable=True)
+    telefono = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    indirizzo = Column(String, nullable=True)
+    citta = Column(String, nullable=True)
+    provincia = Column(String, nullable=True)
+    cap = Column(String, nullable=True)
+    sito_web = Column(String, nullable=True)
+    categoria = Column(String, nullable=True)  # es. "elettrica", "idraulica", "materiali edili"
+    note = Column(Text, nullable=True)
+
+    data_creazione = Column(String, nullable=False)
 
 
 class Materiale(TimestampMixin, Base):
@@ -215,8 +239,11 @@ class Materiale(TimestampMixin, Base):
     prezzo_acquisto_scontato = Column(Float, default=0)
     prezzo_vendita_default = Column(Float, default=0)
 
+    fornitore_id = Column(Integer, ForeignKey("fornitori.id"), nullable=True)
     note = Column(Text, nullable=True)
     data_creazione = Column(String, nullable=False)
+
+    fornitore = relationship("Fornitore")
 
 
 class CaricoMateriale(Base):
@@ -470,8 +497,11 @@ class VocePrimaNota(TimestampMixin, Base):
     importo = Column(Float, nullable=False)
     tipo = Column(String, nullable=False, default="uscita")  # "entrata" | "uscita"
     categoria = Column(String, nullable=True)
+    fornitore_id = Column(Integer, ForeignKey("fornitori.id"), nullable=True)
 
     data_creazione = Column(String, nullable=False)
+
+    fornitore = relationship("Fornitore")
 
 
 class ListinoVoce(TimestampMixin, Base):
@@ -539,11 +569,14 @@ class TimesheetCollab(TimestampMixin, Base):
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     nome_operaio = Column(String, nullable=False)
+    collaboratore_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
     data = Column(FlexDate, nullable=False)
     ore = Column(Float, nullable=False, default=0)
     costo_orario = Column(Float, nullable=True, default=0)
     note = Column(Text, nullable=True, default="")
     data_creazione = Column(String, nullable=False)
+
+    collaboratore = relationship("Utente", foreign_keys=[collaboratore_id])
 
 
 class PushSubscription(Base):
