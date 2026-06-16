@@ -2211,7 +2211,7 @@ def get_notifiche_dashboard(
     oggi_str = oggi
 
     garanzie = db.query(Garanzia).filter(Garanzia.utente_id == utente_id).all()
-    tra_30 = (datetime.now() + timedelta(days=30)).date()
+    tra_30 = date.today() + timedelta(days=30)
     garanzie_scadenza = sum(
         1 for g in garanzie
         if g.data_scadenza and g.data_scadenza <= tra_30

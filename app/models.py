@@ -30,6 +30,13 @@ class FlexDate(TypeDecorator):
             return value
         return _date_type.fromisoformat(str(value)[:10])
 
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return _date_type.fromisoformat(value[:10])
+        return value
+
 
 class EncryptedString(TypeDecorator):
     """Cifra il valore con Fernet (FERNET_KEY env var); fallback plaintext se la chiave manca."""
