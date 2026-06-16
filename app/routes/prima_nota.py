@@ -68,6 +68,8 @@ def aggiungi_voce(
     importo: str = Form(...),
     tipo: str = Form("uscita"),
     categoria: str = Form(""),
+    lavoro_id: int = Form(0),
+    cliente_id: int = Form(0),
     anno: int = Form(0),
     mese: int = Form(0),
     db: Session = Depends(get_db),
@@ -86,6 +88,8 @@ def aggiungi_voce(
             importo=round(imp, 2),
             tipo=tipo if tipo in ("entrata", "uscita") else "uscita",
             categoria=categoria or None,
+            lavoro_id=lavoro_id or None,
+            cliente_id=cliente_id or None,
         )
 
     redirect_mese = mese or int(data[5:7])

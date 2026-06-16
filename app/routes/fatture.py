@@ -132,6 +132,7 @@ def registro_fatture(
         "lavoro_non_trovato":   "Lavoro collegato non trovato.",
         "invio_fallito":        f"Invio fallito: {msg or 'errore sconosciuto'}",
         "sdi_fallito":          f"Invio a SDI fallito: {msg or 'errore sconosciuto'}",
+        "pdf_fallito":          f"Invio PDF fallito: {msg or 'errore sconosciuto'}",
     }
 
     return templates.TemplateResponse(
@@ -149,6 +150,7 @@ def registro_fatture(
             "pec_ok": pec_configurata(azienda) if azienda else False,
             "flash_ok": inviata,
             "flash_sollecito": sollecito_ok,
+            "flash_pdf": request.query_params.get("pdf_inviata"),
             "flash_err": _ERRORI.get(errore) if errore else None,
         },
     )
@@ -484,6 +486,80 @@ def invia_fattura_email(
         msg = urllib.parse.quote(str(exc)[:120])
         return RedirectResponse(
             f"/fatture/?anno={fattura.anno}&errore=invio_fallito&msg={msg}",
+            status_code=303,
+        )
+
+
+@router.post("/{fattura_id}/invia-pdf")
+def invia_fattura_pdf_route(
+    fattura_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Invia la fattura in PDF leggibile al cliente via email."""
+    from app.models import FatturaEmessa
+    from app.services.pdf_fattura import genera_pdf_fattura
+    from app.services.email import invia_fattura_pdf, smtp_configurato
+
+    if not smtp_configurato():
+        return RedirectResponse("/fatture/?errore=smtp_non_configurato", status_code=303)
+
+    fattura = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id,
+        FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura:
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
+
+    lav = fattura.lavoro
+    if not lav:
+        return RedirectResponse("/fatture/?errore=lavoro_non_trovato", status_code=303)
+
+    cli = lav.cliente
+    if not cli or not (cli.email or "").strip():
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&errore=email_mancante",
+            status_code=303,
+        )
+
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    voci = crud.get_voci_preventivo(db, user_id, lav.id)
+    numero_fmt = f"{fattura.anno}/{str(fattura.numero).zfill(3)}"
+    to_nome = (
+        cli.ragione_sociale if cli.tipo_cliente == "azienda"
+        else f"{cli.nome or ''} {cli.cognome or ''}".strip()
+    ) or "Cliente"
+
+    try:
+        pdf_bytes = genera_pdf_fattura(lav, cli, azienda, voci=voci or None)
+        data_em = fattura.data_emissione
+        data_str = (
+            data_em.strftime("%d/%m/%Y") if hasattr(data_em, "strftime") else str(data_em)
+        )
+        anno = fattura.anno or (
+            data_em.year if hasattr(data_em, "year") else _date.today().year
+        )
+        nome_file = f"fattura_{anno}_{str(fattura.numero).zfill(3)}.pdf"
+
+        invia_fattura_pdf(
+            to_email=cli.email.strip(),
+            to_nome=to_nome,
+            from_nome=azienda.nome_azienda or "Azienda",
+            numero_fattura=numero_fmt,
+            data_emissione=data_str,
+            importo_totale=float(fattura.importo_totale or 0),
+            pdf_bytes=pdf_bytes,
+            nome_file=nome_file,
+        )
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&pdf_inviata={fattura_id}",
+            status_code=303,
+        )
+    except Exception as exc:
+        import urllib.parse
+        msg = urllib.parse.quote(str(exc)[:120])
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&errore=pdf_fallito&msg={msg}",
             status_code=303,
         )
 

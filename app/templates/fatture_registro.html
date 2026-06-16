@@ -214,6 +214,11 @@
         📧 Sollecito inviato al cliente con successo!
     </div>
     {% endif %}
+    {% if flash_pdf %}
+    <div style="background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#166534;">
+        📄 Fattura PDF inviata al cliente con successo!
+    </div>
+    {% endif %}
     {% if request.query_params.get('creata') %}
     <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;font-weight:600;color:#5b21b6;">
         🧾 Fattura creata nel registro! Scarica l'XML o inviala al cliente con i pulsanti qui sotto.
@@ -399,11 +404,18 @@
                             {% endif %}
                             {% if smtp_ok and cli and cli.email %}
                             <form class="stato-form" method="post"
+                                  action="/fatture/{{ f.id }}/invia-pdf"
+                                  onsubmit="return confirm('Inviare la fattura PDF a {{ cli.email }}?')">
+                                <button type="submit" class="btn-az"
+                                        style="background:#0891b2;color:white;"
+                                        title="Invia fattura PDF leggibile al cliente">📄 PDF</button>
+                            </form>
+                            <form class="stato-form" method="post"
                                   action="/fatture/{{ f.id }}/invia-email"
-                                  onsubmit="return confirm('Inviare la fattura a {{ cli.email }}?')">
+                                  onsubmit="return confirm('Inviare la fattura XML a {{ cli.email }}?')">
                                 <button type="submit" class="btn-az"
                                         style="background:#2563eb;color:white;"
-                                        title="Invia XML al cliente">📧 Email</button>
+                                        title="Invia XML FatturaPA al cliente">📧 XML</button>
                             </form>
                             {% elif not smtp_ok %}
                             <span class="btn-az btn-az-gray" style="opacity:0.45;cursor:not-allowed;" title="SMTP non configurato">📧</span>

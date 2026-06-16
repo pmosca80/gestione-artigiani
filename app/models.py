@@ -498,10 +498,14 @@ class VocePrimaNota(TimestampMixin, Base):
     tipo = Column(String, nullable=False, default="uscita")  # "entrata" | "uscita"
     categoria = Column(String, nullable=True)
     fornitore_id = Column(Integer, ForeignKey("fornitori.id"), nullable=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=True)
+    cliente_id = Column(Integer, ForeignKey("clienti.id"), nullable=True)
 
     data_creazione = Column(String, nullable=False)
 
     fornitore = relationship("Fornitore")
+    lavoro = relationship("Lavoro")
+    cliente = relationship("Cliente")
 
 
 class ListinoVoce(TimestampMixin, Base):

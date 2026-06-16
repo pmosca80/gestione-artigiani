@@ -2854,6 +2854,8 @@ def crea_voce_prima_nota(
     importo: float,
     tipo: str,
     categoria: str | None,
+    lavoro_id: int | None = None,
+    cliente_id: int | None = None,
 ) -> VocePrimaNota:
     voce = VocePrimaNota(
         utente_id=utente_id,
@@ -2862,6 +2864,8 @@ def crea_voce_prima_nota(
         importo=importo,
         tipo=tipo,
         categoria=categoria or None,
+        lavoro_id=lavoro_id or None,
+        cliente_id=cliente_id or None,
         data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     )
     db.add(voce)

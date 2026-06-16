@@ -394,6 +394,44 @@ def invia_notifica_firma_preventivo(
     )
 
 
+def invia_fattura_pdf(
+    *,
+    to_email: str,
+    to_nome: str,
+    from_nome: str,
+    numero_fattura: str,
+    data_emissione: str,
+    importo_totale: float,
+    pdf_bytes: bytes,
+    nome_file: str,
+) -> None:
+    """Invia la fattura in formato PDF leggibile via email con allegato."""
+    if not smtp_configurato():
+        raise RuntimeError(
+            "Email non configurata. Imposta RESEND_API_KEY oppure SMTP_USER + SMTP_PASSWORD."
+        )
+
+    corpo_html = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"></head>
+<body style="font-family:'Segoe UI',Arial,sans-serif;color:#374151;padding:24px;">
+<p>Gentile {to_nome},</p>
+<p>in allegato trova la fattura n. <strong>{numero_fattura}</strong>
+del {data_emissione}.</p>
+<p>Importo totale: <strong>€ {importo_totale:.2f}</strong></p>
+<p>Per qualsiasi chiarimento non esiti a contattarci.</p>
+<p>Cordiali saluti,<br><strong>{from_nome}</strong></p>
+</body></html>"""
+
+    ok = _send(
+        to=to_email,
+        subject=f"Fattura n. {numero_fattura} — {from_nome}",
+        html=corpo_html,
+        attachments=[{"filename": nome_file, "content": list(pdf_bytes)}],
+    )
+    if not ok:
+        raise RuntimeError(f"Invio PDF fattura a {to_email} fallito.")
+
+
 def invia_fattura_xml(
     *,
     to_email: str,
