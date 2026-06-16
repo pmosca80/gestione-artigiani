@@ -421,6 +421,9 @@ class FatturaEmessa(TimestampMixin, Base):
 
     data_creazione = Column(String, nullable=False)
 
+    stripe_payment_link_id = Column(String, nullable=True)
+    stripe_payment_link_url = Column(String, nullable=True)
+
     lavoro = relationship("Lavoro", back_populates="fatture_emesse")
 
 

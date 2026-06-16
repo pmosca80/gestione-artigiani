@@ -100,11 +100,13 @@ def registro_fatture(
     sollecito_ok: int = None,
     errore: str = None,
     msg: str = None,
+    link_creato: int = None,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
     from app.services.email import smtp_configurato
     from app.services.sdi import pec_configurata
+    from app.services.stripe_service import stripe_configurato
 
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
@@ -133,6 +135,8 @@ def registro_fatture(
         "invio_fallito":        f"Invio fallito: {msg or 'errore sconosciuto'}",
         "sdi_fallito":          f"Invio a SDI fallito: {msg or 'errore sconosciuto'}",
         "pdf_fallito":          f"Invio PDF fallito: {msg or 'errore sconosciuto'}",
+        "stripe_non_configurato": "Stripe non configurato. Aggiungi STRIPE_SECRET_KEY nelle variabili d'ambiente.",
+        "stripe_fallito":       f"Creazione link Stripe fallita: {msg or 'errore sconosciuto'}",
     }
 
     return templates.TemplateResponse(
@@ -148,9 +152,11 @@ def registro_fatture(
             "tot_da_incassare": tot_da_incassare,
             "smtp_ok": smtp_configurato(),
             "pec_ok": pec_configurata(azienda) if azienda else False,
+            "stripe_ok": stripe_configurato(),
             "flash_ok": inviata,
             "flash_sollecito": sollecito_ok,
             "flash_pdf": request.query_params.get("pdf_inviata"),
+            "flash_link": request.query_params.get("link_creato"),
             "flash_err": _ERRORI.get(errore) if errore else None,
         },
     )
@@ -421,6 +427,49 @@ def liquidazione_iva(
             "regime": regime,
         },
     )
+
+
+@router.post("/{fattura_id}/crea-link")
+def crea_link_pagamento(
+    fattura_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.models import FatturaEmessa
+    from app.services.stripe_service import crea_payment_link, stripe_configurato
+
+    if not stripe_configurato():
+        return RedirectResponse("/fatture/?errore=stripe_non_configurato", status_code=303)
+
+    fattura = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id,
+        FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura:
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
+
+    try:
+        numero_fmt = f"{fattura.anno}/{str(fattura.numero).zfill(3)}"
+        link_id, link_url = crea_payment_link(
+            numero_fmt=numero_fmt,
+            importo_totale=float(fattura.importo_totale or 0),
+            fattura_id=fattura.id,
+            utente_id=user_id,
+        )
+        fattura.stripe_payment_link_id = link_id
+        fattura.stripe_payment_link_url = link_url
+        db.commit()
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&link_creato={fattura_id}",
+            status_code=303,
+        )
+    except Exception as exc:
+        import urllib.parse
+        msg = urllib.parse.quote(str(exc)[:120])
+        return RedirectResponse(
+            f"/fatture/?anno={fattura.anno}&errore=stripe_fallito&msg={msg}",
+            status_code=303,
+        )
 
 
 @router.post("/{fattura_id}/invia-email")
