@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente, lavori_timesheet, stripe_webhook
+from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente, lavori_timesheet, stripe_webhook, fatture_acquisto, audit
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
@@ -120,6 +120,8 @@ app.include_router(scadenzario.router)
 app.include_router(portale_cliente.router)
 app.include_router(lavori_timesheet.router)
 app.include_router(stripe_webhook.router)
+app.include_router(fatture_acquisto.router)
+app.include_router(audit.router)
 
 @app.get("/api/cerca")
 def cerca_globale(
@@ -288,8 +290,9 @@ def home(
     if utente_obj and utente_obj.username != "admin":
         if piano_corrente == "free" and getattr(utente_obj, "attivo", 1) != 2 and utente_obj.data_registrazione:
             try:
-                data_reg = datetime.strptime(utente_obj.data_registrazione, "%Y-%m-%d")
-                rimasti = 30 - (datetime.now() - data_reg).days
+                dr = utente_obj.data_registrazione
+                reg = dr if not isinstance(dr, str) else datetime.strptime(dr, "%Y-%m-%d").date()
+                rimasti = 30 - (datetime.now().date() - reg).days
                 if rimasti > 0:
                     trial_giorni_rimasti = rimasti
                     trial_tipo = "free"
@@ -299,8 +302,9 @@ def home(
               and getattr(utente_obj, "pro_scadenza", None)
               and not getattr(utente_obj, "stripe_subscription_id", None)):
             try:
-                scadenza = datetime.strptime(utente_obj.pro_scadenza, "%Y-%m-%d")
-                rimasti = (scadenza.date() - datetime.now().date()).days
+                ps = utente_obj.pro_scadenza
+                scad = ps if not isinstance(ps, str) else datetime.strptime(ps, "%Y-%m-%d").date()
+                rimasti = (scad - datetime.now().date()).days
                 if rimasti >= 0:
                     trial_giorni_rimasti = rimasti
                     trial_tipo = "promo_pro"

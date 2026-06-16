@@ -829,8 +829,9 @@ def pagina_admin(request: Request, db: Session = Depends(get_db), user_id: int =
     for utente in utenti:
         if utente.data_registrazione:
             try:
-                data_reg = datetime.strptime(utente.data_registrazione, "%Y-%m-%d")
-                utente.giorni_rimasti = 30 - (oggi - data_reg).days
+                dr = utente.data_registrazione
+                reg = dr if not isinstance(dr, str) else datetime.strptime(dr, "%Y-%m-%d").date()
+                utente.giorni_rimasti = 30 - (oggi.date() - reg).days
             except:
                 utente.giorni_rimasti = None
         else:
@@ -1004,6 +1005,7 @@ def salva_profilo(
                 utente.email = email
                 successo = "Email aggiornata."
 
+    _pw_cambiata = False
     if not errore and nuova_password:
         if not password_attuale:
             errore = "Inserisci la password attuale per cambiarla."
@@ -1023,10 +1025,13 @@ def salva_profilo(
                 errore = "La nuova password deve essere di almeno 8 caratteri."
             else:
                 utente.password = hash_password(nuova_password)
+                _pw_cambiata = True
                 successo = (successo + " Password aggiornata." if successo else "Password aggiornata.")
 
     if not errore:
         db.commit()
+        if _pw_cambiata:
+            request.session["pw_sig"] = utente.password[-12:]
         if not successo:
             successo = "Nessuna modifica effettuata."
 

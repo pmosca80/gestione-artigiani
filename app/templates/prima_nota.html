@@ -50,7 +50,7 @@
         .pn-form-card h2 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 14px; }
         .pn-form-row {
             display: grid;
-            grid-template-columns: 120px 1fr auto auto auto;
+            grid-template-columns: 120px 1fr auto auto auto auto;
             gap: 8px;
             align-items: end;
         }
@@ -203,7 +203,8 @@
             .pn-form-row > *:nth-child(2) { grid-column: 2; }
             .pn-form-row > *:nth-child(3) { grid-column: 1; }
             .pn-form-row > *:nth-child(4) { grid-column: 2; }
-            .pn-form-row > *:nth-child(5) { grid-column: 1 / -1; }
+            .pn-form-row > *:nth-child(5) { grid-column: 1; }
+            .pn-form-row > *:nth-child(6) { grid-column: 2 / -1; }
             .pn-form-row .btn-aggiungi { width: 100%; }
             .pn-mese-nav { gap: 4px; }
             .pn-mese-nav a, .pn-mese-nav span { padding: 5px 9px; font-size: 12px; }
@@ -212,6 +213,23 @@
 </head>
 <body>
 {% include "components/navbar.html" %}
+<script>
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        var radios = document.querySelectorAll('input[name="tipo"]');
+        var wrap = document.getElementById('iva-field-wrap');
+        var sel = document.getElementById('aliquota_iva_sel');
+        function sync() {
+            var tipo = document.querySelector('input[name="tipo"]:checked');
+            var isUscita = tipo && tipo.value === 'uscita';
+            wrap.style.display = isUscita ? '' : 'none';
+            if (!isUscita && sel) sel.value = '0';
+        }
+        radios.forEach(function (r) { r.addEventListener('change', sync); });
+        sync();
+    });
+})();
+</script>
 
 <div class="container" style="max-width:860px;">
 
@@ -270,11 +288,20 @@
                 </div>
                 <div>
                     <label>Categoria</label>
-                    <select name="categoria" style="width:130px;">
+                    <select name="categoria" style="width:120px;">
                         <option value="">— nessuna —</option>
                         {% for cat in categorie %}
                         <option value="{{ cat }}">{{ cat|capitalize }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+                <div id="iva-field-wrap">
+                    <label>IVA (acquisti)</label>
+                    <select name="aliquota_iva" id="aliquota_iva_sel" style="width:100px;">
+                        <option value="0">— nessuna —</option>
+                        <option value="4">4%</option>
+                        <option value="10">10%</option>
+                        <option value="22">22%</option>
                     </select>
                 </div>
             </div>
@@ -327,6 +354,11 @@
                 <span class="pn-voce-imp {{ v.tipo }}">
                     {% if v.tipo == "entrata" %}+{% else %}−{% endif %}€ {{ "%.2f"|format(v.importo) }}
                 </span>
+                {% if v.importo_iva and v.importo_iva > 0 %}
+                <span style="font-size:11px;color:#6b7280;background:#f3f4f6;padding:2px 7px;border-radius:20px;white-space:nowrap;">
+                    IVA {{ v.aliquota_iva|int }}% €{{ "%.2f"|format(v.importo_iva) }}
+                </span>
+                {% endif %}
                 <form method="post" action="/prima-nota/{{ v.id }}/elimina"
                       onsubmit="return confirm('Eliminare questa voce?')">
                     <input type="hidden" name="anno" value="{{ anno }}">

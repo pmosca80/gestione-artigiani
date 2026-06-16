@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
 from app.templates_config import templates
+from app.services.audit import log_audit, get_actor, get_client_ip
 
 router = APIRouter(prefix="/fatture", tags=["fatture"])
 
@@ -199,7 +200,7 @@ def export_excel(
     )
 
     # ── Riga titolo ───────────────────────────────────────────────────────────
-    ws.merge_cells("A1:I1")
+    ws.merge_cells("A1:J1")
     title_cell = ws["A1"]
     title_cell.value = f"Registro Fatture {anno_sel} — {nome_az}"
     title_cell.font = Font(name="Calibri", bold=True, size=14, color="FFFFFF")
@@ -207,7 +208,7 @@ def export_excel(
     title_cell.alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws.row_dimensions[1].height = 28
 
-    ws.merge_cells("A2:I2")
+    ws.merge_cells("A2:J2")
     ws["A2"].value = f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')}"
     ws["A2"].font = Font(name="Calibri", size=10, color="9CA3AF")
     ws["A2"].alignment = Alignment(horizontal="left", indent=1)
@@ -215,7 +216,7 @@ def export_excel(
 
     # ── Intestazioni colonne ──────────────────────────────────────────────────
     headers = ["N° Fattura", "Data", "Cliente", "P.IVA / CF Cliente",
-               "Imponibile (€)", "IVA (€)", "Totale (€)", "Stato", "File XML"]
+               "Imponibile (€)", "IVA (€)", "Bollo (€)", "Totale (€)", "Stato", "File XML"]
     ws.append([])  # riga 3 vuota
     ws.append(headers)  # riga 4
 
@@ -231,6 +232,7 @@ def export_excel(
     # ── Righe dati ────────────────────────────────────────────────────────────
     tot_imponibile = 0.0
     tot_iva = 0.0
+    tot_bollo = 0.0
     tot_totale = 0.0
 
     for f in fatture:
@@ -250,9 +252,11 @@ def export_excel(
         numero_fmt = f"{f.anno}/{str(f.numero).zfill(3)}"
         imp = float(f.importo_imponibile or 0)
         iva = float(f.importo_iva or 0)
+        bollo = float(f.importo_bollo or 0)
         tot = float(f.importo_totale or 0)
         tot_imponibile += imp
         tot_iva += iva
+        tot_bollo += bollo
         tot_totale += tot
 
         row_data = [
@@ -262,6 +266,7 @@ def export_excel(
             piva_cf,
             imp,
             iva,
+            bollo,
             tot,
             f.stato or "emessa",
             f.nome_file or "",
@@ -269,7 +274,7 @@ def export_excel(
         ws.append(row_data)
         data_row = ws.max_row
 
-        for col_idx in range(1, 10):
+        for col_idx in range(1, 11):
             cell = ws.cell(row=data_row, column=col_idx)
             cell.font = Font(name="Calibri", size=10)
             cell.alignment = Alignment(vertical="center")
@@ -280,7 +285,7 @@ def export_excel(
         ws.cell(row=data_row, column=1).fill = PatternFill("solid", fgColor=PURPLE_LIGHT)
 
         # Importi allineati a destra con formato valuta
-        for col_idx in [5, 6, 7]:
+        for col_idx in [5, 6, 7, 8]:
             cell = ws.cell(row=data_row, column=col_idx)
             cell.number_format = '#,##0.00'
             cell.alignment = Alignment(horizontal="right", vertical="center")
@@ -296,7 +301,7 @@ def export_excel(
 
     ws.merge_cells(f"A{totals_row}:D{totals_row}")
 
-    for col_idx, val in [(5, tot_imponibile), (6, tot_iva), (7, tot_totale)]:
+    for col_idx, val in [(5, tot_imponibile), (6, tot_iva), (7, tot_bollo), (8, tot_totale)]:
         cell = ws.cell(row=totals_row, column=col_idx)
         cell.value = val
         cell.number_format = '#,##0.00'
@@ -305,7 +310,7 @@ def export_excel(
         cell.alignment = Alignment(horizontal="right", vertical="center")
         cell.border = thin_border
 
-    for col_idx in [2, 3, 4, 8, 9]:
+    for col_idx in [2, 3, 4, 9, 10]:
         cell = ws.cell(row=totals_row, column=col_idx)
         cell.fill = PatternFill("solid", fgColor=PURPLE)
         cell.border = thin_border
@@ -313,7 +318,7 @@ def export_excel(
     ws.row_dimensions[totals_row].height = 22
 
     # ── Larghezze colonne ─────────────────────────────────────────────────────
-    col_widths = [14, 12, 30, 20, 15, 12, 15, 14, 28]
+    col_widths = [14, 12, 30, 20, 15, 12, 10, 15, 14, 28]
     for i, w in enumerate(col_widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -344,7 +349,7 @@ def export_csv_fatture(
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
     fatture_list = crud.get_fatture_registro(db, user_id, anno_sel)
 
-    righe = ["N. Fattura,Data,Cliente,P.IVA/CF,Imponibile,IVA,Totale,Stato"]
+    righe = ["N. Fattura,Data,Cliente,P.IVA/CF,Imponibile,IVA,Bollo,Totale,Stato"]
     for f in fatture_list:
         lav = f.lavoro
         cli = lav.cliente if lav else None
@@ -362,7 +367,7 @@ def export_csv_fatture(
         righe.append(
             f'{numero_fmt},{f.data_emissione},"{nome_cli}",{piva_cf},'
             f'{f.importo_imponibile or 0:.2f},{f.importo_iva or 0:.2f},'
-            f'{f.importo_totale or 0:.2f},{f.stato or "emessa"}'
+            f'{f.importo_bollo or 0:.2f},{f.importo_totale or 0:.2f},{f.stato or "emessa"}'
         )
 
     content = "﻿" + "\n".join(righe)
@@ -381,8 +386,11 @@ def liquidazione_iva(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    from collections import defaultdict
+    from app.models import VocePrimaNota, FatturaAcquisto
     _REGIMI_SENZA_IVA = {"RF19", "RF02"}
+    # TD01=fattura, TD04=nota di credito (iva negativa), TD05=nota di debito (iva positiva)
+    _TIPI_POSITIVI = {"TD01", "TD05"}
+    _TIPI_NEGATIVI = {"TD04"}
 
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
@@ -393,26 +401,76 @@ def liquidazione_iva(
     forfettario = regime in _REGIMI_SENZA_IVA
 
     quartali: dict[int, dict] = {
-        q: {"n": 0, "imponibile": 0.0, "iva": 0.0, "mesi": label}
+        q: {"n": 0, "imponibile": 0.0, "iva_debito": 0.0, "iva_credito": 0.0, "mesi": label}
         for q, label in [
             (1, "Gen – Mar"), (2, "Apr – Giu"),
             (3, "Lug – Set"), (4, "Ott – Dic"),
         ]
     }
+
+    # IVA a debito dalle fatture emesse
     for f in fatture:
-        if (f.tipo_documento or "TD01") != "TD01":
+        tipo_doc = f.tipo_documento or "TD01"
+        if tipo_doc not in _TIPI_POSITIVI and tipo_doc not in _TIPI_NEGATIVI:
             continue
         try:
             mese = f.data_emissione.month if hasattr(f.data_emissione, "month") else int(str(f.data_emissione)[5:7])
         except Exception:
             continue
         q = (mese - 1) // 3 + 1
+        segno = -1.0 if tipo_doc in _TIPI_NEGATIVI else 1.0
         quartali[q]["n"] += 1
-        quartali[q]["imponibile"] += float(f.importo_imponibile or 0)
-        quartali[q]["iva"] += float(f.importo_iva or 0)
+        quartali[q]["imponibile"] += segno * float(f.importo_imponibile or 0)
+        quartali[q]["iva_debito"] += segno * float(f.importo_iva or 0)
+
+    # IVA a credito 1: voci prima nota (uscite con aliquota_iva > 0, tag manuale)
+    voci_pn = (
+        db.query(VocePrimaNota)
+        .filter(
+            VocePrimaNota.utente_id == user_id,
+            VocePrimaNota.tipo == "uscita",
+            VocePrimaNota.importo_iva > 0,
+        )
+        .all()
+    )
+    for v in voci_pn:
+        try:
+            data_str = str(v.data)
+            anno_v = int(data_str[:4])
+            mese_v = int(data_str[5:7])
+        except Exception:
+            continue
+        if anno_v != anno_sel:
+            continue
+        q = (mese_v - 1) // 3 + 1
+        quartali[q]["iva_credito"] += float(v.importo_iva or 0)
+
+    # IVA a credito 2: fatture passive registrate (FatturaAcquisto)
+    fatture_acq = (
+        db.query(FatturaAcquisto)
+        .filter(
+            FatturaAcquisto.utente_id == user_id,
+            FatturaAcquisto.anno == anno_sel,
+            FatturaAcquisto.importo_iva > 0,
+        )
+        .all()
+    )
+    for fa in fatture_acq:
+        try:
+            mese_fa = fa.data_fattura.month if hasattr(fa.data_fattura, "month") else int(str(fa.data_fattura)[5:7])
+        except Exception:
+            continue
+        q = (mese_fa - 1) // 3 + 1
+        quartali[q]["iva_credito"] += float(fa.importo_iva or 0)
+
+    # Calcola saldo per trimestre
+    for q in quartali:
+        quartali[q]["saldo"] = quartali[q]["iva_debito"] - quartali[q]["iva_credito"]
 
     tot_imponibile = sum(v["imponibile"] for v in quartali.values())
-    tot_iva = sum(v["iva"] for v in quartali.values())
+    tot_iva_debito = sum(v["iva_debito"] for v in quartali.values())
+    tot_iva_credito = sum(v["iva_credito"] for v in quartali.values())
+    tot_saldo = tot_iva_debito - tot_iva_credito
 
     return templates.TemplateResponse(
         request=request,
@@ -422,7 +480,9 @@ def liquidazione_iva(
             "anno_sel": anno_sel,
             "quartali": quartali,
             "tot_imponibile": tot_imponibile,
-            "tot_iva": tot_iva,
+            "tot_iva_debito": tot_iva_debito,
+            "tot_iva_credito": tot_iva_credito,
+            "tot_saldo": tot_saldo,
             "forfettario": forfettario,
             "regime": regime,
         },
@@ -660,6 +720,7 @@ def invia_fattura_sdi(
 
 @router.post("/{fattura_id}/pagamento")
 def aggiorna_pagamento(
+    request: Request,
     fattura_id: int,
     stato: str = Form(...),
     db: Session = Depends(get_db),
@@ -667,11 +728,16 @@ def aggiorna_pagamento(
 ):
     """Segna la fattura come pagata / da pagare aggiornando il Lavoro collegato."""
     crud.aggiorna_pagamento_fattura(db, fattura_id, user_id, stato)
+    attore_id, attore_username = get_actor(request, db)
+    log_audit(db, user_id, attore_id, attore_username,
+              "pagamento_fattura", "fatture_emesse", fattura_id,
+              {"stato": stato}, get_client_ip(request))
     return RedirectResponse("/fatture/", status_code=303)
 
 
 @router.post("/{fattura_id}/nota-credito")
 def crea_nota_credito(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -680,6 +746,11 @@ def crea_nota_credito(
     nc = crud.crea_nota_credito(db, user_id, fattura_id)
     if not nc:
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
+    attore_id, attore_username = get_actor(request, db)
+    log_audit(db, user_id, attore_id, attore_username,
+              "nota_credito", "fatture_emesse", fattura_id,
+              {"nc_id": nc.id, "totale": float(nc.importo_totale or 0)},
+              get_client_ip(request))
     return RedirectResponse(
         f"/fatture/?anno={nc.anno}&nc_creata={nc.id}", status_code=303
     )
@@ -744,17 +815,23 @@ def sollecito_cliente(
 
 @router.post("/{fattura_id}/stato")
 def aggiorna_stato(
+    request: Request,
     fattura_id: int,
     stato: str = Form(...),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
     crud.aggiorna_stato_fattura(db, fattura_id, user_id, stato)
+    attore_id, attore_username = get_actor(request, db)
+    log_audit(db, user_id, attore_id, attore_username,
+              "stato_fattura", "fatture_emesse", fattura_id,
+              {"stato": stato}, get_client_ip(request))
     return RedirectResponse("/fatture/", status_code=303)
 
 
 @router.post("/crea-da-lavoro/{lavoro_id}")
 def crea_fattura_da_lavoro(
+    request: Request,
     lavoro_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -837,14 +914,22 @@ def crea_fattura_da_lavoro(
     iva_val = 0.0 if (regime_senza_iva or aliquota_val == 0) else float(
         lavoro.totale_iva or round(imponibile_val * aliquota_val / 100, 2)
     )
+    bollo_val = bollo_dovuto(regime_senza_iva, imponibile_val)
     totale_val = imponibile_val if regime_senza_iva else float(lavoro.totale_documento or 0)
-    totale_val = round(totale_val + bollo_dovuto(regime_senza_iva, imponibile_val), 2)
+    totale_val = round(totale_val + bollo_val, 2)
     filename = nome_file_fatturapa(azienda, lavoro)
 
-    crud.salva_fattura_emessa(
+    fattura_salvata = crud.salva_fattura_emessa(
         db, user_id, lavoro.id, lavoro.numero_fattura, anno, data_em,
         imponibile_val, iva_val, totale_val, filename, azienda.regime_fiscale or "RF01",
+        bollo=bollo_val,
     )
+    attore_id, attore_username = get_actor(request, db)
+    log_audit(db, user_id, attore_id, attore_username,
+              "emette_fattura", "fatture_emesse", fattura_salvata.id,
+              {"numero": lavoro.numero_fattura, "anno": anno,
+               "imponibile": imponibile_val, "iva": iva_val, "totale": totale_val},
+              get_client_ip(request))
 
     return RedirectResponse(f"/fatture/?anno={anno}&creata=1", status_code=303)
 

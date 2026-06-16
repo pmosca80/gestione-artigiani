@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
 from app.templates_config import templates
+from app.services.audit import log_audit, get_actor, get_client_ip
 
 router = APIRouter(prefix="/prima-nota", tags=["prima-nota"])
 
@@ -72,6 +73,7 @@ def aggiungi_voce(
     cliente_id: int = Form(0),
     anno: int = Form(0),
     mese: int = Form(0),
+    aliquota_iva: float = Form(0.0),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
@@ -81,16 +83,31 @@ def aggiungi_voce(
         imp = 0.0
 
     if imp > 0 and descrizione.strip():
-        crud.crea_voce_prima_nota(
+        tipo_ok = tipo if tipo in ("entrata", "uscita") else "uscita"
+        # IVA a credito solo su uscite con aliquota > 0
+        # Calcola la quota IVA dal totale pagato: iva = totale * aliq / (100 + aliq)
+        iva_calc = 0.0
+        aliq = float(aliquota_iva) if aliquota_iva else 0.0
+        if tipo_ok == "uscita" and aliq > 0:
+            iva_calc = round(imp * aliq / (100.0 + aliq), 2)
+        voce = crud.crea_voce_prima_nota(
             db, user_id,
             data=data,
             descrizione=descrizione.strip(),
             importo=round(imp, 2),
-            tipo=tipo if tipo in ("entrata", "uscita") else "uscita",
+            tipo=tipo_ok,
             categoria=categoria or None,
             lavoro_id=lavoro_id or None,
             cliente_id=cliente_id or None,
+            aliquota_iva=aliq,
+            importo_iva=iva_calc,
         )
+        attore_id, attore_username = get_actor(request, db)
+        log_audit(db, user_id, attore_id, attore_username,
+                  "crea_prima_nota", "prima_nota", voce.id,
+                  {"tipo": tipo_ok, "importo": round(imp, 2),
+                   "descrizione": descrizione.strip()[:80]},
+                  get_client_ip(request))
 
     redirect_mese = mese or int(data[5:7])
     redirect_anno = anno or int(data[:4])
@@ -102,13 +119,24 @@ def aggiungi_voce(
 
 @router.post("/{voce_id}/elimina")
 def elimina_voce(
+    request: Request,
     voce_id: int,
     anno: int = Form(0),
     mese: int = Form(0),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.models import VocePrimaNota
+    voce = db.query(VocePrimaNota).filter(
+        VocePrimaNota.id == voce_id, VocePrimaNota.utente_id == user_id
+    ).first()
+    det = {"tipo": voce.tipo, "importo": float(voce.importo or 0),
+           "descrizione": (voce.descrizione or "")[:80]} if voce else {}
     crud.elimina_voce_prima_nota(db, voce_id, user_id)
+    attore_id, attore_username = get_actor(request, db)
+    log_audit(db, user_id, attore_id, attore_username,
+              "elimina_prima_nota", "prima_nota", voce_id, det,
+              get_client_ip(request))
     oggi = date.today()
     return RedirectResponse(
         url=f"/prima-nota/?anno={anno or oggi.year}&mese={mese or oggi.month}",

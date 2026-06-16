@@ -1,5 +1,5 @@
 import os
-from datetime import date as _date_type
+from datetime import date as _date_type, datetime as _datetime_type
 
 from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float, Date, DateTime, Index, func
 from sqlalchemy.types import TypeDecorator
@@ -36,6 +36,34 @@ class FlexDate(TypeDecorator):
         if isinstance(value, str):
             return _date_type.fromisoformat(value[:10])
         return value
+
+
+class FlexDateTime(TypeDecorator):
+    """Colonna DATETIME che accetta sia stringhe ISO sia oggetti datetime/date in scrittura."""
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if not value:
+            return None
+        if isinstance(value, _datetime_type):
+            return value
+        if isinstance(value, _date_type):
+            return _datetime_type(value.year, value.month, value.day)
+        try:
+            return _datetime_type.fromisoformat(str(value).replace(" ", "T")[:26])
+        except Exception:
+            return None
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, _datetime_type):
+            return value
+        try:
+            return _datetime_type.fromisoformat(str(value).replace(" ", "T")[:26])
+        except Exception:
+            return value
 
 
 class EncryptedString(TypeDecorator):
@@ -81,11 +109,11 @@ class Utente(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    data_registrazione = Column(String, nullable=True)
+    data_registrazione = Column(FlexDate, nullable=True)
     attivo = Column(Integer, nullable=False, default=1)
 
     piano = Column(String, nullable=True, default="free")
-    pro_scadenza = Column(String, nullable=True)
+    pro_scadenza = Column(FlexDate, nullable=True)
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 
@@ -103,7 +131,7 @@ class Utente(TimestampMixin, Base):
     ruolo = Column(String, nullable=True, default="titolare")  # "titolare" | "collaboratore"
 
     # 2FA — TOTP (Google Authenticator / Authy)
-    totp_secret = Column(String, nullable=True)
+    totp_secret = Column(EncryptedString, nullable=True)
     totp_abilitato = Column(Boolean, nullable=False, default=False)
 
 
@@ -146,7 +174,7 @@ class Cliente(TimestampMixin, Base):
     token_portale = Column(String, nullable=True)
     token_portale_scadenza = Column(Date, nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     lavori = relationship(
         "Lavoro",
@@ -214,7 +242,7 @@ class Lavoro(TimestampMixin, Base):
 
     data_fine_prevista = Column(FlexDate, nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     cliente = relationship("Cliente", back_populates="lavori")
     fatture_emesse = relationship("FatturaEmessa", back_populates="lavoro", cascade="all, delete-orphan")
@@ -239,7 +267,7 @@ class Fornitore(TimestampMixin, Base):
     categoria = Column(String, nullable=True)  # es. "elettrica", "idraulica", "materiali edili"
     note = Column(Text, nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class Materiale(TimestampMixin, Base):
@@ -265,7 +293,7 @@ class Materiale(TimestampMixin, Base):
 
     fornitore_id = Column(Integer, ForeignKey("fornitori.id"), nullable=True)
     note = Column(Text, nullable=True)
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     fornitore = relationship("Fornitore")
 
@@ -285,7 +313,7 @@ class CaricoMateriale(Base):
     prezzo_vendita_default = Column(Float, nullable=False, default=0)
 
     note = Column(Text, nullable=True)
-    data_carico = Column(String, nullable=False)
+    data_carico = Column(FlexDate, nullable=False)
 
 
 class MovimentoMagazzino(Base):
@@ -300,7 +328,7 @@ class MovimentoMagazzino(Base):
     quantita = Column(Float, nullable=False)
 
     note = Column(Text, nullable=True)
-    data_movimento = Column(String, nullable=False)
+    data_movimento = Column(FlexDate, nullable=False)
 
 
 class MaterialeUsatoLavoro(Base):
@@ -319,7 +347,7 @@ class MaterialeUsatoLavoro(Base):
     prezzo_unitario_cliente = Column(Float, default=0)
     note = Column(Text, nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class ImpostazioniAzienda(TimestampMixin, Base):
@@ -368,7 +396,7 @@ class DocumentoPDF(Base):
     nome_file = Column(String, nullable=False)
     percorso_file = Column(String, nullable=False)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class FotoLavoro(Base):
@@ -383,7 +411,7 @@ class FotoLavoro(Base):
     percorso_file = Column(String, nullable=False)
 
     descrizione = Column(Text, nullable=True)
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class PagamentoLavoro(Base):
@@ -401,7 +429,7 @@ class PagamentoLavoro(Base):
     metodo = Column(String, nullable=True)
     note = Column(Text, nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class AllegatoLavoro(Base):
@@ -417,7 +445,7 @@ class AllegatoLavoro(Base):
     tipo_file = Column(String, nullable=True)
 
     descrizione = Column(Text, nullable=True)
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class FatturaEmessa(TimestampMixin, Base):
@@ -438,6 +466,7 @@ class FatturaEmessa(TimestampMixin, Base):
 
     importo_imponibile = Column(Float, default=0)
     importo_iva = Column(Float, default=0)
+    importo_bollo = Column(Float, default=0, nullable=True)
     importo_totale = Column(Float, default=0)
 
     nome_file = Column(String, nullable=True)
@@ -449,7 +478,7 @@ class FatturaEmessa(TimestampMixin, Base):
     fattura_rif_numero = Column(Integer, nullable=True)
     fattura_rif_anno = Column(Integer, nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     stripe_payment_link_id = Column(String, nullable=True)
     stripe_payment_link_url = Column(String, nullable=True)
@@ -469,7 +498,7 @@ class TemplatePreventivo(TimestampMixin, Base):
     aliquota_iva = Column(Float, default=22)
     sconto = Column(Float, default=0)
     note_consuntivo = Column(Text, default="")
-    creato_il = Column(String, nullable=True)
+    creato_il = Column(FlexDateTime, nullable=True)
 
 
 class VocePreventivo(TimestampMixin, Base):
@@ -495,8 +524,8 @@ class SessioneLavoro(Base):
     id = Column(Integer, primary_key=True, index=True)
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
-    inizio = Column(String, nullable=False)
-    fine = Column(String, nullable=True)
+    inizio = Column(FlexDateTime, nullable=False)
+    fine = Column(FlexDateTime, nullable=True)
     ore_calcolate = Column(Float, nullable=True)
 
 
@@ -520,7 +549,7 @@ class Garanzia(TimestampMixin, Base):
     reminder_30g_inviato = Column(Integer, default=0)
     reminder_7g_inviato = Column(Integer, default=0)
 
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     cliente = relationship("Cliente")
     lavoro = relationship("Lavoro")
@@ -544,11 +573,50 @@ class VocePrimaNota(TimestampMixin, Base):
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=True)
     cliente_id = Column(Integer, ForeignKey("clienti.id"), nullable=True)
 
-    data_creazione = Column(String, nullable=False)
+    aliquota_iva = Column(Float, nullable=True, default=0.0)
+    importo_iva = Column(Float, nullable=True, default=0.0)
+
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     fornitore = relationship("Fornitore")
     lavoro = relationship("Lavoro")
     cliente = relationship("Cliente")
+
+
+class FatturaAcquisto(TimestampMixin, Base):
+    __tablename__ = "fatture_acquisto"
+    __table_args__ = (
+        Index("ix_fatture_acquisto_utente_id", "utente_id"),
+        Index("ix_fatture_acquisto_utente_anno", "utente_id", "anno"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    fornitore_id = Column(Integer, ForeignKey("fornitori.id"), nullable=True)
+    lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=True)
+
+    numero_fattura = Column(String, nullable=True)
+    data_fattura = Column(FlexDate, nullable=False)
+    anno = Column(Integer, nullable=False)
+    data_scadenza = Column(FlexDate, nullable=True)
+
+    descrizione = Column(String, nullable=False)
+    categoria = Column(String, nullable=True)
+
+    importo_imponibile = Column(Float, default=0)
+    aliquota_iva = Column(Float, default=22)
+    importo_iva = Column(Float, default=0)
+    importo_totale = Column(Float, default=0)
+
+    stato_pagamento = Column(String, nullable=False, default="da_pagare")
+    data_pagamento = Column(FlexDate, nullable=True)
+    metodo_pagamento = Column(String, nullable=True)
+
+    note = Column(Text, nullable=True)
+    data_creazione = Column(FlexDateTime, nullable=False)
+
+    fornitore = relationship("Fornitore")
+    lavoro = relationship("Lavoro")
 
 
 class ListinoVoce(TimestampMixin, Base):
@@ -560,7 +628,7 @@ class ListinoVoce(TimestampMixin, Base):
     unita_misura = Column(String, nullable=True, default="")
     prezzo_unitario = Column(Float, nullable=False, default=0)
     categoria = Column(String, nullable=True, default="")
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class SalLavoro(TimestampMixin, Base):
@@ -576,7 +644,7 @@ class SalLavoro(TimestampMixin, Base):
     descrizione = Column(Text, nullable=True, default="")
     note = Column(Text, nullable=True, default="")
     stato = Column(String, nullable=False, default="emesso")  # emesso / pagato
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class RapportinoLavoro(TimestampMixin, Base):
@@ -590,7 +658,7 @@ class RapportinoLavoro(TimestampMixin, Base):
     descrizione_attivita = Column(Text, nullable=False)
     materiali_note = Column(Text, nullable=True, default="")
     note = Column(Text, nullable=True, default="")
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
 
 class PromemoriaCliente(TimestampMixin, Base):
@@ -607,7 +675,7 @@ class PromemoriaCliente(TimestampMixin, Base):
     data_promemoria = Column(FlexDate, nullable=False)
     tipo = Column(String, nullable=False, default="manutenzione")
     stato = Column(String, nullable=False, default="attivo")
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     cliente = relationship("Cliente")
 
@@ -624,7 +692,7 @@ class TimesheetCollab(TimestampMixin, Base):
     ore = Column(Float, nullable=False, default=0)
     costo_orario = Column(Float, nullable=True, default=0)
     note = Column(Text, nullable=True, default="")
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
 
     collaboratore = relationship("Utente", foreign_keys=[collaboratore_id])
 
@@ -636,7 +704,7 @@ class PushSubscription(Base):
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     endpoint = Column(Text, nullable=False)
     subscription_json = Column(Text, nullable=False)
-    creata_il = Column(String, nullable=False)
+    creata_il = Column(FlexDateTime, nullable=False)
 
 
 class InvitoAccount(Base):
@@ -645,6 +713,27 @@ class InvitoAccount(Base):
     id = Column(Integer, primary_key=True, index=True)
     titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     token = Column(String, nullable=False, unique=True)
-    scadenza = Column(String, nullable=False)
+    scadenza = Column(FlexDate, nullable=False)
     usato = Column(Integer, default=0)
-    data_creazione = Column(String, nullable=False)
+    data_creazione = Column(FlexDateTime, nullable=False)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_log_utente_ts", "utente_id", "timestamp"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(String, nullable=False)
+
+    utente_id = Column(Integer, nullable=False)       # titolare (proprietario dei dati)
+    attore_id = Column(Integer, nullable=False)       # utente che ha eseguito l'azione
+    attore_username = Column(String, nullable=False)  # denormalizzato per resilienza
+
+    azione = Column(String, nullable=False)           # es. "emette_fattura", "pagamento_fattura"
+    tabella = Column(String, nullable=False)          # es. "fatture_emesse", "lavori"
+    record_id = Column(Integer, nullable=True)
+
+    dettaglio = Column(Text, nullable=True)           # JSON con valori rilevanti
+    ip = Column(String, nullable=True)

@@ -31,6 +31,8 @@ from app.models import (
     RapportinoLavoro,
     PromemoriaCliente,
     TimesheetCollab,
+    Fornitore,
+    FatturaAcquisto,
 )
 from app.models import MovimentoMagazzino
 
@@ -2535,6 +2537,7 @@ def salva_fattura_emessa(
     totale: float,
     nome_file: str,
     regime: str = "RF01",
+    bollo: float = 0.0,
 ) -> FatturaEmessa:
     existing = (
         db.query(FatturaEmessa)
@@ -2546,6 +2549,7 @@ def salva_fattura_emessa(
         existing.data_emissione = data_emissione
         existing.importo_imponibile = imponibile
         existing.importo_iva = iva
+        existing.importo_bollo = bollo
         existing.importo_totale = totale
         db.commit()
         db.refresh(existing)
@@ -2559,6 +2563,7 @@ def salva_fattura_emessa(
         data_emissione=data_emissione,
         importo_imponibile=imponibile,
         importo_iva=iva,
+        importo_bollo=bollo,
         importo_totale=totale,
         nome_file=nome_file,
         regime=regime,
@@ -2864,6 +2869,8 @@ def crea_voce_prima_nota(
     categoria: str | None,
     lavoro_id: int | None = None,
     cliente_id: int | None = None,
+    aliquota_iva: float = 0.0,
+    importo_iva: float = 0.0,
 ) -> VocePrimaNota:
     voce = VocePrimaNota(
         utente_id=utente_id,
@@ -2874,6 +2881,8 @@ def crea_voce_prima_nota(
         categoria=categoria or None,
         lavoro_id=lavoro_id or None,
         cliente_id=cliente_id or None,
+        aliquota_iva=aliquota_iva,
+        importo_iva=importo_iva,
         data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     )
     db.add(voce)
@@ -3182,3 +3191,141 @@ def calcola_budget_realtime(db: Session, utente_id: int, lavoro_id: int, materia
         "ore_totali_timesheet": round(ore_tot, 2),
         "totale_speso": round(costo_mat + costo_man, 2),
     }
+
+
+# ── Fornitori ──────────────────────────────────────────────────────────────────
+
+def get_fornitori(db: Session, utente_id: int) -> list:
+    return (
+        db.query(Fornitore)
+        .filter(Fornitore.utente_id == utente_id)
+        .order_by(Fornitore.nome.asc())
+        .all()
+    )
+
+
+def crea_fornitore(db: Session, utente_id: int, nome: str, **kwargs) -> Fornitore:
+    f = Fornitore(
+        utente_id=utente_id,
+        nome=nome,
+        partita_iva=kwargs.get("partita_iva"),
+        telefono=kwargs.get("telefono"),
+        email=kwargs.get("email"),
+        indirizzo=kwargs.get("indirizzo"),
+        citta=kwargs.get("citta"),
+        provincia=kwargs.get("provincia"),
+        categoria=kwargs.get("categoria"),
+        note=kwargs.get("note"),
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    db.add(f)
+    db.commit()
+    db.refresh(f)
+    return f
+
+
+# ── Fatture Acquisto ───────────────────────────────────────────────────────────
+
+def get_fatture_acquisto(
+    db: Session,
+    utente_id: int,
+    anno: int | None = None,
+    fornitore_id: int | None = None,
+) -> list:
+    q = db.query(FatturaAcquisto).filter(FatturaAcquisto.utente_id == utente_id)
+    if anno:
+        q = q.filter(FatturaAcquisto.anno == anno)
+    if fornitore_id:
+        q = q.filter(FatturaAcquisto.fornitore_id == fornitore_id)
+    return q.order_by(FatturaAcquisto.data_fattura.desc()).all()
+
+
+def get_fattura_acquisto_by_id(db: Session, fa_id: int, utente_id: int) -> FatturaAcquisto | None:
+    return (
+        db.query(FatturaAcquisto)
+        .filter(FatturaAcquisto.id == fa_id, FatturaAcquisto.utente_id == utente_id)
+        .first()
+    )
+
+
+def crea_fattura_acquisto(
+    db: Session,
+    utente_id: int,
+    data_fattura: str,
+    descrizione: str,
+    importo_imponibile: float,
+    aliquota_iva: float,
+    importo_iva: float,
+    importo_totale: float,
+    numero_fattura: str = "",
+    categoria: str = "",
+    fornitore_id: int | None = None,
+    lavoro_id: int | None = None,
+    data_scadenza: str = "",
+    note: str = "",
+) -> FatturaAcquisto:
+    anno = int(str(data_fattura)[:4])
+    fa = FatturaAcquisto(
+        utente_id=utente_id,
+        fornitore_id=fornitore_id or None,
+        lavoro_id=lavoro_id or None,
+        numero_fattura=numero_fattura.strip() or None,
+        data_fattura=data_fattura,
+        anno=anno,
+        data_scadenza=data_scadenza or None,
+        descrizione=descrizione.strip(),
+        categoria=categoria or None,
+        importo_imponibile=round(importo_imponibile, 2),
+        aliquota_iva=aliquota_iva,
+        importo_iva=round(importo_iva, 2),
+        importo_totale=round(importo_totale, 2),
+        stato_pagamento="da_pagare",
+        note=note.strip() or None,
+        data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    db.add(fa)
+    db.commit()
+    db.refresh(fa)
+    return fa
+
+
+def elimina_fattura_acquisto(db: Session, fa_id: int, utente_id: int) -> bool:
+    fa = get_fattura_acquisto_by_id(db, fa_id, utente_id)
+    if not fa:
+        return False
+    db.delete(fa)
+    db.commit()
+    return True
+
+
+def marca_pagata_fattura_acquisto(
+    db: Session,
+    fa_id: int,
+    utente_id: int,
+    data_pagamento: str,
+    metodo: str,
+) -> FatturaAcquisto | None:
+    fa = get_fattura_acquisto_by_id(db, fa_id, utente_id)
+    if not fa:
+        return None
+    fa.stato_pagamento = "pagato"
+    fa.data_pagamento = data_pagamento or None
+    fa.metodo_pagamento = metodo or None
+    db.commit()
+    db.refresh(fa)
+    return fa
+
+
+def get_anni_fatture_acquisto(db: Session, utente_id: int) -> list[int]:
+    rows = (
+        db.query(FatturaAcquisto.anno)
+        .filter(FatturaAcquisto.utente_id == utente_id)
+        .distinct()
+        .order_by(FatturaAcquisto.anno.desc())
+        .all()
+    )
+    anni = [r[0] for r in rows]
+    oggi_anno = date.today().year
+    if oggi_anno not in anni:
+        anni.insert(0, oggi_anno)
+    return anni

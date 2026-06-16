@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit log — Operazioni fiscali</title>
+    <link rel="stylesheet" href="/static/style.css?v=153">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+        .page-header h1 { font-size:24px; font-weight:700; color:#111827; margin:0; }
+        .page-header p  { color:#6b7280; font-size:13px; margin:4px 0 0; }
+
+        .filters-bar {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filters-bar select,
+        .filters-bar input {
+            padding: 7px 10px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            color: #374151;
+            background: #f9fafb;
+            outline: none;
+        }
+        .filters-bar select:focus,
+        .filters-bar input:focus {
+            border-color: #2563eb;
+            background: white;
+        }
+        .btn-filter {
+            padding: 7px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .btn-reset {
+            padding: 7px 12px;
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            text-decoration: none;
+        }
+
+        .audit-table-wrap { overflow-x: auto; }
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .audit-table th {
+            background: #f8fafc;
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+            text-align: left;
+        }
+        .audit-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+        .audit-table tr:hover td { background: #f8fafc; }
+
+        .mono { font-family: monospace; font-size: 12px; color: #6b7280; white-space: nowrap; }
+
+        .badge-azione {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .badge-crea     { background: #dcfce7; color: #166534; }
+        .badge-modifica { background: #fef9c3; color: #854d0e; }
+        .badge-elimina  { background: #fee2e2; color: #991b1b; }
+        .badge-emette   { background: #dbeafe; color: #1e40af; }
+        .badge-pagamento { background: #f0fdf4; color: #166534; }
+        .badge-nc       { background: #fce7f3; color: #9d174d; }
+        .badge-stato    { background: #ede9fe; color: #5b21b6; }
+
+        .detail-chip {
+            display: inline-block;
+            margin: 2px 3px 2px 0;
+            padding: 2px 7px;
+            background: #f1f5f9;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #475569;
+            white-space: nowrap;
+        }
+        .detail-chip strong { color: #111827; }
+
+        .attore-self { color: #374151; font-weight: 600; }
+        .attore-collab { color: #7c3aed; font-weight: 600; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+        .empty-state p { font-size: 15px; margin: 0; }
+
+        .totale-badge {
+            background: #f1f5f9;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>🔍 Audit log</h1>
+            <p>Tracciamento operazioni su dati fiscali — ultime 500 voci</p>
+        </div>
+        <span class="totale-badge">{{ tot }} eventi</span>
+    </div>
+
+    <form method="get" class="filters-bar">
+        <select name="tabella">
+            <option value="">Tutte le tabelle</option>
+            {% for k, v in tabelle_label.items() %}
+            <option value="{{ k }}" {% if tabella_sel == k %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+        </select>
+        <select name="azione">
+            <option value="">Tutte le azioni</option>
+            {% for k, v in azioni_label.items() %}
+            <option value="{{ k }}" {% if azione_sel == k %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+        </select>
+        {% if collaboratori %}
+        <input type="text" name="attore" value="{{ attore_sel }}" placeholder="Filtra per utente…" style="width:150px;">
+        {% endif %}
+        <button type="submit" class="btn-filter">Filtra</button>
+        <a href="/audit/" class="btn-reset">Reset</a>
+    </form>
+
+    <div class="audit-table-wrap">
+    {% if eventi %}
+    <table class="audit-table">
+        <thead>
+            <tr>
+                <th>Quando</th>
+                <th>Utente</th>
+                <th>Azione</th>
+                <th>Oggetto</th>
+                <th>Dettaglio</th>
+                <th>IP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in eventi %}
+            {% set badge_class =
+                "badge-crea"      if "crea" in e.azione else
+                "badge-elimina"   if "elimina" in e.azione else
+                "badge-pagamento" if "pagamento" in e.azione else
+                "badge-nc"        if "nota_credito" in e.azione else
+                "badge-emette"    if "emette" in e.azione else
+                "badge-stato"     if "stato" in e.azione else
+                "badge-modifica"
+            %}
+            <tr>
+                <td class="mono">{{ e.timestamp }}</td>
+                <td>
+                    {% if collaboratori and e.attore_id != e.attore_id %}
+                    <span class="attore-collab">👤 {{ e.attore_username }}</span>
+                    {% else %}
+                    <span class="attore-self">{{ e.attore_username }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge-azione {{ badge_class }}">{{ e.azione_label }}</span>
+                </td>
+                <td>
+                    <span style="font-size:12px; color:#6b7280;">{{ e.tabella_label }}</span>
+                    {% if e.record_id %}<span class="mono"> #{{ e.record_id }}</span>{% endif %}
+                </td>
+                <td>
+                    {% for k, v in e.dettaglio.items() %}
+                    <span class="detail-chip"><strong>{{ k }}:</strong> {{ v }}</span>
+                    {% endfor %}
+                </td>
+                <td class="mono" style="font-size:11px; color:#d1d5db;">{{ e.ip or "—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p>Nessun evento trovato{% if tabella_sel or azione_sel or attore_sel %} con i filtri selezionati{% endif %}.</p>
+    </div>
+    {% endif %}
+    </div>
+
+</div>
+</body>
+</html>

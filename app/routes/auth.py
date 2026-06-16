@@ -92,6 +92,7 @@ def login(
     request.session["is_collaboratore"] = bool(getattr(user, "titolare_id", None))
     request.session["piano"] = getattr(user, "piano", None) or "free"
     request.session["last_activity"] = datetime.now().isoformat()
+    request.session["pw_sig"] = user.password[-12:]
 
     return RedirectResponse(url="/", status_code=303)
 
@@ -150,6 +151,7 @@ def verifica_2fa(
     request.session["is_collaboratore"] = bool(getattr(user, "titolare_id", None))
     request.session["piano"] = getattr(user, "piano", None) or "free"
     request.session["last_activity"] = datetime.now().isoformat()
+    request.session["pw_sig"] = user.password[-12:]
 
     return RedirectResponse(url="/", status_code=303)
 

@@ -160,12 +160,14 @@ def scarica_fattura_xml(
     iva_val = 0.0 if (regime_senza_iva or aliquota_val == 0) else float(
         lavoro.totale_iva or round(imponibile_val * aliquota_val / 100, 2)
     )
+    bollo_val = bollo_dovuto(regime_senza_iva, imponibile_val)
     totale_val = imponibile_val if regime_senza_iva else float(lavoro.totale_documento or 0)
-    totale_val = round(totale_val + bollo_dovuto(regime_senza_iva, imponibile_val), 2)
+    totale_val = round(totale_val + bollo_val, 2)
     filename = nome_file_fatturapa(azienda, lavoro)
     _crud.salva_fattura_emessa(
         db, user_id, lavoro.id, lavoro.numero_fattura, anno, data_em,
-        imponibile_val, iva_val, totale_val, filename, azienda.regime_fiscale or "RF01"
+        imponibile_val, iva_val, totale_val, filename, azienda.regime_fiscale or "RF01",
+        bollo=bollo_val,
     )
 
     voci = _crud.get_voci_preventivo(db, user_id, lavoro_id)

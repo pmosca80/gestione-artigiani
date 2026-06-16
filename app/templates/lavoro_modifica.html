@@ -290,19 +290,28 @@
                         </div>
                         <div class="form-group">
                             <label>IVA (%)</label>
-                            {% set iva_val = lavoro.aliquota_iva if lavoro.aliquota_iva is not none else 22 %}
-                            <select name="aliquota_iva">
-                                <option value="0"  {% if iva_val == 0  %}selected{% endif %}>0% — Forfettario / Esente</option>
-                                <option value="4"  {% if iva_val == 4  %}selected{% endif %}>4% — Ridotta</option>
-                                <option value="10" {% if iva_val == 10 %}selected{% endif %}>10% — Ristrutturazione edilizia</option>
-                                <option value="22" {% if iva_val == 22 or (iva_val != 0 and iva_val != 4 and iva_val != 10) %}selected{% endif %}>22% — Ordinaria</option>
-                            </select>
+                            {% set _regime = (azienda.regime_fiscale or 'RF01').upper() if azienda else 'RF01' %}
+                            {% if _regime in ['RF19', 'RF02'] %}
+                                <input type="hidden" name="aliquota_iva" value="0">
+                                <div style="padding:8px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:13px;color:#166534;">
+                                    0% — Regime forfettario ({{ _regime }})
+                                </div>
+                            {% else %}
+                                {% set iva_val = lavoro.aliquota_iva if lavoro.aliquota_iva is not none else 22 %}
+                                <select name="aliquota_iva">
+                                    <option value="0"  {% if iva_val == 0  %}selected{% endif %}>0% — Forfettario / Esente</option>
+                                    <option value="4"  {% if iva_val == 4  %}selected{% endif %}>4% — Ridotta</option>
+                                    <option value="10" {% if iva_val == 10 %}selected{% endif %}>10% — Ristrutturazione edilizia</option>
+                                    <option value="22" {% if iva_val == 22 or (iva_val != 0 and iva_val != 4 and iva_val != 10) %}selected{% endif %}>22% — Ordinaria</option>
+                                </select>
+                            {% endif %}
                         </div>
                         <div class="form-group">
                             <label>Sconto sul totale (€)</label>
                             <input type="number" step="0.01" name="sconto"
                                    value="{{ lavoro.sconto or 0 }}">
                         </div>
+                        {% if _regime not in ['RF19', 'RF02'] %}
                         <div class="form-group span2" style="flex-direction:column; gap:8px;">
                             <label style="font-weight:600; color:#374151;">Ritenuta d'acconto</label>
                             <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -324,6 +333,13 @@
                                 Calcola e aggiunge <code>&lt;DatiRitenuta&gt;</code> nella FatturaPA. Il cliente versa la ritenuta all'Erario, tu ricevi il netto.
                             </p>
                         </div>
+                        {% else %}
+                        <div class="form-group span2">
+                            <div style="padding:8px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:13px;color:#166534;">
+                                Regime forfettario — nessuna ritenuta d'acconto né IVA applicabile. La fattura riporta "operazione non soggetta a ritenuta".
+                            </div>
+                        </div>
+                        {% endif %}
                         <div class="form-group">
                             <label>Importo pagato (€)</label>
                             <input type="number" step="0.01"

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fatture Passive — Mastro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+        body { font-family: 'DM Sans', sans-serif; }
+
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+        .page-header p  { color: #6b7280; font-size: 13px; margin: 4px 0 0; }
+
+        .anno-bar {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .anno-bar span { font-size: 13px; color: #6b7280; font-weight: 500; }
+        .anno-pill {
+            display: inline-block; padding: 5px 14px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+            text-decoration: none; border: 1px solid #e5e7eb;
+            color: #374151; background: white;
+        }
+        .anno-pill.attivo { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+        /* Riepilogo */
+        .totale-card {
+            background: white; border: 2px solid #7c3aed;
+            border-radius: 14px; padding: 18px 24px;
+            display: flex; gap: 28px; flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .totale-item .label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                              letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 3px; }
+        .totale-item .val { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
+        .totale-item .val.purple { color: #7c3aed; }
+        .totale-item .val.red    { color: #dc2626; }
+        .totale-item .val.green  { color: #16a34a; }
+
+        /* Form nuova fattura */
+        .form-card {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+        .form-card h2 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 16px; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .form-grid .full { grid-column: 1 / -1; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                            letter-spacing: 0.4px; color: #6b7280; }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            border: 1px solid #e5e7eb; border-radius: 8px;
+            padding: 8px 12px; font-size: 13px; color: #111827;
+            background: #fafafa; font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none; border-color: #7c3aed; background: white;
+        }
+        .iva-preview {
+            font-size: 11px; color: #6b7280; margin-top: 2px;
+            font-family: 'DM Mono', monospace;
+        }
+        .btn-primary {
+            background: #7c3aed; color: white; border: none;
+            border-radius: 8px; padding: 9px 20px; font-size: 13px;
+            font-weight: 700; cursor: pointer;
+        }
+        .btn-primary:hover { background: #6d28d9; }
+
+        /* Tabella fatture */
+        .fa-table {
+            width: 100%; border-collapse: collapse;
+            background: white; border-radius: 12px; overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        .fa-table thead { background: #f8fafc; }
+        .fa-table th {
+            padding: 10px 14px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af;
+            text-align: left; border-bottom: 1px solid #e5e7eb;
+        }
+        .fa-table td {
+            padding: 11px 14px; font-size: 13px; color: #374151;
+            border-bottom: 1px solid #f3f4f6; vertical-align: middle;
+        }
+        .fa-table tbody tr:last-child td { border-bottom: none; }
+        .fa-table tbody tr:hover { background: #fafafa; }
+
+        .mono { font-family: 'DM Mono', monospace; font-weight: 600; }
+        .chip-cat {
+            display: inline-block; padding: 2px 8px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; background: #f3f4f6; color: #6b7280;
+        }
+        .badge-pagato { background: #dcfce7; color: #16a34a; padding: 2px 8px;
+                        border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .badge-da-pagare { background: #fef3c7; color: #92400e; padding: 2px 8px;
+                           border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .badge-scaduta { background: #fee2e2; color: #dc2626; padding: 2px 8px;
+                         border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+        .btn-sm {
+            border: none; border-radius: 6px; padding: 4px 10px;
+            font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+        .btn-paga { background: #dcfce7; color: #16a34a; }
+        .btn-paga:hover { background: #bbf7d0; }
+        .btn-del { background: #fee2e2; color: #dc2626; }
+        .btn-del:hover { background: #fecaca; }
+
+        .empty-state {
+            text-align: center; padding: 48px 24px; color: #9ca3af;
+            font-size: 13px;
+        }
+
+        /* Modal paga */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: white; border-radius: 16px; padding: 24px;
+            width: 360px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .modal-box h3 { font-size: 16px; font-weight: 700; margin: 0 0 16px; }
+        .modal-box .form-group { margin-bottom: 12px; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .btn-cancel { background: #f3f4f6; color: #374151; border: none; border-radius: 8px;
+                      padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+        .info-box {
+            border-radius: 12px; padding: 12px 16px; font-size: 13px;
+            line-height: 1.6; margin-bottom: 20px;
+            background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+        }
+
+        @media (max-width: 640px) {
+            .fa-table th:nth-child(4),
+            .fa-table td:nth-child(4),
+            .fa-table th:nth-child(5),
+            .fa-table td:nth-child(5) { display: none; }
+            .totale-card { gap: 16px; }
+            .form-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="container">
+
+    <div class="page-header">
+        <h1>🧾 Fatture Passive</h1>
+        <p>Registro delle fatture ricevute da fornitori — con calcolo IVA a credito automatico per la liquidazione</p>
+    </div>
+
+    <div class="anno-bar">
+        <span>Anno:</span>
+        {% for a in anni %}
+        <a href="/fatture-acquisto/?anno={{ a }}"
+           class="anno-pill {% if a == anno_sel %}attivo{% endif %}">{{ a }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Riepilogo annuale -->
+    <div class="totale-card">
+        <div class="totale-item">
+            <div class="label">Anno</div>
+            <div class="val">{{ anno_sel }}</div>
+        </div>
+        <div class="totale-item">
+            <div class="label">Imponibile acquisti</div>
+            <div class="val purple">€ {{ "%.2f"|format(tot_imponibile) }}</div>
+        </div>
+        <div class="totale-item">
+            <div class="label">IVA a credito</div>
+            <div class="val green">€ {{ "%.2f"|format(tot_iva) }}</div>
+        </div>
+        <div class="totale-item">
+            <div class="label">Totale pagato/dovuto</div>
+            <div class="val">€ {{ "%.2f"|format(tot_totale) }}</div>
+        </div>
+        {% if tot_da_pagare > 0.005 %}
+        <div class="totale-item">
+            <div class="label">Da pagare</div>
+            <div class="val red">€ {{ "%.2f"|format(tot_da_pagare) }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="info-box">
+        ℹ️ L'<strong>IVA a credito</strong> di queste fatture è inclusa automaticamente nella
+        <a href="/fatture/liquidazione-iva?anno={{ anno_sel }}" style="font-weight:700;color:#1d4ed8;">Liquidazione IVA</a>.
+        Non è necessario inserirle anche in Prima Nota.
+    </div>
+
+    <!-- Form nuova fattura -->
+    <div class="form-card">
+        <h2>+ Registra fattura passiva</h2>
+        <form method="post" action="/fatture-acquisto/" id="form-fa">
+            <input type="hidden" name="anno_redirect" value="{{ anno_sel }}">
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label>Data fattura *</label>
+                    <input type="date" name="data_fattura" required value="{{ oggi }}">
+                </div>
+
+                <div class="form-group">
+                    <label>N° fattura fornitore</label>
+                    <input type="text" name="numero_fattura" placeholder="es. 2024/001">
+                </div>
+
+                <div class="form-group">
+                    <label>Fornitore</label>
+                    <select name="fornitore_id">
+                        <option value="0">— nessuno —</option>
+                        {% for f in fornitori %}
+                        <option value="{{ f.id }}">{{ f.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select name="categoria">
+                        <option value="">— scegli —</option>
+                        {% for cat in categorie %}
+                        <option value="{{ cat }}">{{ cat|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label>Descrizione *</label>
+                    <input type="text" name="descrizione" required placeholder="es. Materiali edili — fattura Rossi Srl">
+                </div>
+
+                <div class="form-group">
+                    <label>Imponibile (€) *</label>
+                    <input type="text" name="importo_imponibile" id="inp-imponibile"
+                           required placeholder="0,00" oninput="aggiornaPreview()">
+                    <span class="iva-preview" id="iva-preview">IVA: € 0,00 — Totale: € 0,00</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Aliquota IVA</label>
+                    <select name="aliquota_iva" id="sel-iva" onchange="aggiornaPreview()">
+                        <option value="0">Esente / 0%</option>
+                        <option value="4">4%</option>
+                        <option value="5">5%</option>
+                        <option value="10">10%</option>
+                        <option value="22" selected>22%</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Scadenza pagamento</label>
+                    <input type="date" name="data_scadenza">
+                </div>
+
+                <div class="form-group">
+                    <label>Collegato a lavoro</label>
+                    <input type="number" name="lavoro_id" placeholder="ID lavoro (opz.)" min="0" value="0">
+                </div>
+
+                <div class="form-group full">
+                    <label>Note</label>
+                    <input type="text" name="note" placeholder="note aggiuntive (opzionale)">
+                </div>
+
+            </div>
+            <div style="margin-top: 16px;">
+                <button type="submit" class="btn-primary">Registra fattura</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista fatture -->
+    {% if fatture %}
+    <table class="fa-table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Descrizione / Fornitore</th>
+                <th>Categoria</th>
+                <th>Imponibile</th>
+                <th>IVA</th>
+                <th>Totale</th>
+                <th>Stato</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fa in fatture %}
+            {% set oggi_d = oggi %}
+            {% set scaduta = fa.data_scadenza and fa.stato_pagamento == "da_pagare" and fa.data_scadenza|string < oggi_d %}
+            <tr>
+                <td style="white-space:nowrap;">
+                    <span class="mono" style="font-size:12px;">{{ fa.data_fattura }}</span>
+                    {% if fa.numero_fattura %}
+                    <br><span style="font-size:11px;color:#9ca3af;">N° {{ fa.numero_fattura }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="font-weight:600;">{{ fa.descrizione }}</div>
+                    {% if fa.fornitore %}
+                    <div style="font-size:11px;color:#6b7280;">{{ fa.fornitore.nome }}</div>
+                    {% endif %}
+                    {% if fa.lavoro_id %}
+                    <div style="font-size:11px;color:#7c3aed;">
+                        <a href="/lavori/{{ fa.lavoro_id }}" style="color:#7c3aed;text-decoration:none;">Lavoro #{{ fa.lavoro_id }}</a>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if fa.categoria %}
+                    <span class="chip-cat">{{ fa.categoria }}</span>
+                    {% else %}
+                    <span style="color:#d1d5db;">—</span>
+                    {% endif %}
+                </td>
+                <td class="mono">€ {{ "%.2f"|format(fa.importo_imponibile or 0) }}</td>
+                <td class="mono" style="color:#16a34a;">
+                    {% if fa.importo_iva and fa.importo_iva > 0 %}
+                    € {{ "%.2f"|format(fa.importo_iva) }}
+                    <span style="font-size:10px;color:#9ca3af;">({{ fa.aliquota_iva|int }}%)</span>
+                    {% else %}
+                    <span style="color:#d1d5db;">—</span>
+                    {% endif %}
+                </td>
+                <td class="mono" style="font-weight:700;">€ {{ "%.2f"|format(fa.importo_totale or 0) }}</td>
+                <td>
+                    {% if fa.stato_pagamento == "pagato" %}
+                    <span class="badge-pagato">Pagata</span>
+                    {% if fa.data_pagamento %}
+                    <div style="font-size:10px;color:#6b7280;margin-top:2px;">{{ fa.data_pagamento }}</div>
+                    {% endif %}
+                    {% elif scaduta %}
+                    <span class="badge-scaduta">Scaduta</span>
+                    {% if fa.data_scadenza %}
+                    <div style="font-size:10px;color:#dc2626;margin-top:2px;">{{ fa.data_scadenza }}</div>
+                    {% endif %}
+                    {% else %}
+                    <span class="badge-da-pagare">Da pagare</span>
+                    {% if fa.data_scadenza %}
+                    <div style="font-size:10px;color:#6b7280;margin-top:2px;">scade {{ fa.data_scadenza }}</div>
+                    {% endif %}
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                    {% if fa.stato_pagamento != "pagato" %}
+                    <button class="btn-sm btn-paga"
+                            onclick="apriModalPaga({{ fa.id }}, {{ anno_sel }}, '{{ fa.descrizione|e }}')">
+                        ✓ Paga
+                    </button>
+                    {% endif %}
+                    <form method="post" action="/fatture-acquisto/{{ fa.id }}/elimina"
+                          style="display:inline;"
+                          onsubmit="return confirm('Eliminare questa fattura?')">
+                        <input type="hidden" name="anno" value="{{ anno_sel }}">
+                        <button type="submit" class="btn-sm btn-del">✕</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <div style="font-size:32px;margin-bottom:8px;">🧾</div>
+        <div>Nessuna fattura passiva registrata per {{ anno_sel }}.</div>
+        <div style="margin-top:4px;color:#d1d5db;">Registra le fatture ricevute dai fornitori usando il modulo qui sopra.</div>
+    </div>
+    {% endif %}
+
+    <div style="margin-top:20px;">
+        <a href="/fatture/liquidazione-iva?anno={{ anno_sel }}"
+           style="font-size:13px;color:#7c3aed;font-weight:600;text-decoration:none;">
+            🧮 Liquidazione IVA {{ anno_sel }}
+        </a>
+        &nbsp;&nbsp;
+        <a href="/prima-nota/?anno={{ anno_sel }}"
+           style="font-size:13px;color:#374151;font-weight:600;text-decoration:none;">
+            📒 Prima Nota {{ anno_sel }}
+        </a>
+    </div>
+
+</div>
+
+<!-- Modal pagamento -->
+<div class="modal-overlay" id="modal-paga">
+    <div class="modal-box">
+        <h3>✓ Registra pagamento</h3>
+        <p id="modal-paga-desc" style="font-size:13px;color:#6b7280;margin:0 0 16px;"></p>
+        <form method="post" id="form-paga">
+            <div class="form-group">
+                <label>Data pagamento</label>
+                <input type="date" name="data_pagamento" id="inp-data-paga" value="{{ oggi }}">
+            </div>
+            <div class="form-group" style="margin-top:10px;">
+                <label>Metodo</label>
+                <select name="metodo_pagamento">
+                    <option value="">— scegli —</option>
+                    <option value="bonifico">Bonifico</option>
+                    <option value="contanti">Contanti</option>
+                    <option value="carta">Carta</option>
+                    <option value="rid">RID/SDD</option>
+                    <option value="assegno">Assegno</option>
+                </select>
+            </div>
+            <input type="hidden" name="anno" value="{{ anno_sel }}">
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="chiudiModal()">Annulla</button>
+                <button type="submit" class="btn-primary">Conferma</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function aggiornaPreview() {
+    var imp = parseFloat(document.getElementById('inp-imponibile').value.replace(',', '.')) || 0;
+    var aliq = parseFloat(document.getElementById('sel-iva').value) || 0;
+    var iva = Math.round(imp * aliq) / 100;
+    var tot = imp + iva;
+    document.getElementById('iva-preview').textContent =
+        'IVA: € ' + iva.toFixed(2) + ' — Totale: € ' + tot.toFixed(2);
+}
+
+function apriModalPaga(id, anno, desc) {
+    document.getElementById('form-paga').action = '/fatture-acquisto/' + id + '/paga';
+    document.getElementById('modal-paga-desc').textContent = desc;
+    document.getElementById('modal-paga').classList.add('open');
+}
+
+function chiudiModal() {
+    document.getElementById('modal-paga').classList.remove('open');
+}
+
+document.getElementById('modal-paga').addEventListener('click', function(e) {
+    if (e.target === this) chiudiModal();
+});
+</script>
+</body>
+</html>

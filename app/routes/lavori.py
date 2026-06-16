@@ -18,6 +18,7 @@ from app import crud
 from app.services.calcoli import calcola_totali_lavoro
 from app.models import Materiale, MaterialeUsatoLavoro
 from app.logger import get_logger
+from app.services.audit import log_audit, get_actor, get_client_ip
 from app.templates_config import templates
 logger = get_logger("lavori")
 
@@ -113,12 +114,17 @@ def crea_lavoro_form(
     user_id: int = Depends(get_current_user),
 ):
 
+    _REGIMI_SENZA_IVA = {"RF19", "RF02"}
     try:
         cliente = crud.get_cliente_by_id(db, cliente_id, user_id)
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente non trovato")
 
-        crud.crea_lavoro(
+        azienda = crud.get_impostazioni_azienda(db, user_id)
+        if azienda and (azienda.regime_fiscale or "RF01").upper() in _REGIMI_SENZA_IVA:
+            aliquota_iva = "0"
+
+        nuovo = crud.crea_lavoro(
             db=db,
             cliente_id=cliente_id,
             data_lavoro=data_lavoro,
@@ -132,6 +138,13 @@ def crea_lavoro_form(
             note_consuntivo=note_consuntivo,
             utente_id=user_id
         )
+        attore_id, attore_username = get_actor(request, db)
+        log_audit(db, user_id, attore_id, attore_username,
+                  "crea_lavoro", "lavori", nuovo.id,
+                  {"consuntivo": float(nuovo.importo_consuntivo or 0),
+                   "iva": float(nuovo.aliquota_iva or 0),
+                   "titolo": titolo[:80]},
+                  get_client_ip(request))
 
         return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
     except Exception as e:
@@ -177,9 +190,13 @@ def crea_lavoro_rapido(
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.utente_id == user_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
+    _REGIMI_SENZA_IVA = {"RF19", "RF02"}
     stato_sicuro = stato if stato in _STATI_VALIDI_RAPIDO else "da_fare"
     azienda = crud.get_impostazioni_azienda(db, user_id)
-    iva_default = float(azienda.aliquota_iva_default) if azienda and azienda.aliquota_iva_default is not None else 22
+    if azienda and (azienda.regime_fiscale or "RF01").upper() in _REGIMI_SENZA_IVA:
+        iva_default = 0.0
+    else:
+        iva_default = float(azienda.aliquota_iva_default) if azienda and azienda.aliquota_iva_default is not None else 22
     lavoro = crud.crea_lavoro(
         db=db,
         cliente_id=cliente_id,
@@ -646,13 +663,15 @@ def form_modifica_lavoro(lavoro_id: int, request: Request, db: Session = Depends
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
     foto_lavoro = crud.get_foto_lavoro(db, user_id, lavoro_id)
+    azienda = crud.get_impostazioni_azienda(db, user_id)
 
     return templates.TemplateResponse(
         request=request,
         name="lavoro_modifica.html",
         context={
             "lavoro": lavoro,
-            "foto_lavoro": foto_lavoro
+            "foto_lavoro": foto_lavoro,
+            "azienda": azienda,
     }
 )
 
@@ -796,10 +815,18 @@ def modifica_lavoro(
     user_id: int = Depends(get_current_user),
 ):
 
+    _REGIMI_SENZA_IVA = {"RF19", "RF02"}
     try:
         lavoro_esistente = crud.get_lavoro_by_id(db, lavoro_id, user_id)
         if not lavoro_esistente:
             raise HTTPException(status_code=404, detail="Lavoro non trovato")
+
+        consuntivo_prima = float(lavoro_esistente.importo_consuntivo or 0)
+        iva_prima = float(lavoro_esistente.aliquota_iva or 0)
+
+        azienda = crud.get_impostazioni_azienda(db, user_id)
+        if azienda and (azienda.regime_fiscale or "RF01").upper() in _REGIMI_SENZA_IVA:
+            aliquota_iva = "0"
 
         lavoro = crud.aggiorna_lavoro(
             db=db,
@@ -824,6 +851,15 @@ def modifica_lavoro(
         )
 
         calcola_totali_lavoro(db, lavoro_id)
+
+        attore_id, attore_username = get_actor(request, db)
+        log_audit(db, user_id, attore_id, attore_username,
+                  "modifica_lavoro", "lavori", lavoro_id,
+                  {"consuntivo_prima": consuntivo_prima,
+                   "consuntivo_dopo": float(lavoro.importo_consuntivo or 0),
+                   "iva_prima": iva_prima,
+                   "iva_dopo": float(lavoro.aliquota_iva or 0)},
+                  get_client_ip(request))
 
         return RedirectResponse(url=f"/clienti/{lavoro.cliente_id}", status_code=303)
 

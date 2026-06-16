@@ -28,7 +28,8 @@ def _check_piano_trial(utente, db: Session) -> None:
         stripe_sub = getattr(utente, "stripe_subscription_id", None)
         if pro_scadenza and not stripe_sub:
             try:
-                if datetime.now() > datetime.strptime(pro_scadenza, "%Y-%m-%d"):
+                scad = pro_scadenza if not isinstance(pro_scadenza, str) else datetime.strptime(pro_scadenza, "%Y-%m-%d").date()
+                if datetime.now().date() > scad:
                     utente.piano = "free"
                     utente.attivo = 1
                     utente.pro_scadenza = None
@@ -44,8 +45,9 @@ def _check_piano_trial(utente, db: Session) -> None:
     # Piano free: verifica trial 30 giorni
     if utente.data_registrazione:
         try:
-            data_reg = datetime.strptime(utente.data_registrazione, "%Y-%m-%d")
-            giorni_passati = (datetime.now() - data_reg).days
+            dr = utente.data_registrazione
+            reg = dr if not isinstance(dr, str) else datetime.strptime(dr, "%Y-%m-%d").date()
+            giorni_passati = (datetime.now().date() - reg).days
             if giorni_passati > 15 and utente.attivo != 2:
                 raise AccountScaduto()
         except AccountScaduto:
@@ -77,6 +79,16 @@ def verifica_account(request: Request, db: Session) -> int:
     utente = db.query(Utente).filter(Utente.id == user_id).first()
     if not utente:
         raise NotAuthenticated()
+
+    # Invalida sessioni dopo cambio password confrontando la firma dell'hash
+    if utente.password:
+        expected_sig = utente.password[-12:]
+        stored_sig = request.session.get("pw_sig")
+        if stored_sig is None:
+            request.session["pw_sig"] = expected_sig  # popola sessioni pre-feature
+        elif stored_sig != expected_sig:
+            request.session.clear()
+            raise NotAuthenticated()
 
     if utente.attivo == 0:
         raise AccountDisattivato()

@@ -30,10 +30,27 @@
             border-radius: 12px; padding: 14px 18px;
             font-size: 13px; line-height: 1.6; margin-bottom: 24px;
         }
-        .info-box.green { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+        .info-box.green  { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
         .info-box.yellow { background: #fefce8; border: 1px solid #fde68a; color: #92400e; }
-        .info-box.blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+        .info-box.blue   { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
 
+        /* Riepilogo annuale */
+        .totale-card {
+            background: white;
+            border: 2px solid #7c3aed;
+            border-radius: 14px;
+            padding: 20px 24px;
+            display: flex; gap: 32px; flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .totale-item .label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                               letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 4px; }
+        .totale-item .val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; color: #111827; }
+        .totale-item .val.purple { color: #7c3aed; }
+        .totale-item .val.red    { color: #dc2626; }
+        .totale-item .val.green  { color: #16a34a; }
+
+        /* Card trimestrali */
         .iva-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -61,27 +78,16 @@
         .q-row-label { font-size: 13px; color: #6b7280; }
         .q-row-val { font-family: 'DM Mono', monospace; font-size: 13px;
                      font-weight: 600; color: #374151; }
-        .q-iva { font-size: 18px; font-weight: 700; color: #dc2626;
-                 font-family: 'DM Mono', monospace; }
-        .q-iva-zero { color: #9ca3af; }
         .q-divider { border: none; border-top: 1px solid #f3f4f6; margin: 8px 0; }
         .q-n { font-size: 11px; color: #9ca3af; font-weight: 600; }
-
-        .totale-card {
-            background: white;
-            border: 2px solid #7c3aed;
-            border-radius: 14px;
-            padding: 20px 24px;
-            display: flex; gap: 32px; flex-wrap: wrap;
-            margin-bottom: 24px;
+        .q-saldo {
+            font-size: 16px; font-weight: 700; font-family: 'DM Mono', monospace;
         }
-        .totale-item .label { font-size: 11px; font-weight: 700; text-transform: uppercase;
-                               letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 4px; }
-        .totale-item .val { font-size: 22px; font-weight: 700; color: #111827;
-                             font-family: 'DM Mono', monospace; }
-        .totale-item .val.purple { color: #7c3aed; }
-        .totale-item .val.red { color: #dc2626; }
+        .q-saldo.da-versare { color: #dc2626; }
+        .q-saldo.a-credito  { color: #16a34a; }
+        .q-saldo.zero       { color: #9ca3af; }
 
+        /* Tabella scadenze */
         .scadenze-table {
             width: 100%; border-collapse: collapse;
             background: white; border-radius: 12px; overflow: hidden;
@@ -104,6 +110,9 @@
         .chip-q2 { background: #dcfce7; color: #15803d; }
         .chip-q3 { background: #fef3c7; color: #92400e; }
         .chip-q4 { background: #fce7f3; color: #9d174d; }
+        .saldo-val { font-family: 'DM Mono', monospace; font-weight: 700; }
+        .saldo-val.dv { color: #dc2626; }
+        .saldo-val.ac { color: #16a34a; }
 
         @media (max-width: 600px) {
             .iva-grid { grid-template-columns: 1fr; }
@@ -118,7 +127,7 @@
 
     <div class="page-header">
         <h1>🧮 Liquidazione IVA</h1>
-        <p>Prospetto trimestrale IVA a debito sulle vendite — verifica con il tuo commercialista</p>
+        <p>Prospetto trimestrale IVA a debito (vendite) e IVA a credito (acquisti registrati in Prima Nota)</p>
     </div>
 
     <div class="anno-bar">
@@ -139,28 +148,42 @@
     </div>
     {% else %}
     <div class="info-box blue">
-        ℹ️ <strong>Solo IVA sulle vendite.</strong> Questo prospetto mostra l'IVA a debito
-        derivante dalle fatture emesse. Per calcolare il saldo netto occorre sottrarre
-        l'IVA sugli acquisti (detraibile) che il tuo commercialista calcola dalle fatture d'acquisto.
+        ℹ️ <strong>Come funziona:</strong>
+        L'<strong>IVA a debito</strong> viene calcolata dalle fatture emesse registrate in Mastro.
+        L'<strong>IVA a credito</strong> viene calcolata dalle spese in Prima Nota a cui hai associato un'aliquota IVA.
+        Il <strong>saldo da versare</strong> è la differenza. Verifica sempre con il tuo commercialista.
     </div>
     {% endif %}
 
-    <!-- Totale annuale -->
+    {% if not forfettario %}
+    <!-- Riepilogo annuale -->
     <div class="totale-card">
         <div class="totale-item">
             <div class="label">Anno</div>
             <div class="val">{{ anno_sel }}</div>
         </div>
         <div class="totale-item">
-            <div class="label">Totale imponibile</div>
+            <div class="label">Imponibile fatturato</div>
             <div class="val purple">€ {{ "%.2f"|format(tot_imponibile) }}</div>
         </div>
-        {% if not forfettario %}
         <div class="totale-item">
-            <div class="label">IVA a debito (totale)</div>
-            <div class="val red">€ {{ "%.2f"|format(tot_iva) }}</div>
+            <div class="label">IVA a debito (vendite)</div>
+            <div class="val red">€ {{ "%.2f"|format(tot_iva_debito) }}</div>
         </div>
-        {% endif %}
+        <div class="totale-item">
+            <div class="label">IVA a credito (acquisti)</div>
+            <div class="val green">€ {{ "%.2f"|format(tot_iva_credito) }}</div>
+        </div>
+        <div class="totale-item">
+            <div class="label">Saldo annuale</div>
+            {% if tot_saldo > 0.005 %}
+            <div class="val red">Da versare € {{ "%.2f"|format(tot_saldo) }}</div>
+            {% elif tot_saldo < -0.005 %}
+            <div class="val green">A credito € {{ "%.2f"|format(tot_saldo|abs) }}</div>
+            {% else %}
+            <div class="val" style="color:#9ca3af;">€ 0,00</div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Card trimestrali -->
@@ -172,9 +195,10 @@
                 <span class="q-periodo">{{ dati.mesi }}</span>
             </div>
             <div class="q-body">
-                {% if dati.n == 0 %}
-                <p style="color:#9ca3af;font-size:13px;margin:0;">Nessuna fattura</p>
+                {% if dati.n == 0 and dati.iva_credito == 0 %}
+                <p style="color:#9ca3af;font-size:13px;margin:0;">Nessun movimento</p>
                 {% else %}
+                {% if dati.n > 0 %}
                 <div class="q-row">
                     <span class="q-row-label">Fatture emesse</span>
                     <span class="q-n">{{ dati.n }}</span>
@@ -183,22 +207,35 @@
                     <span class="q-row-label">Imponibile</span>
                     <span class="q-row-val">€ {{ "%.2f"|format(dati.imponibile) }}</span>
                 </div>
-                {% if not forfettario %}
-                <hr class="q-divider">
                 <div class="q-row">
-                    <span class="q-row-label" style="font-weight:700;">IVA a debito</span>
-                    <span class="q-iva {% if dati.iva == 0 %}q-iva-zero{% endif %}">
-                        € {{ "%.2f"|format(dati.iva) }}
-                    </span>
+                    <span class="q-row-label" style="color:#dc2626;">IVA a debito</span>
+                    <span class="q-row-val" style="color:#dc2626;">€ {{ "%.2f"|format(dati.iva_debito) }}</span>
                 </div>
                 {% endif %}
+                {% if dati.iva_credito > 0 %}
+                <div class="q-row">
+                    <span class="q-row-label" style="color:#16a34a;">IVA a credito</span>
+                    <span class="q-row-val" style="color:#16a34a;">− € {{ "%.2f"|format(dati.iva_credito) }}</span>
+                </div>
+                {% endif %}
+                <hr class="q-divider">
+                <div class="q-row">
+                    <span class="q-row-label" style="font-weight:700;">Saldo T{{ q }}</span>
+                    {% set sal = dati.saldo %}
+                    {% if sal > 0.005 %}
+                    <span class="q-saldo da-versare">Da versare € {{ "%.2f"|format(sal) }}</span>
+                    {% elif sal < -0.005 %}
+                    <span class="q-saldo a-credito">A credito € {{ "%.2f"|format(sal|abs) }}</span>
+                    {% else %}
+                    <span class="q-saldo zero">€ 0,00</span>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
 
-    {% if not forfettario %}
     <!-- Tabella scadenze -->
     <h2 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 12px;">Scadenze versamento (contribuenti trimestrali)</h2>
     <table class="scadenze-table" style="margin-bottom:24px;">
@@ -207,60 +244,91 @@
                 <th>Trimestre</th>
                 <th>Periodo</th>
                 <th>Scadenza versamento</th>
-                <th>IVA stimata {{ anno_sel }}</th>
+                <th>IVA a debito</th>
+                <th>IVA a credito</th>
+                <th>Saldo</th>
             </tr>
         </thead>
         <tbody>
+            {% set scadenze = [
+                (1, "Gen – Mar", "16 maggio " ~ anno_sel),
+                (2, "Apr – Giu", "16 agosto " ~ anno_sel),
+                (3, "Lug – Set", "16 novembre " ~ anno_sel),
+                (4, "Ott – Dic", "16 marzo " ~ (anno_sel + 1) ~ " (con dichiarazione annuale IVA)"),
+            ] %}
+            {% for q, periodo, scad in scadenze %}
+            {% set d = quartali[q] %}
             <tr>
-                <td><span class="chip chip-q1">T1</span></td>
-                <td>Gen – Mar {{ anno_sel }}</td>
-                <td>16 maggio {{ anno_sel }}<br><small style="color:#9ca3af;">(o 16 giugno + 0,40% interessi)</small></td>
-                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
-                    € {{ "%.2f"|format(quartali[1].iva) }}
+                <td><span class="chip chip-q{{ q }}">T{{ q }}</span></td>
+                <td>{{ periodo }} {{ anno_sel }}</td>
+                <td style="font-size:12px;">{{ scad }}</td>
+                <td>
+                    {% if d.iva_debito > 0 %}
+                    <span class="saldo-val dv">€ {{ "%.2f"|format(d.iva_debito) }}</span>
+                    {% else %}<span style="color:#9ca3af;">—</span>{% endif %}
+                </td>
+                <td>
+                    {% if d.iva_credito > 0 %}
+                    <span class="saldo-val ac">€ {{ "%.2f"|format(d.iva_credito) }}</span>
+                    {% else %}<span style="color:#9ca3af;">—</span>{% endif %}
+                </td>
+                <td>
+                    {% set sal = d.saldo %}
+                    {% if sal > 0.005 %}
+                    <span class="saldo-val dv">€ {{ "%.2f"|format(sal) }}</span>
+                    {% elif sal < -0.005 %}
+                    <span class="saldo-val ac">Credito € {{ "%.2f"|format(sal|abs) }}</span>
+                    {% else %}
+                    <span style="color:#9ca3af;">—</span>
+                    {% endif %}
                 </td>
             </tr>
-            <tr>
-                <td><span class="chip chip-q2">T2</span></td>
-                <td>Apr – Giu {{ anno_sel }}</td>
-                <td>16 agosto {{ anno_sel }}</td>
-                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
-                    € {{ "%.2f"|format(quartali[2].iva) }}
-                </td>
-            </tr>
-            <tr>
-                <td><span class="chip chip-q3">T3</span></td>
-                <td>Lug – Set {{ anno_sel }}</td>
-                <td>16 novembre {{ anno_sel }}</td>
-                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
-                    € {{ "%.2f"|format(quartali[3].iva) }}
-                </td>
-            </tr>
-            <tr>
-                <td><span class="chip chip-q4">T4</span></td>
-                <td>Ott – Dic {{ anno_sel }}</td>
-                <td>16 febbraio {{ anno_sel + 1 }}<br><small style="color:#9ca3af;">(con la dichiarazione annuale IVA)</small></td>
-                <td style="font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;">
-                    € {{ "%.2f"|format(quartali[4].iva) }}
-                </td>
-            </tr>
+            {% endfor %}
         </tbody>
     </table>
+
+    {% if tot_iva_credito == 0 %}
+    <div class="info-box blue" style="margin-bottom:24px;">
+        💡 <strong>IVA a credito non registrata.</strong>
+        Per includere l'IVA sugli acquisti nel calcolo, vai su
+        <a href="/prima-nota/" style="font-weight:700;color:#1d4ed8;">Prima Nota</a>
+        e aggiungi le spese selezionando l'aliquota IVA nel campo apposito.
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Forfettario: solo imponibile -->
+    <div class="totale-card">
+        <div class="totale-item">
+            <div class="label">Anno</div>
+            <div class="val">{{ anno_sel }}</div>
+        </div>
+        <div class="totale-item">
+            <div class="label">Totale imponibile fatturato</div>
+            <div class="val purple">€ {{ "%.2f"|format(tot_imponibile) }}</div>
+        </div>
+    </div>
     {% endif %}
 
     <div class="info-box yellow">
-        ⚠️ <strong>Avviso:</strong> questo prospetto è indicativo e si basa sulle fatture registrate in Mastro.
-        Le scadenze effettive e l'importo da versare vanno verificati con il tuo commercialista,
-        che conosce anche l'IVA detraibile sugli acquisti e le eventuali compensazioni F24.
+        ⚠️ <strong>Avviso:</strong> questo prospetto è indicativo e si basa sui dati registrati in Mastro.
+        Le scadenze effettive e l'importo finale da versare vanno verificati con il tuo commercialista,
+        che verificherà anche eventuali compensazioni F24 e rettifiche.
     </div>
 
     <div style="margin-top:16px;">
         <a href="/fatture/?anno={{ anno_sel }}" style="font-size:13px;color:#7c3aed;font-weight:600;text-decoration:none;">
-            ← Torna al registro fatture
+            ← Registro fatture {{ anno_sel }}
+        </a>
+        &nbsp;&nbsp;
+        <a href="/prima-nota/?anno={{ anno_sel }}"
+           style="font-size:13px;color:#374151;font-weight:600;text-decoration:none;">
+            📒 Prima Nota {{ anno_sel }}
         </a>
         &nbsp;&nbsp;
         <a href="/fatture/export-excel?anno={{ anno_sel }}"
            style="font-size:13px;color:#16a34a;font-weight:600;text-decoration:none;">
-            📥 Scarica Excel {{ anno_sel }}
+            📥 Excel {{ anno_sel }}
         </a>
     </div>
 

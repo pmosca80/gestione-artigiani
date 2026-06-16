@@ -79,6 +79,7 @@ function _mostraToastSWUpdate(newWorker) {
         <a href="/garanzie/">🛡️ Garanzie</a>
         <a href="/fatture/">🧾 Fatture</a>
         <a href="/fatture/liquidazione-iva">🧮 Liquidazione IVA</a>
+        <a href="/fatture-acquisto/">📥 Fatture Passive</a>
         <a href="/prima-nota/">📒 Prima Nota</a>
         <a href="/lavori/analisi/economica">📊 Analisi</a>
 
@@ -95,6 +96,7 @@ function _mostraToastSWUpdate(newWorker) {
         <a href="/impostazioni/sicurezza">🔐 Sicurezza</a>
         {% if not request.session.get('is_collaboratore') %}
         <a href="/team">👥 Team</a>
+        <a href="/audit/">🔍 Audit log</a>
         {% endif %}
         {% set _piano = request.session.get('piano') %}
         {% if _piano == 'business' %}
