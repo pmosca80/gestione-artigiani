@@ -98,7 +98,7 @@ def export_xml(
 
     for v in sorted(voci_pn, key=lambda x: x.data):
         ve = SubElement(pn_el, "Voce")
-        ve.set("data", v.data)
+        ve.set("data", str(v.data))
         ve.set("tipo", v.tipo)
         ve.set("importo", f"{v.importo:.2f}")
         ve.set("categoria", v.categoria or "")

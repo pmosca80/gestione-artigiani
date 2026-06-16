@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime, timezone
 
 from app.logger import get_logger
+from app.services.scheduler_lock import con_lock
 
 logger = get_logger("backup")
 
@@ -18,6 +19,7 @@ def _configurato() -> bool:
     )
 
 
+@con_lock("backup_giornaliero")
 def esegui_backup() -> None:
     """Backup giornaliero: pg_dump → gzip → S3. Non lancia mai eccezioni."""
     if not _configurato():

@@ -7,11 +7,13 @@ from app.database import SessionLocal
 from app.models import Garanzia, ImpostazioniAzienda
 from app.services.email import invia_email
 from app.services.push import invia_push
+from app.services.scheduler_lock import con_lock
 from app.logger import get_logger
 
 logger = get_logger("garanzie_reminder")
 
 
+@con_lock("controlla_garanzie")
 def controlla_garanzie() -> None:
     logger.info("Controllo scadenze garanzie in corso...")
     db: Session = SessionLocal()

@@ -7,8 +7,9 @@ from app.models import ImpostazioniAzienda
 
 from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, cast, String
 from app.models import (
+    Utente,
     Cliente,
     Lavoro,
     Materiale,
@@ -413,7 +414,7 @@ def aggiorna_lavoro(
     return lavoro
 
 
-def elimina_lavoro(db: Session, lavoro_id: int):
+def elimina_lavoro(db: Session, lavoro_id: int, utente_id: int):
     lavoro = db.query(Lavoro).filter(
         Lavoro.id == lavoro_id,
         Lavoro.utente_id == utente_id
@@ -586,7 +587,10 @@ def aggiungi_movimento(
     quantita: float,
     note: str
 ):
-    materiale = db.query(Materiale).filter(Materiale.id == materiale_id).first()
+    materiale = db.query(Materiale).filter(
+        Materiale.id == materiale_id,
+        Materiale.utente_id == utente_id
+    ).first()
 
     if not materiale:
         return None
@@ -759,6 +763,7 @@ def salva_impostazioni_azienda(
     pec_smtp_host: str = "",
     pec_smtp_port: int = 465,
     pec_smtp_password: str = "",
+    aliquota_iva_default: float = 22,
 ):
     azienda = db.query(ImpostazioniAzienda).filter(
         ImpostazioniAzienda.utente_id == utente_id
@@ -790,6 +795,8 @@ def salva_impostazioni_azienda(
         azienda.pec_smtp_port = int(pec_smtp_port)
     if pec_smtp_password is not None:
         azienda.pec_smtp_password = pec_smtp_password.strip() or None
+
+    azienda.aliquota_iva_default = float(aliquota_iva_default) if aliquota_iva_default is not None else 22
 
     db.commit()
     db.refresh(azienda)
@@ -2838,11 +2845,12 @@ def get_prima_nota(
     mese: int | None = None,
 ):
     q = db.query(VocePrimaNota).filter(VocePrimaNota.utente_id == utente_id)
+    data_str = cast(VocePrimaNota.data, String)
     if anno:
-        q = q.filter(VocePrimaNota.data.like(f"{anno}-%"))
+        q = q.filter(data_str.like(f"{anno}-%"))
     if mese:
-        mese_str = f"{anno or '%'}-{mese:02d}"
-        q = q.filter(VocePrimaNota.data.like(f"{mese_str}-%"))
+        mese_str = f"{anno}-{mese:02d}" if anno else f"%-{mese:02d}"
+        q = q.filter(data_str.like(f"{mese_str}-%"))
     return q.order_by(VocePrimaNota.data.desc(), VocePrimaNota.id.desc()).all()
 
 
@@ -3093,16 +3101,31 @@ def elimina_promemoria(db: Session, promemoria_id: int, utente_id: int) -> bool:
 
 # ─── PORTALE CLIENTE (token pubblico) ──────────────────────────────────────
 
-def genera_token_portale_cliente(db: Session, cliente_id: int, utente_id: int):
+def genera_token_portale_cliente(db: Session, cliente_id: int, utente_id: int, giorni: int = 90):
+    from datetime import date, timedelta
     cliente = get_cliente_by_id(db, cliente_id, utente_id)
     if not cliente:
         return None
     cliente.token_portale = secrets.token_urlsafe(24)
+    cliente.token_portale_scadenza = date.today() + timedelta(days=giorni)
     db.commit(); db.refresh(cliente)
     return cliente
 
 def get_cliente_by_token_portale(db: Session, token: str):
-    return db.query(Cliente).filter(Cliente.token_portale == token).first()
+    from datetime import date
+    cliente = db.query(Cliente).filter(Cliente.token_portale == token).first()
+    if not cliente:
+        return None
+    if cliente.token_portale_scadenza and cliente.token_portale_scadenza < date.today():
+        return None
+    return cliente
+
+def is_token_portale_scaduto(db: Session, token: str) -> bool:
+    from datetime import date
+    cliente = db.query(Cliente).filter(Cliente.token_portale == token).first()
+    if not cliente:
+        return False
+    return bool(cliente.token_portale_scadenza and cliente.token_portale_scadenza < date.today())
 
 
 # ─── TIMESHEET COLLABORATORI ────────────────────────────────────────────────

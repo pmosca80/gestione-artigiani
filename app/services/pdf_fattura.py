@@ -245,7 +245,7 @@ def genera_pdf_fattura(lavoro, cliente, azienda, voci=None) -> bytes:
     forfettario = regime in _REGIMI_SENZA_IVA
 
     num     = lavoro.numero_fattura or "—"
-    anno    = (lavoro.data_fattura or "")[:4] or "—"
+    anno    = str(lavoro.data_fattura or "")[:4] or "—"
     num_fmt = f"{int(num):03d}" if str(num).isdigit() else str(num)
 
     az = _az_lines(azienda)
@@ -289,7 +289,7 @@ def genera_pdf_fattura(lavoro, cliente, azienda, voci=None) -> bytes:
     story.append(Spacer(1, 0.5 * cm))
 
     imponibile = float(lavoro.importo_consuntivo or 0)
-    aliquota   = float(lavoro.aliquota_iva or 22)
+    aliquota   = float(lavoro.aliquota_iva if lavoro.aliquota_iva is not None else 22)
     totale_iva = 0.0 if forfettario else float(lavoro.totale_iva or 0)
     totale_doc = float(lavoro.totale_documento or imponibile + totale_iva)
     bollo      = 2.0 if (forfettario and imponibile > 77.47) else 0.0
@@ -388,7 +388,7 @@ def genera_pdf_preventivo(lavoro, cliente, azienda, voci=None) -> bytes:
     sconto   = float(lavoro.sconto or 0)
     sconto_v = round(imponibile * sconto / 100, 2) if sconto else 0.0
     impon_n  = round(imponibile - sconto_v, 2)
-    aliquota = float(lavoro.aliquota_iva or 22)
+    aliquota = float(lavoro.aliquota_iva if lavoro.aliquota_iva is not None else 22)
     iva_val  = 0.0 if forfettario else round(impon_n * aliquota / 100, 2)
     bollo    = 2.0 if (forfettario and impon_n > 77.47) else 0.0
     totale   = round(impon_n + iva_val + bollo, 2)

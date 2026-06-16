@@ -87,6 +87,10 @@
     {% if impostazioni and impostazioni.telefono %}
     <div class="footer-note">📞 {{ impostazioni.telefono }}</div>
     {% endif %}
+    <div class="footer-note" style="margin-top:16px; color:#d1d5db; font-size:11px;">
+        Questa conferma non costituisce firma elettronica avanzata (FEA) ai sensi del CAD.<br>
+        Ha valore di presa visione e accettazione del preventivo.
+    </div>
     <button class="btn-chiudi" onclick="window.close(); setTimeout(function(){ history.back(); }, 150);">✓ Chiudi questa pagina</button>
 </div>
 </body>

@@ -667,20 +667,20 @@
     </div>
     {% endif %}
 
-    <!-- FIRMA DIGITALE: appare solo per preventivi -->
+    <!-- CONFERMA PREVENTIVO: appare solo per preventivi -->
     {% if lavoro.stato in ["preventivo", "preventivo_inviato", "preventivo_accettato"] %}
     <div class="cta-firma {% if lavoro.firma_nome_cliente %}firmato{% endif %}">
-        <div class="cta-firma-icon">{% if lavoro.firma_nome_cliente %}✅{% else %}✍️{% endif %}</div>
+        <div class="cta-firma-icon">{% if lavoro.firma_nome_cliente %}✅{% else %}📋{% endif %}</div>
         <div class="cta-firma-text">
             {% if lavoro.firma_nome_cliente %}
-                <strong>Firmato da {{ lavoro.firma_nome_cliente }}</strong>
+                <strong>Confermato da {{ lavoro.firma_nome_cliente }}</strong>
                 <span>{{ lavoro.data_accettazione_preventivo }}</span>
             {% elif lavoro.token_firma %}
-                <strong>Link firma pronto</strong>
-                <span>Invia al cliente per la firma dal telefono</span>
+                <strong>Link conferma pronto</strong>
+                <span>Invia al cliente per la conferma dal telefono</span>
             {% else %}
-                <strong>Firma digitale</strong>
-                <span>Genera un link da inviare al cliente — tocca e firma dal telefono</span>
+                <strong>Conferma preventivo</strong>
+                <span>Genera un link da inviare al cliente per la presa visione</span>
             {% endif %}
         </div>
         {% if lavoro.firma_nome_cliente %}

@@ -1,7 +1,7 @@
 import os
 from datetime import date as _date_type
 
-from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float, Date, DateTime, func
+from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float, Date, DateTime, Index, func
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship, declared_attr
 from app.database import Base
@@ -102,6 +102,10 @@ class Utente(TimestampMixin, Base):
     titolare_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
     ruolo = Column(String, nullable=True, default="titolare")  # "titolare" | "collaboratore"
 
+    # 2FA — TOTP (Google Authenticator / Authy)
+    totp_secret = Column(String, nullable=True)
+    totp_abilitato = Column(Boolean, nullable=False, default=False)
+
 
 # ========================
 # CLIENTE
@@ -109,6 +113,9 @@ class Utente(TimestampMixin, Base):
 
 class Cliente(TimestampMixin, Base):
     __tablename__ = "clienti"
+    __table_args__ = (
+        Index("ix_clienti_utente_id", "utente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -137,6 +144,7 @@ class Cliente(TimestampMixin, Base):
     note = Column(Text, nullable=True)
 
     token_portale = Column(String, nullable=True)
+    token_portale_scadenza = Column(Date, nullable=True)
 
     data_creazione = Column(String, nullable=False)
 
@@ -153,6 +161,12 @@ class Cliente(TimestampMixin, Base):
 
 class Lavoro(TimestampMixin, Base):
     __tablename__ = "lavori"
+    __table_args__ = (
+        Index("ix_lavori_utente_id", "utente_id"),
+        Index("ix_lavori_utente_stato", "utente_id", "stato"),
+        Index("ix_lavori_utente_stato_fattura", "utente_id", "stato_fattura"),
+        Index("ix_lavori_cliente_id", "cliente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -230,6 +244,9 @@ class Fornitore(TimestampMixin, Base):
 
 class Materiale(TimestampMixin, Base):
     __tablename__ = "materiali"
+    __table_args__ = (
+        Index("ix_materiali_utente_id", "utente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -330,6 +347,8 @@ class ImpostazioniAzienda(TimestampMixin, Base):
     obiettivo_mensile = Column(Float, default=5000)
     logo_path = Column(String, nullable=True)
 
+    aliquota_iva_default = Column(Float, nullable=True, default=22)
+
     # PEC per invio diretto a SDI
     pec_indirizzo = Column(String, nullable=True)
     pec_smtp_host = Column(String, nullable=True)
@@ -403,6 +422,10 @@ class AllegatoLavoro(Base):
 
 class FatturaEmessa(TimestampMixin, Base):
     __tablename__ = "fatture_emesse"
+    __table_args__ = (
+        Index("ix_fatture_emesse_utente_id", "utente_id"),
+        Index("ix_fatture_emesse_utente_anno", "utente_id", "anno"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -451,6 +474,10 @@ class TemplatePreventivo(TimestampMixin, Base):
 
 class VocePreventivo(TimestampMixin, Base):
     __tablename__ = "voci_preventivo"
+    __table_args__ = (
+        Index("ix_voci_preventivo_lavoro_id", "lavoro_id"),
+        Index("ix_voci_preventivo_utente_id", "utente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
@@ -475,6 +502,9 @@ class SessioneLavoro(Base):
 
 class Garanzia(TimestampMixin, Base):
     __tablename__ = "garanzie"
+    __table_args__ = (
+        Index("ix_garanzie_utente_id", "utente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
@@ -498,6 +528,9 @@ class Garanzia(TimestampMixin, Base):
 
 class VocePrimaNota(TimestampMixin, Base):
     __tablename__ = "prima_nota"
+    __table_args__ = (
+        Index("ix_prima_nota_utente_id", "utente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
@@ -562,6 +595,9 @@ class RapportinoLavoro(TimestampMixin, Base):
 
 class PromemoriaCliente(TimestampMixin, Base):
     __tablename__ = "promemoria_clienti"
+    __table_args__ = (
+        Index("ix_promemoria_utente_id", "utente_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)

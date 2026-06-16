@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica identità — Mastro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 40px 36px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+        .icon { font-size: 36px; margin-bottom: 16px; }
+        h1 { font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 8px; }
+        p { font-size: 14px; color: #6b7280; margin: 0 0 28px; line-height: 1.5; }
+        label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 22px;
+            letter-spacing: 6px;
+            text-align: center;
+            font-family: monospace;
+            color: #111827;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 18px;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .btn:hover { background: #6d28d9; }
+        .errore {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+        .back { text-align: center; margin-top: 20px; font-size: 13px; }
+        .back a { color: #7c3aed; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon">🔐</div>
+    <h1>Verifica identità</h1>
+    <p>Apri la tua app di autenticazione (Google Authenticator, Authy…) e inserisci il codice a 6 cifre.</p>
+
+    {% if errore %}
+    <div class="errore">{{ errore }}</div>
+    {% endif %}
+
+    <form method="post" action="/verifica-2fa">
+        <label for="codice">Codice di verifica</label>
+        <input type="text" id="codice" name="codice" maxlength="6" placeholder="000000"
+               autocomplete="one-time-code" inputmode="numeric" autofocus>
+        <button type="submit" class="btn">Verifica e accedi</button>
+    </form>
+
+    <div class="back"><a href="/logout">Annulla e torna al login</a></div>
+</div>
+</body>
+</html>

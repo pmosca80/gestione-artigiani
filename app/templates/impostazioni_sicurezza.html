@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sicurezza account — Mastro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; background: #f8fafc; }
+        .container { max-width: 680px; margin: 32px auto; padding: 0 16px 80px; }
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px; }
+        .page-header p { font-size: 14px; color: #6b7280; margin: 0; }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .card-icon { font-size: 28px; }
+        .card-title { font-size: 17px; font-weight: 700; color: #111827; margin: 0; }
+        .card-subtitle { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
+
+        .badge-on {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #dcfce7; color: #166534;
+            font-size: 12px; font-weight: 700;
+            padding: 3px 10px; border-radius: 999px;
+        }
+        .badge-off {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #f1f5f9; color: #64748b;
+            font-size: 12px; font-weight: 700;
+            padding: 3px 10px; border-radius: 999px;
+        }
+
+        .alert-success {
+            background: #dcfce7; border: 1px solid #bbf7d0; color: #166534;
+            border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .alert-error {
+            background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+            border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .steps { counter-reset: step; margin: 20px 0; }
+        .step {
+            display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start;
+        }
+        .step-num {
+            counter-increment: step;
+            background: #7c3aed; color: white;
+            border-radius: 50%; width: 26px; height: 26px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; flex-shrink: 0;
+        }
+        .step-num::before { content: counter(step); }
+        .step-body { flex: 1; }
+        .step-body strong { font-size: 14px; color: #111827; display: block; margin-bottom: 4px; }
+        .step-body span { font-size: 13px; color: #6b7280; line-height: 1.5; }
+
+        .qr-box {
+            display: flex; flex-direction: column; align-items: center;
+            background: #fafafa; border: 1px solid #e5e7eb;
+            border-radius: 12px; padding: 20px; margin: 16px 0;
+        }
+        .qr-box img { border-radius: 8px; }
+        .secret-code {
+            margin-top: 12px; font-family: monospace; font-size: 13px;
+            background: #f1f5f9; padding: 8px 16px; border-radius: 8px;
+            color: #374151; letter-spacing: 1px; word-break: break-all;
+            text-align: center;
+        }
+        .secret-label { font-size: 11px; color: #9ca3af; margin-top: 6px; text-align: center; }
+
+        label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 10px 12px;
+            border: 1px solid #d1d5db; border-radius: 8px;
+            font-size: 14px; font-family: inherit; color: #111827;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe;
+        }
+        .btn-primary {
+            background: #7c3aed; color: white; border: none;
+            padding: 10px 20px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+            margin-top: 14px; transition: background 0.15s;
+        }
+        .btn-primary:hover { background: #6d28d9; }
+        .btn-danger {
+            background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;
+            padding: 10px 20px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+            margin-top: 14px; transition: background 0.15s;
+        }
+        .btn-danger:hover { background: #fee2e2; }
+        .form-row { margin-bottom: 14px; }
+        .security-note {
+            font-size: 12px; color: #9ca3af; margin-top: 10px; line-height: 1.5;
+        }
+        .divider { border: none; border-top: 1px solid #f1f5f9; margin: 20px 0; }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="container">
+    <div class="page-header">
+        <h1>Sicurezza account</h1>
+        <p>Gestisci l'autenticazione a due fattori (2FA) per proteggere i tuoi dati fiscali.</p>
+    </div>
+
+    {% if request.query_params.get('attivato') %}
+    <div class="alert-success">✅ Autenticazione a due fattori attivata con successo.</div>
+    {% elif request.query_params.get('disattivato') %}
+    <div class="alert-success">2FA disattivata. Il tuo account è protetto solo dalla password.</div>
+    {% elif request.query_params.get('errore') == 'codice_errato' %}
+    <div class="alert-error">Codice non valido. Assicurati che l'orario del telefono sia sincronizzato e riprova.</div>
+    {% elif request.query_params.get('errore') == 'password_errata' %}
+    <div class="alert-error">Password non corretta. La 2FA non è stata disattivata.</div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">🔐</div>
+            <div>
+                <div class="card-title">Autenticazione a due fattori (2FA)</div>
+                <div class="card-subtitle">TOTP — Google Authenticator, Authy, 1Password…</div>
+            </div>
+            {% if totp_abilitato %}
+            <span class="badge-on" style="margin-left:auto">✓ Attiva</span>
+            {% else %}
+            <span class="badge-off" style="margin-left:auto">Inattiva</span>
+            {% endif %}
+        </div>
+
+        {% if totp_abilitato %}
+        <!-- Stato: 2FA attiva — mostra disattivazione -->
+        <p style="font-size:14px; color:#374151; margin:0 0 16px;">
+            Il tuo account è protetto. Ad ogni accesso ti verrà chiesto il codice dalla tua app di autenticazione.
+        </p>
+        <hr class="divider">
+        <p style="font-size:13px; color:#6b7280; margin:0 0 14px;">
+            Per disattivare la 2FA è necessario confermare la password dell'account.
+        </p>
+        <form method="post" action="/impostazioni/sicurezza/disattiva-2fa">
+            <div class="form-row">
+                <label for="password">Password attuale</label>
+                <input type="password" id="password" name="password" placeholder="La tua password" autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-danger" onclick="return confirm('Sei sicuro di voler disattivare la 2FA?')">
+                Disattiva 2FA
+            </button>
+        </form>
+
+        {% else %}
+        <!-- Stato: 2FA non attiva — mostra setup -->
+        <div class="steps">
+            <div class="step">
+                <div class="step-num"></div>
+                <div class="step-body">
+                    <strong>Installa un'app di autenticazione</strong>
+                    <span>Google Authenticator, Authy, Microsoft Authenticator o 1Password.</span>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num"></div>
+                <div class="step-body">
+                    <strong>Scansiona il QR code</strong>
+                    <span>Apri l'app, tocca "Aggiungi account" e scansiona il codice qui sotto.</span>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num"></div>
+                <div class="step-body">
+                    <strong>Inserisci il codice a 6 cifre</strong>
+                    <span>Copia il codice mostrato nell'app e confermalo per attivare la protezione.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="qr-box">
+            {% if qr_b64 %}
+            <img src="data:image/png;base64,{{ qr_b64 }}" width="180" height="180" alt="QR Code 2FA">
+            {% endif %}
+            <div class="secret-code">{{ nuovo_secret }}</div>
+            <div class="secret-label">Codice manuale (se non riesci a scansionare il QR)</div>
+        </div>
+
+        <form method="post" action="/impostazioni/sicurezza/attiva-2fa">
+            <div class="form-row">
+                <label for="codice">Codice di verifica (6 cifre)</label>
+                <input type="text" id="codice" name="codice" maxlength="6" placeholder="000000"
+                       inputmode="numeric" autocomplete="one-time-code"
+                       style="letter-spacing:6px; font-family:monospace; font-size:20px; text-align:center;">
+            </div>
+            <button type="submit" class="btn-primary">Attiva 2FA</button>
+        </form>
+        <p class="security-note">
+            Salva il codice manuale in un posto sicuro. Potrebbe servirti se perdi l'accesso all'app.
+        </p>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

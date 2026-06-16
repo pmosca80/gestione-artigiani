@@ -13,6 +13,13 @@ router = APIRouter(tags=["portale_cliente"])
 @router.get("/portale/{token}", response_class=HTMLResponse)
 def portale_pubblico(token: str, request: Request, db: Session = Depends(get_db)):
     """Pagina pubblica per il cliente — non richiede autenticazione."""
+    if crud.is_token_portale_scaduto(db, token):
+        return templates.TemplateResponse(
+            request=request,
+            name="portale_scaduto.html",
+            context={},
+            status_code=410,
+        )
     cliente = crud.get_cliente_by_token_portale(db, token)
     if not cliente:
         raise HTTPException(status_code=404, detail="Portale non trovato o link non valido.")

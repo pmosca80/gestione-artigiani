@@ -297,6 +297,17 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Aliquota IVA predefinita</label>
+                    <select name="aliquota_iva_default">
+                        {% set iva_default = (azienda.aliquota_iva_default | float) if azienda and azienda.aliquota_iva_default is not none else 22 %}
+                        <option value="0"  {% if iva_default == 0  %}selected{% endif %}>0% — Forfettario / Esente / Fuori campo</option>
+                        <option value="4"  {% if iva_default == 4  %}selected{% endif %}>4% — Beni prima necessità</option>
+                        <option value="10" {% if iva_default == 10 %}selected{% endif %}>10% — Ristrutturazione edilizia</option>
+                        <option value="22" {% if iva_default == 22 %}selected{% endif %}>22% — Aliquota ordinaria</option>
+                    </select>
+                    <small style="color:#6b7280;">Viene preselezionata nella creazione di ogni nuovo lavoro</small>
+                </div>
             </div>
 
             <div class="form-section-title" id="pec">📤 PEC per invio diretto a SDI</div>

@@ -833,7 +833,7 @@ def crea_fattura_da_lavoro(
     imponibile_val = float(lavoro.importo_consuntivo or 0)
     regime_str = (azienda.regime_fiscale or "RF01").strip().upper()
     regime_senza_iva = regime_str in _REGIMI_SENZA_IVA
-    aliquota_val = 0.0 if regime_senza_iva else float(lavoro.aliquota_iva or 22)
+    aliquota_val = 0.0 if regime_senza_iva else float(lavoro.aliquota_iva if lavoro.aliquota_iva is not None else 22)
     iva_val = 0.0 if (regime_senza_iva or aliquota_val == 0) else float(
         lavoro.totale_iva or round(imponibile_val * aliquota_val / 100, 2)
     )

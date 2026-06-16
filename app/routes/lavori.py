@@ -87,11 +87,12 @@ def form_lavoro(cliente_id: int, request: Request, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Cliente non trovato")
 
     template_preventivi = crud.get_template_preventivi(db, user_id)
+    azienda = crud.get_impostazioni_azienda(db, user_id)
 
     return templates.TemplateResponse(
         request=request,
         name="lavoro_nuovo.html",
-        context={"cliente": cliente, "template_preventivi": template_preventivi}
+        context={"cliente": cliente, "template_preventivi": template_preventivi, "azienda": azienda}
     )
 
 
@@ -177,6 +178,8 @@ def crea_lavoro_rapido(
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
     stato_sicuro = stato if stato in _STATI_VALIDI_RAPIDO else "da_fare"
+    azienda = crud.get_impostazioni_azienda(db, user_id)
+    iva_default = float(azienda.aliquota_iva_default) if azienda and azienda.aliquota_iva_default is not None else 22
     lavoro = crud.crea_lavoro(
         db=db,
         cliente_id=cliente_id,
@@ -186,7 +189,7 @@ def crea_lavoro_rapido(
         stato=stato_sicuro,
         importo_preventivato=None,
         importo_consuntivo=None,
-        aliquota_iva=22,
+        aliquota_iva=iva_default,
         sconto=0,
         note_consuntivo="",
         utente_id=user_id,
@@ -837,7 +840,7 @@ def elimina_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
     cliente_id = lavoro.cliente_id
-    crud.elimina_lavoro(db, lavoro_id)
+    crud.elimina_lavoro(db, lavoro_id, user_id)
 
     return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
 
@@ -1275,9 +1278,9 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
     from pathlib import Path
 
     if azienda and azienda.logo_path:
-        logo_file = Path(azienda.logo_path)
-        if logo_file.exists():
-            logo = RLImage(str(logo_file), width=120, height=60)
+        lp = azienda.logo_path
+        if lp.startswith("http") or Path(lp).exists():
+            logo = RLImage(lp, width=120, height=60)
             logo.hAlign = "LEFT"
             elements.append(logo)
             elements.append(Spacer(1, 8))
@@ -1703,6 +1706,29 @@ def converti_in_fattura(
 
     db.commit()
 
+    # Email transazionale al cliente
+    try:
+        cliente_email = lavoro.cliente.email if lavoro.cliente else None
+        if cliente_email:
+            from app.services.email import invia_lavoro_completato_al_cliente
+            azienda = crud.get_impostazioni_azienda(db, user_id)
+            base_url = str(request.base_url).rstrip("/")
+            nome_cliente = " ".join(filter(None, [
+                lavoro.cliente.nome, lavoro.cliente.cognome
+            ])) or (lavoro.cliente.ragione_sociale or "Cliente")
+            token_portale = lavoro.cliente.token_portale if lavoro.cliente else None
+            invia_lavoro_completato_al_cliente(
+                cliente_email=cliente_email,
+                nome_cliente=nome_cliente,
+                nome_azienda=(azienda.nome_azienda or "") if azienda else "",
+                titolo_lavoro=lavoro.titolo,
+                importo=lavoro.importo_consuntivo or lavoro.importo_preventivato,
+                link_portale=f"{base_url}/portale/{token_portale}" if token_portale else None,
+                telefono_azienda=azienda.telefono if azienda else None,
+            )
+    except Exception as _e:
+        logger.warning(f"Email completamento cliente non inviata: {_e}")
+
     return RedirectResponse(
         url=f"/documenti/lavori/{lavoro_id}/fattura-xml",
         status_code=303,
@@ -1731,6 +1757,28 @@ def invia_preventivo(
     lavoro.data_invio_preventivo = datetime.now().strftime("%Y-%m-%d")
 
     db.commit()
+
+    # Email transazionale al cliente se ha un indirizzo email
+    try:
+        cliente_email = lavoro.cliente.email if lavoro.cliente else None
+        if cliente_email and lavoro.token_firma:
+            from app.services.email import invia_preventivo_al_cliente
+            azienda = crud.get_impostazioni_azienda(db, user_id)
+            base_url = str(request.base_url).rstrip("/")
+            nome_cliente = " ".join(filter(None, [
+                lavoro.cliente.nome, lavoro.cliente.cognome
+            ])) or (lavoro.cliente.ragione_sociale or "Cliente")
+            invia_preventivo_al_cliente(
+                cliente_email=cliente_email,
+                nome_cliente=nome_cliente,
+                nome_azienda=(azienda.nome_azienda or "") if azienda else "",
+                titolo_lavoro=lavoro.titolo,
+                importo=lavoro.importo_preventivato,
+                link_firma=f"{base_url}/firma/{lavoro.token_firma}",
+                telefono_azienda=azienda.telefono if azienda else None,
+            )
+    except Exception as _e:
+        logger.warning(f"Email preventivo cliente non inviata: {_e}")
 
     return RedirectResponse(
         f"/lavori/{lavoro_id}",
@@ -1803,6 +1851,7 @@ def timer_ferma(
 @router.post("/{lavoro_id}/cambia-stato")
 def cambia_stato_lavoro(
     lavoro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
     nuovo_stato: str = Form(...),
@@ -1815,6 +1864,42 @@ def cambia_stato_lavoro(
     lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
     if not lavoro or nuovo_stato not in _stati_validi:
         raise HTTPException(status_code=404)
+    stato_precedente = lavoro.stato
     lavoro.stato = nuovo_stato
     db.commit()
+
+    try:
+        cliente_email = lavoro.cliente.email if lavoro.cliente else None
+        if cliente_email and nuovo_stato != stato_precedente:
+            azienda = crud.get_impostazioni_azienda(db, user_id)
+            base_url = str(request.base_url).rstrip("/")
+            nome_cliente = " ".join(filter(None, [
+                lavoro.cliente.nome, lavoro.cliente.cognome
+            ])) or (lavoro.cliente.ragione_sociale or "Cliente")
+            if nuovo_stato == "preventivo_inviato" and lavoro.token_firma:
+                from app.services.email import invia_preventivo_al_cliente
+                invia_preventivo_al_cliente(
+                    cliente_email=cliente_email,
+                    nome_cliente=nome_cliente,
+                    nome_azienda=(azienda.nome_azienda or "") if azienda else "",
+                    titolo_lavoro=lavoro.titolo,
+                    importo=lavoro.importo_preventivato,
+                    link_firma=f"{base_url}/firma/{lavoro.token_firma}",
+                    telefono_azienda=azienda.telefono if azienda else None,
+                )
+            elif nuovo_stato == "completato":
+                from app.services.email import invia_lavoro_completato_al_cliente
+                token_portale = lavoro.cliente.token_portale if lavoro.cliente else None
+                invia_lavoro_completato_al_cliente(
+                    cliente_email=cliente_email,
+                    nome_cliente=nome_cliente,
+                    nome_azienda=(azienda.nome_azienda or "") if azienda else "",
+                    titolo_lavoro=lavoro.titolo,
+                    importo=lavoro.importo_consuntivo or lavoro.importo_preventivato,
+                    link_portale=f"{base_url}/portale/{token_portale}" if token_portale else None,
+                    telefono_azienda=azienda.telefono if azienda else None,
+                )
+    except Exception as _e:
+        logger.warning(f"Email cambio stato cliente non inviata: {_e}")
+
     return RedirectResponse(redirect_to, status_code=303)

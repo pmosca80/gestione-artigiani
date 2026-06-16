@@ -20,8 +20,94 @@ import zipfile
 
 from fastapi import HTTPException
 from sqlalchemy import text as sql_text
-from app.models import Utente
+from app.models import Utente, Cliente, Materiale, CaricoMateriale
 from app.templates_config import templates
+
+
+# ─── helpers import CSV/XLSX ────────────────────────────────────────────────
+
+def _normalizza_chiave(k: str) -> str:
+    import unicodedata
+    k = k.strip().lower()
+    k = unicodedata.normalize("NFD", k)
+    return "".join(c for c in k if unicodedata.category(c) != "Mn")
+
+
+_CLIENTI_MAP = {
+    "tipo_cliente":    ["tipo", "tipo_cliente", "tipo cliente"],
+    "nome":            ["nome", "first name", "firstname", "name"],
+    "cognome":         ["cognome", "last name", "lastname", "surname"],
+    "ragione_sociale": ["ragione sociale", "ragione_sociale", "azienda", "societa", "company", "denominazione"],
+    "telefono":        ["telefono", "tel", "cellulare", "phone", "mobile"],
+    "email":           ["email", "e-mail", "mail"],
+    "indirizzo":       ["indirizzo", "via", "address"],
+    "citta":           ["citta", "city", "comune", "localita"],
+    "provincia":       ["provincia", "prov"],
+    "cap":             ["cap", "zip", "codice postale"],
+    "partita_iva":     ["partita iva", "partita_iva", "p.iva", "piva", "p. iva"],
+    "codice_fiscale":  ["codice fiscale", "codice_fiscale", "cf"],
+    "note":            ["note", "notes"],
+}
+
+_MATERIALI_MAP = {
+    "nome":                    ["nome", "descrizione", "articolo", "prodotto", "item"],
+    "categoria":               ["categoria", "category"],
+    "unita_misura":            ["unita misura", "unita_misura", "um", "u.m.", "unita"],
+    "quantita":                ["quantita", "qty", "qta", "pezzi", "quantita iniziale"],
+    "scorta_minima":           ["scorta minima", "scorta_minima", "scorta", "minimo"],
+    "prezzo_acquisto_pieno":   ["prezzo acquisto pieno", "prezzo acquisto", "costo acquisto", "prezzo_acquisto_pieno"],
+    "prezzo_acquisto_scontato":["prezzo acquisto scontato", "prezzo_acquisto_scontato", "costo scontato"],
+    "prezzo_vendita_default":  ["prezzo vendita", "prezzo_vendita", "prezzo_vendita_default", "prezzo"],
+    "note":                    ["note", "notes"],
+}
+
+
+def _mappa_colonne(headers: list, mapping: dict) -> dict:
+    norm = [_normalizza_chiave(h) for h in headers]
+    out = {}
+    for campo, aliases in mapping.items():
+        for a in aliases:
+            an = _normalizza_chiave(a)
+            if an in norm:
+                out[campo] = norm.index(an)
+                break
+    return out
+
+
+def _leggi_file(contenuto: bytes, filename: str):
+    import io, csv as _csv
+    ext = Path(filename).suffix.lower()
+    if ext == ".xlsx":
+        import openpyxl as _opx
+        wb = _opx.load_workbook(io.BytesIO(contenuto), read_only=True)
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            return [], []
+        headers = [str(c or "").strip() for c in rows[0]]
+        data = [[str(v) if v is not None else "" for v in r] for r in rows[1:]]
+        return headers, data
+    else:
+        text = None
+        for enc in ("utf-8-sig", "latin-1"):
+            try:
+                text = contenuto.decode(enc)
+                break
+            except Exception:
+                pass
+        if text is None:
+            text = contenuto.decode("latin-1", errors="replace")
+        sample = text[:2048]
+        try:
+            dialect = _csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        except Exception:
+            dialect = _csv.excel
+        reader = _csv.reader(io.StringIO(text), dialect)
+        rows = list(reader)
+        if not rows:
+            return [], []
+        headers = [c.strip() for c in rows[0]]
+        return headers, rows[1:]
 
 router = APIRouter(prefix="/impostazioni", tags=["impostazioni"])
 
@@ -55,6 +141,7 @@ def salva_impostazioni_azienda(
     pec_smtp_host: str = Form(""),
     pec_smtp_port: int = Form(465),
     pec_smtp_password: str = Form(""),
+    aliquota_iva_default: str = Form("22"),
     logo: UploadFile = File(None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -64,12 +151,16 @@ def salva_impostazioni_azienda(
     if logo and logo.filename:
         estensione = Path(logo.filename).suffix.lower()
         if estensione in [".png", ".jpg", ".jpeg"]:
-            cartella = Path(f"uploads/loghi/{user_id}")
-            cartella.mkdir(parents=True, exist_ok=True)
-            percorso = cartella / f"logo{estensione}"
-            with open(percorso, "wb") as f:
-                shutil.copyfileobj(logo.file, f)
-            logo_path = str(percorso)
+            from app.services.cloudinary_service import cloudinary_configurato, carica_immagine
+            contenuto = logo.file.read()
+            if cloudinary_configurato():
+                logo_path = carica_immagine(contenuto, f"logo{estensione}", folder=f"loghi/{user_id}")
+            else:
+                cartella = Path(f"uploads/loghi/{user_id}")
+                cartella.mkdir(parents=True, exist_ok=True)
+                percorso = cartella / f"logo{estensione}"
+                percorso.write_bytes(contenuto)
+                logo_path = str(percorso)
 
     crud.salva_impostazioni_azienda(
         db, user_id, nome_azienda, partita_iva, indirizzo, telefono, email, logo_path,
@@ -82,6 +173,7 @@ def salva_impostazioni_azienda(
         pec_smtp_host=pec_smtp_host,
         pec_smtp_port=pec_smtp_port,
         pec_smtp_password=pec_smtp_password,
+        aliquota_iva_default=float(aliquota_iva_default) if aliquota_iva_default else 22,
     )
     return RedirectResponse(url="/impostazioni/azienda?salvato=1", status_code=303)
 
@@ -447,6 +539,281 @@ def elimina_backup(
         "/impostazioni/backup/pagina",
         status_code=303
     )
+
+@router.get("/import", response_class=HTMLResponse)
+def pagina_import(
+    request: Request,
+    tipo: str = None,
+    inseriti: int = None,
+    saltati: int = None,
+    errori: int = None,
+    user_id: int = Depends(get_current_user),
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="import_dati.html",
+        context={"tipo": tipo, "inseriti": inseriti, "saltati": saltati, "errori": errori},
+    )
+
+
+@router.post("/import/clienti")
+async def importa_clienti(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    contenuto = await file.read()
+    try:
+        headers, righe = _leggi_file(contenuto, file.filename)
+    except Exception:
+        return RedirectResponse("/impostazioni/import?tipo=clienti&errori=1", status_code=303)
+
+    colmap = _mappa_colonne(headers, _CLIENTI_MAP)
+
+    email_esistenti = {
+        r.email.lower()
+        for r in db.query(Cliente.email).filter(
+            Cliente.utente_id == user_id,
+            Cliente.email.isnot(None),
+            Cliente.email != "",
+        ).all()
+        if r.email
+    }
+
+    inseriti = saltati = errori = 0
+
+    def _val(riga, campo):
+        idx = colmap.get(campo)
+        if idx is None or idx >= len(riga):
+            return None
+        v = str(riga[idx]).strip() if riga[idx] is not None else ""
+        return v or None
+
+    for riga in righe:
+        try:
+            nome = _val(riga, "nome") or ""
+            cognome = _val(riga, "cognome") or ""
+            ragione_sociale = _val(riga, "ragione_sociale") or ""
+            if not nome and not cognome and not ragione_sociale:
+                saltati += 1
+                continue
+            email = _val(riga, "email") or ""
+            if email and email.lower() in email_esistenti:
+                saltati += 1
+                continue
+            tipo_c = _val(riga, "tipo_cliente") or ("azienda" if ragione_sociale and not nome else "privato")
+            c = Cliente(
+                utente_id=user_id,
+                tipo_cliente=tipo_c,
+                nome=nome or None,
+                cognome=cognome or None,
+                ragione_sociale=ragione_sociale or None,
+                telefono=_val(riga, "telefono"),
+                email=email or None,
+                indirizzo=_val(riga, "indirizzo"),
+                citta=_val(riga, "citta"),
+                provincia=_val(riga, "provincia"),
+                cap=_val(riga, "cap"),
+                partita_iva=_val(riga, "partita_iva"),
+                codice_fiscale=_val(riga, "codice_fiscale"),
+                note=_val(riga, "note"),
+                data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            db.add(c)
+            if email:
+                email_esistenti.add(email.lower())
+            inseriti += 1
+        except Exception:
+            errori += 1
+
+    if inseriti > 0:
+        db.commit()
+
+    return RedirectResponse(
+        f"/impostazioni/import?tipo=clienti&inseriti={inseriti}&saltati={saltati}&errori={errori}",
+        status_code=303,
+    )
+
+
+@router.post("/import/materiali")
+async def importa_materiali(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    contenuto = await file.read()
+    try:
+        headers, righe = _leggi_file(contenuto, file.filename)
+    except Exception:
+        return RedirectResponse("/impostazioni/import?tipo=materiali&errori=1", status_code=303)
+
+    colmap = _mappa_colonne(headers, _MATERIALI_MAP)
+
+    nomi_esistenti = {
+        r.nome.lower()
+        for r in db.query(Materiale.nome).filter(
+            Materiale.utente_id == user_id,
+            Materiale.nome.isnot(None),
+        ).all()
+        if r.nome
+    }
+
+    inseriti = saltati = errori = 0
+
+    def _val(riga, campo):
+        idx = colmap.get(campo)
+        if idx is None or idx >= len(riga):
+            return None
+        v = str(riga[idx]).strip() if riga[idx] is not None else ""
+        return v or None
+
+    def _float(riga, campo, default=0.0):
+        v = _val(riga, campo)
+        if not v:
+            return default
+        try:
+            return float(str(v).replace(",", ".").replace(" ", ""))
+        except Exception:
+            return default
+
+    for riga in righe:
+        try:
+            nome = _val(riga, "nome")
+            if not nome:
+                saltati += 1
+                continue
+            if nome.lower() in nomi_esistenti:
+                saltati += 1
+                continue
+            quantita = _float(riga, "quantita", 0)
+            prezzo_pieno = _float(riga, "prezzo_acquisto_pieno", 0)
+            prezzo_scontato = _float(riga, "prezzo_acquisto_scontato", 0)
+            prezzo_vendita = _float(riga, "prezzo_vendita_default", 0)
+            m = Materiale(
+                utente_id=user_id,
+                nome=nome,
+                categoria=_val(riga, "categoria") or "",
+                unita_misura=_val(riga, "unita_misura") or "pz",
+                quantita=quantita,
+                scorta_minima=_float(riga, "scorta_minima", 0),
+                prezzo_acquisto_pieno=prezzo_pieno,
+                prezzo_acquisto_scontato=prezzo_scontato,
+                prezzo_vendita_default=prezzo_vendita,
+                note=_val(riga, "note") or "",
+                data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            db.add(m)
+            db.flush()
+            if quantita > 0:
+                carico = CaricoMateriale(
+                    utente_id=user_id,
+                    materiale_id=m.id,
+                    quantita_iniziale=quantita,
+                    quantita_residua=quantita,
+                    prezzo_acquisto=prezzo_scontato or prezzo_pieno or 0,
+                    prezzo_vendita_default=prezzo_vendita or 0,
+                    note="Importazione",
+                    data_carico=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                )
+                db.add(carico)
+            nomi_esistenti.add(nome.lower())
+            inseriti += 1
+        except Exception:
+            errori += 1
+
+    if inseriti > 0:
+        db.commit()
+
+    return RedirectResponse(
+        f"/impostazioni/import?tipo=materiali&inseriti={inseriti}&saltati={saltati}&errori={errori}",
+        status_code=303,
+    )
+
+
+@router.get("/sicurezza", response_class=HTMLResponse)
+def pagina_sicurezza(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    totp_abilitato = bool(getattr(utente, "totp_abilitato", False))
+
+    qr_b64 = None
+    totp_uri = None
+    nuovo_secret = None
+
+    if not totp_abilitato:
+        import pyotp, qrcode, io, base64
+        secret = getattr(utente, "totp_secret", None) or pyotp.random_base32()
+        if not getattr(utente, "totp_secret", None):
+            utente.totp_secret = secret
+            db.commit()
+        totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+            name=utente.email or utente.username,
+            issuer_name="Mastro",
+        )
+        qr = qrcode.QRCode(box_size=5, border=4)
+        qr.add_data(totp_uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode()
+        nuovo_secret = secret
+
+    return templates.TemplateResponse(
+        request=request,
+        name="impostazioni_sicurezza.html",
+        context={
+            "totp_abilitato": totp_abilitato,
+            "qr_b64": qr_b64,
+            "nuovo_secret": nuovo_secret,
+        },
+    )
+
+
+@router.post("/sicurezza/attiva-2fa")
+def attiva_2fa(
+    request: Request,
+    codice: str = Form(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    import pyotp
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    secret = getattr(utente, "totp_secret", None)
+    if not secret:
+        return RedirectResponse("/impostazioni/sicurezza?errore=no_secret", status_code=303)
+
+    totp = pyotp.TOTP(secret)
+    if not totp.verify(codice.strip(), valid_window=1):
+        return RedirectResponse("/impostazioni/sicurezza?errore=codice_errato", status_code=303)
+
+    utente.totp_abilitato = True
+    db.commit()
+    return RedirectResponse("/impostazioni/sicurezza?attivato=1", status_code=303)
+
+
+@router.post("/sicurezza/disattiva-2fa")
+def disattiva_2fa(
+    request: Request,
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    from app.security import verify_password
+    utente = db.query(Utente).filter(Utente.id == user_id).first()
+    if not verify_password(password, utente.password):
+        return RedirectResponse("/impostazioni/sicurezza?errore=password_errata", status_code=303)
+
+    utente.totp_abilitato = False
+    utente.totp_secret = None
+    db.commit()
+    return RedirectResponse("/impostazioni/sicurezza?disattivato=1", status_code=303)
+
 
 @router.get("/admin", response_class=HTMLResponse)
 def pagina_admin(request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):

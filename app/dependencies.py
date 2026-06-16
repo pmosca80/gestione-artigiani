@@ -103,6 +103,6 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> int:
 
 def to_float(valore, default=0.0):
     try:
-        return float(valore)
+        return float(str(valore).replace(",", "."))
     except (ValueError, TypeError):
         return default

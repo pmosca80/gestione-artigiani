@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import dati — Mastro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; background: #f8fafc; }
+        .container { max-width: 680px; margin: 32px auto; padding: 0 16px 80px; }
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px; }
+        .page-header p { font-size: 14px; color: #6b7280; margin: 0; }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+        }
+        .card-icon { font-size: 26px; }
+        .card-title { font-size: 16px; font-weight: 700; color: #111827; margin: 0; }
+        .card-subtitle { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
+
+        .alert-success {
+            background: #dcfce7; border: 1px solid #bbf7d0; color: #166534;
+            border-radius: 10px; padding: 14px 18px; font-size: 14px; font-weight: 600;
+            margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-start;
+        }
+        .alert-error {
+            background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+            border-radius: 10px; padding: 14px 18px; font-size: 14px; font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .alert-detail {
+            font-size: 13px; font-weight: 400; margin-top: 6px; color: inherit; opacity: 0.85;
+        }
+
+        .drop-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            margin-bottom: 14px;
+            background: #fafafa;
+        }
+        .drop-area:hover, .drop-area.dragover {
+            border-color: #7c3aed;
+            background: #f5f3ff;
+        }
+        .drop-icon { font-size: 28px; margin-bottom: 8px; }
+        .drop-text { font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 4px; }
+        .drop-sub { font-size: 12px; color: #9ca3af; }
+        .file-name {
+            font-size: 13px; color: #7c3aed; font-weight: 600;
+            margin-top: 8px; display: none;
+        }
+
+        .btn-import {
+            background: #7c3aed; color: white; border: none;
+            padding: 11px 24px; border-radius: 9px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            font-family: inherit; transition: background 0.15s;
+            width: 100%;
+        }
+        .btn-import:hover { background: #6d28d9; }
+        .btn-import:disabled { background: #c4b5fd; cursor: not-allowed; }
+
+        .colonne-info {
+            background: #f8fafc; border: 1px solid #e5e7eb;
+            border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+        }
+        .colonne-info summary {
+            font-size: 12px; font-weight: 700; color: #6b7280;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            cursor: pointer; list-style: none;
+        }
+        .colonne-info summary::-webkit-details-marker { display: none; }
+        .colonne-info summary::before { content: '▶ '; font-size: 10px; }
+        details[open] .colonne-info summary::before { content: '▼ '; }
+        .col-grid {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+        }
+        .col-tag {
+            background: white; border: 1px solid #e5e7eb;
+            border-radius: 5px; padding: 3px 8px;
+            font-size: 11px; font-family: monospace; color: #374151;
+        }
+        .col-tag.required {
+            border-color: #a78bfa; background: #f5f3ff; color: #7c3aed;
+        }
+        .note-text {
+            font-size: 12px; color: #9ca3af; margin-top: 10px; line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.7px; color: #9ca3af; margin: 28px 0 12px;
+        }
+    </style>
+</head>
+<body>
+{% include "components/navbar.html" %}
+
+<div class="container">
+    <div class="page-header">
+        <h1>Import dati</h1>
+        <p>Importa clienti e materiali da file CSV o Excel. Utile per migrare da altri software gestionali.</p>
+    </div>
+
+    {% if tipo and inseriti is not none %}
+    {% if inseriti > 0 or saltati is not none %}
+    <div class="alert-success">
+        <span>✅</span>
+        <div>
+            Import {{ 'clienti' if tipo == 'clienti' else 'materiali' }} completato.
+            <div class="alert-detail">
+                <strong>{{ inseriti }}</strong> record inseriti
+                {% if saltati %} · <strong>{{ saltati }}</strong> saltati (duplicati o vuoti){% endif %}
+                {% if errori %} · <strong>{{ errori }}</strong> righe con errore{% endif %}
+            </div>
+        </div>
+    </div>
+    {% elif errori %}
+    <div class="alert-error">
+        Import fallito — file non riconosciuto o colonne mancanti.
+        <div class="alert-detail">Assicurati di caricare un file .xlsx o .csv con intestazioni nella prima riga.</div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="section-title">Clienti</div>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">👥</div>
+            <div>
+                <div class="card-title">Import Clienti</div>
+                <div class="card-subtitle">CSV o Excel — duplicati ignorati per email</div>
+            </div>
+        </div>
+
+        <form method="post" action="/impostazioni/import/clienti" enctype="multipart/form-data" id="form-clienti">
+            <div class="drop-area" id="drop-clienti" onclick="document.getElementById('file-clienti').click()">
+                <div class="drop-icon">📋</div>
+                <div class="drop-text">Trascina il file qui o clicca per scegliere</div>
+                <div class="drop-sub">Formati supportati: .xlsx, .csv</div>
+                <div class="file-name" id="name-clienti"></div>
+            </div>
+            <input type="file" id="file-clienti" name="file" accept=".xlsx,.csv"
+                   style="display:none" onchange="mostraFile('clienti', this)">
+            <button type="submit" class="btn-import" id="btn-clienti" disabled>Importa clienti</button>
+        </form>
+
+        <details class="colonne-info">
+            <summary>Colonne riconosciute</summary>
+            <div class="col-grid">
+                <span class="col-tag required">Nome</span>
+                <span class="col-tag required">Cognome</span>
+                <span class="col-tag required">Ragione sociale</span>
+                <span class="col-tag">Tipo</span>
+                <span class="col-tag">Telefono</span>
+                <span class="col-tag">Email</span>
+                <span class="col-tag">Indirizzo</span>
+                <span class="col-tag">Città</span>
+                <span class="col-tag">Provincia</span>
+                <span class="col-tag">CAP</span>
+                <span class="col-tag">Partita IVA</span>
+                <span class="col-tag">Codice fiscale</span>
+                <span class="col-tag">Note</span>
+            </div>
+            <p class="note-text">
+                Serve almeno uno tra <em>Nome/Cognome</em> o <em>Ragione sociale</em>.<br>
+                I clienti con la stessa email vengono saltati automaticamente.<br>
+                I nomi delle colonne possono variare (maiuscole, accenti, spazi) — vengono riconosciuti automaticamente.
+            </p>
+        </details>
+    </div>
+
+    <div class="section-title">Materiali / Magazzino</div>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">📦</div>
+            <div>
+                <div class="card-title">Import Materiali</div>
+                <div class="card-subtitle">CSV o Excel — duplicati ignorati per nome</div>
+            </div>
+        </div>
+
+        <form method="post" action="/impostazioni/import/materiali" enctype="multipart/form-data" id="form-materiali">
+            <div class="drop-area" id="drop-materiali" onclick="document.getElementById('file-materiali').click()">
+                <div class="drop-icon">📦</div>
+                <div class="drop-text">Trascina il file qui o clicca per scegliere</div>
+                <div class="drop-sub">Formati supportati: .xlsx, .csv</div>
+                <div class="file-name" id="name-materiali"></div>
+            </div>
+            <input type="file" id="file-materiali" name="file" accept=".xlsx,.csv"
+                   style="display:none" onchange="mostraFile('materiali', this)">
+            <button type="submit" class="btn-import" id="btn-materiali" disabled>Importa materiali</button>
+        </form>
+
+        <details class="colonne-info">
+            <summary>Colonne riconosciute</summary>
+            <div class="col-grid">
+                <span class="col-tag required">Nome</span>
+                <span class="col-tag">Categoria</span>
+                <span class="col-tag">Unità misura</span>
+                <span class="col-tag">Quantità</span>
+                <span class="col-tag">Scorta minima</span>
+                <span class="col-tag">Prezzo acquisto pieno</span>
+                <span class="col-tag">Prezzo acquisto scontato</span>
+                <span class="col-tag">Prezzo vendita</span>
+                <span class="col-tag">Note</span>
+            </div>
+            <p class="note-text">
+                Il campo <em>Nome</em> è obbligatorio.<br>
+                I materiali con lo stesso nome vengono saltati automaticamente.<br>
+                Se la quantità è &gt; 0 viene creato automaticamente un carico iniziale in magazzino.
+            </p>
+        </details>
+    </div>
+</div>
+
+<script>
+function mostraFile(tipo, input) {
+    const f = input.files[0];
+    if (!f) return;
+    document.getElementById('name-' + tipo).style.display = 'block';
+    document.getElementById('name-' + tipo).textContent = '📄 ' + f.name;
+    document.getElementById('btn-' + tipo).disabled = false;
+}
+
+['clienti','materiali'].forEach(function(tipo) {
+    const drop = document.getElementById('drop-' + tipo);
+    drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', function() { drop.classList.remove('dragover'); });
+    drop.addEventListener('drop', function(e) {
+        e.preventDefault();
+        drop.classList.remove('dragover');
+        const input = document.getElementById('file-' + tipo);
+        const dt = e.dataTransfer;
+        if (dt.files.length) {
+            const transfer = new DataTransfer();
+            transfer.items.add(dt.files[0]);
+            input.files = transfer.files;
+            mostraFile(tipo, input);
+        }
+    });
+});
+</script>
+</body>
+</html>

@@ -617,6 +617,11 @@
                 Il cliente può seguire i lavori in tempo reale tramite questo link (senza login).
                 Contiene aggiornamenti, rapportini e foto — nessuna informazione finanziaria.
             </p>
+            {% if cliente.token_portale_scadenza %}
+            <p style="font-size:12px; margin-bottom:12px; color:#6b7280;">
+                Scade il {{ cliente.token_portale_scadenza.strftime('%d/%m/%Y') }}
+            </p>
+            {% endif %}
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
                 <input type="text" id="portale-link-input" value="{{ _portale_url }}" readonly
                        style="flex:1; min-width:200px; padding:9px 12px; background:#f8fafc; border:1.5px solid #e5e7eb;

@@ -290,8 +290,13 @@
                         </div>
                         <div class="form-group">
                             <label>IVA (%)</label>
-                            <input type="number" step="0.01" name="aliquota_iva"
-                                   value="{{ lavoro.aliquota_iva or 22 }}">
+                            {% set iva_val = lavoro.aliquota_iva if lavoro.aliquota_iva is not none else 22 %}
+                            <select name="aliquota_iva">
+                                <option value="0"  {% if iva_val == 0  %}selected{% endif %}>0% — Forfettario / Esente</option>
+                                <option value="4"  {% if iva_val == 4  %}selected{% endif %}>4% — Ridotta</option>
+                                <option value="10" {% if iva_val == 10 %}selected{% endif %}>10% — Ristrutturazione edilizia</option>
+                                <option value="22" {% if iva_val == 22 or (iva_val != 0 and iva_val != 4 and iva_val != 10) %}selected{% endif %}>22% — Ordinaria</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Sconto sul totale (€)</label>

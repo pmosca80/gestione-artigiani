@@ -394,6 +394,149 @@ def invia_notifica_firma_preventivo(
     )
 
 
+def invia_preventivo_al_cliente(
+    *,
+    cliente_email: str,
+    nome_cliente: str,
+    nome_azienda: str,
+    titolo_lavoro: str,
+    importo: float | None,
+    link_firma: str,
+    telefono_azienda: str | None = None,
+) -> bool:
+    if not smtp_configurato() or "@" not in (cliente_email or ""):
+        return False
+
+    importo_riga = (
+        f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">'
+        f'<span style="color:#6b7280;">Importo preventivato</span>'
+        f'<span style="font-weight:700;color:#1e40af;">€ {importo:,.2f}</span></div>'
+        if importo else ""
+    )
+    contatto_riga = (
+        f'<p style="font-size:13px;color:#6b7280;margin:0;">📞 {telefono_azienda}</p>'
+        if telefono_azienda else ""
+    )
+
+    corpo = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"></head>
+<body style="font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;margin:0;padding:32px 16px;">
+<div style="max-width:520px;margin:0 auto;background:white;border-radius:16px;
+     box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:28px 36px;text-align:center;">
+    <h1 style="color:white;font-size:22px;margin:0;font-weight:700;">📋 Preventivo pronto</h1>
+    <p style="color:#bfdbfe;font-size:14px;margin:8px 0 0;">{nome_azienda}</p>
+  </div>
+  <div style="padding:28px 36px;">
+    <p style="font-size:15px;color:#374151;margin:0 0 20px;">
+      Gentile <strong>{nome_cliente}</strong>,<br><br>
+      il preventivo per il lavoro indicato di seguito è pronto.
+      Può visualizzarlo e confermarlo cliccando il pulsante qui sotto.
+    </p>
+    <div style="background:#f0f4ff;border-radius:12px;padding:16px;margin:20px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+        <span style="color:#6b7280;">Lavoro</span>
+        <span style="font-weight:700;color:#1e40af;">{titolo_lavoro}</span>
+      </div>
+      {importo_riga}
+    </div>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="{link_firma}" style="display:inline-block;background:#2563eb;color:white;
+         padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;">
+        Visualizza e conferma il preventivo →
+      </a>
+    </div>
+    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0;">
+      Oppure copia e incolla nel browser:<br>
+      <span style="word-break:break-all;">{link_firma}</span>
+    </p>
+  </div>
+  <div style="background:#f8fafc;padding:14px 36px;text-align:center;
+       font-size:12px;color:#9ca3af;border-top:1px solid #f1f5f9;">
+    {nome_azienda}<br>{contatto_riga}
+  </div>
+</div>
+</body></html>"""
+
+    return _send(
+        to=cliente_email,
+        subject=f"Preventivo pronto — {titolo_lavoro}",
+        html=corpo,
+    )
+
+
+def invia_lavoro_completato_al_cliente(
+    *,
+    cliente_email: str,
+    nome_cliente: str,
+    nome_azienda: str,
+    titolo_lavoro: str,
+    importo: float | None,
+    link_portale: str | None = None,
+    telefono_azienda: str | None = None,
+) -> bool:
+    if not smtp_configurato() or "@" not in (cliente_email or ""):
+        return False
+
+    importo_riga = (
+        f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">'
+        f'<span style="color:#6b7280;">Importo</span>'
+        f'<span style="font-weight:700;color:#166534;">€ {importo:,.2f}</span></div>'
+        if importo else ""
+    )
+    portale_btn = (
+        f'<p style="text-align:center;margin:24px 0 0;">'
+        f'<a href="{link_portale}" style="display:inline-block;background:#374151;color:white;'
+        f'padding:11px 24px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;">'
+        f'Visualizza i tuoi lavori →</a></p>'
+        if link_portale else ""
+    )
+    contatto_riga = (
+        f'<p style="font-size:13px;color:#6b7280;margin:0;">📞 {telefono_azienda}</p>'
+        if telefono_azienda else ""
+    )
+
+    corpo = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"></head>
+<body style="font-family:'Segoe UI',Arial,sans-serif;background:#f0fdf4;margin:0;padding:32px 16px;">
+<div style="max-width:520px;margin:0 auto;background:white;border-radius:16px;
+     box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#14532d,#16a34a);padding:28px 36px;text-align:center;">
+    <h1 style="color:white;font-size:22px;margin:0;font-weight:700;">✅ Lavoro completato</h1>
+    <p style="color:#bbf7d0;font-size:14px;margin:8px 0 0;">{nome_azienda}</p>
+  </div>
+  <div style="padding:28px 36px;">
+    <p style="font-size:15px;color:#374151;margin:0 0 20px;">
+      Gentile <strong>{nome_cliente}</strong>,<br><br>
+      siamo lieti di comunicarle che il lavoro è stato completato.
+      La ringraziamo per la fiducia accordataci.
+    </p>
+    <div style="background:#f0fdf4;border-radius:12px;padding:16px;margin:20px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+        <span style="color:#6b7280;">Lavoro</span>
+        <span style="font-weight:700;color:#166534;">{titolo_lavoro}</span>
+      </div>
+      {importo_riga}
+    </div>
+    <p style="font-size:14px;color:#374151;">
+      Per qualsiasi necessità o chiarimento non esiti a contattarci.
+    </p>
+    {portale_btn}
+  </div>
+  <div style="background:#f8fafc;padding:14px 36px;text-align:center;
+       font-size:12px;color:#9ca3af;border-top:1px solid #f1f5f9;">
+    {nome_azienda}<br>{contatto_riga}
+  </div>
+</div>
+</body></html>"""
+
+    return _send(
+        to=cliente_email,
+        subject=f"Lavoro completato — {titolo_lavoro}",
+        html=corpo,
+    )
+
+
 def invia_fattura_pdf(
     *,
     to_email: str,

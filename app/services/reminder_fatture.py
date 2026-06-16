@@ -8,6 +8,7 @@ from app.database import SessionLocal
 from app.models import FatturaEmessa, ImpostazioniAzienda
 from app.services.email import invia_email
 from app.services.push import invia_push
+from app.services.scheduler_lock import con_lock
 from app.logger import get_logger
 
 logger = get_logger("reminder_fatture")
@@ -16,6 +17,7 @@ logger = get_logger("reminder_fatture")
 SOGLIE = [30, 60]
 
 
+@con_lock("controlla_fatture")
 def controlla_fatture_non_pagate() -> None:
     logger.info("Controllo fatture non pagate in corso...")
     db: Session = SessionLocal()

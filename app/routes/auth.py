@@ -80,6 +80,70 @@ def login(
             context={"errore": "Devi verificare la tua email prima di accedere. Controlla la posta in arrivo."},
         )
 
+    if getattr(user, "totp_abilitato", False):
+        request.session.clear()
+        request.session["_2fa_pending_id"] = user.id
+        request.session["_2fa_pending_expires"] = (datetime.now() + timedelta(minutes=5)).isoformat()
+        return RedirectResponse(url="/verifica-2fa", status_code=303)
+
+    request.session.clear()
+    request.session["user_id"] = user.id
+    request.session["username"] = user.username
+    request.session["is_collaboratore"] = bool(getattr(user, "titolare_id", None))
+    request.session["piano"] = getattr(user, "piano", None) or "free"
+    request.session["last_activity"] = datetime.now().isoformat()
+
+    return RedirectResponse(url="/", status_code=303)
+
+
+# ── VERIFICA 2FA ──────────────────────────────────────────────────────────────
+
+@router.get("/verifica-2fa", response_class=HTMLResponse)
+def verifica_2fa_page(request: Request):
+    if not request.session.get("_2fa_pending_id"):
+        return RedirectResponse(url="/login", status_code=303)
+    scadenza = request.session.get("_2fa_pending_expires", "")
+    try:
+        if datetime.now() > datetime.fromisoformat(scadenza):
+            request.session.clear()
+            return RedirectResponse(url="/login?errore=2fa_scaduto", status_code=303)
+    except Exception:
+        request.session.clear()
+        return RedirectResponse(url="/login", status_code=303)
+    return templates.TemplateResponse(request=request, name="verifica_2fa.html", context={})
+
+
+@router.post("/verifica-2fa")
+def verifica_2fa(
+    request: Request,
+    codice: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    pending_id = request.session.get("_2fa_pending_id")
+    scadenza = request.session.get("_2fa_pending_expires", "")
+    if not pending_id:
+        return RedirectResponse(url="/login", status_code=303)
+    try:
+        if datetime.now() > datetime.fromisoformat(scadenza):
+            request.session.clear()
+            return RedirectResponse(url="/login?errore=2fa_scaduto", status_code=303)
+    except Exception:
+        request.session.clear()
+        return RedirectResponse(url="/login", status_code=303)
+
+    user = db.query(Utente).filter(Utente.id == pending_id).first()
+    if not user or not getattr(user, "totp_secret", None):
+        request.session.clear()
+        return RedirectResponse(url="/login", status_code=303)
+
+    import pyotp
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(codice.strip(), valid_window=1):
+        return templates.TemplateResponse(
+            request=request, name="verifica_2fa.html",
+            context={"errore": "Codice non valido o scaduto. Riprova."},
+        )
+
     request.session.clear()
     request.session["user_id"] = user.id
     request.session["username"] = user.username

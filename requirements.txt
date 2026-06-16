@@ -52,3 +52,5 @@ pywebpush>=2.0.0
 icalendar>=6.0
 resend>=2.0
 requests>=2.31
+pyotp>=2.9
+qrcode[pil]>=7.4

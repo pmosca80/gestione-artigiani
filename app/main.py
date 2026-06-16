@@ -13,7 +13,7 @@ from app.templates_config import templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.database import Base, engine, get_db
+from app.database import get_db
 from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente, lavori_timesheet, stripe_webhook
 from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
 from app import models, crud
@@ -63,161 +63,8 @@ if not SECRET_KEY or SECRET_KEY == "dev-secret-key" or len(SECRET_KEY) < 20:
     )
 
 
-# Migrazione inline: aggiunge colonne aggiunte dopo il deploy iniziale
-from sqlalchemy import text, inspect as _inspect
-
-def _adapt_sql(sql: str) -> str:
-    """Sostituisce sintassi SQLite con l'equivalente PostgreSQL se necessario."""
-    if engine.dialect.name == "postgresql":
-        return sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
-    return sql
-
-def _run_migrations():
-    insp = _inspect(engine)
-    cols = [c["name"] for c in insp.get_columns("utenti")]
-    with engine.connect() as conn:
-        if "pro_scadenza" not in cols:
-            conn.execute(text("ALTER TABLE utenti ADD COLUMN pro_scadenza VARCHAR"))
-        if "titolare_id" not in cols:
-            conn.execute(text("ALTER TABLE utenti ADD COLUMN titolare_id INTEGER"))
-        if "ruolo" not in cols:
-            conn.execute(text("ALTER TABLE utenti ADD COLUMN ruolo VARCHAR DEFAULT 'titolare'"))
-        if "onboarding_done" not in cols:
-            conn.execute(text("ALTER TABLE utenti ADD COLUMN onboarding_done BOOLEAN DEFAULT FALSE NOT NULL"))
-        # Fatture: reminder_inviato + nota di credito
-        fat_cols = [c["name"] for c in insp.get_columns("fatture_emesse")]
-        if "reminder_inviato" not in fat_cols:
-            conn.execute(text("ALTER TABLE fatture_emesse ADD COLUMN reminder_inviato INTEGER DEFAULT 0"))
-        for col, defn in [
-            ("tipo_documento",    "VARCHAR DEFAULT 'TD01'"),
-            ("fattura_rif_numero", "INTEGER"),
-            ("fattura_rif_anno",   "INTEGER"),
-        ]:
-            if col not in fat_cols:
-                conn.execute(text(f"ALTER TABLE fatture_emesse ADD COLUMN {col} {defn}"))
-        # Impostazioni azienda: PEC per invio SDI + contatori fattura
-        imp_cols = [c["name"] for c in insp.get_columns("impostazioni_azienda")]
-        for col, defn in [
-            ("pec_indirizzo",         "VARCHAR"),
-            ("pec_smtp_host",         "VARCHAR"),
-            ("pec_smtp_port",         "INTEGER DEFAULT 465"),
-            ("pec_smtp_password",     "VARCHAR"),
-            ("ultimo_numero_fattura", "INTEGER DEFAULT 0"),
-            ("ultimo_anno_fattura",   "INTEGER"),
-        ]:
-            if col not in imp_cols:
-                conn.execute(text(f"ALTER TABLE impostazioni_azienda ADD COLUMN {col} {defn}"))
-        # Clienti: campi SDI + token portale
-        cli_cols = [c["name"] for c in insp.get_columns("clienti")]
-        for col in ["codice_destinatario", "pec_destinatario", "token_portale"]:
-            if col not in cli_cols:
-                conn.execute(text(f"ALTER TABLE clienti ADD COLUMN {col} VARCHAR"))
-        # Token feed iCalendar per utente
-        if "cal_token" not in cols:
-            conn.execute(text("ALTER TABLE utenti ADD COLUMN cal_token VARCHAR"))
-        # Firma digitale preventivi
-        lav_cols = [c["name"] for c in insp.get_columns("lavori")]
-        for col in ["token_firma", "firma_nome_cliente", "firma_ip"]:
-            if col not in lav_cols:
-                conn.execute(text(f"ALTER TABLE lavori ADD COLUMN {col} VARCHAR"))
-        # Template preventivi
-        if not _inspect(engine).has_table("template_preventivi"):
-            conn.execute(text(_adapt_sql("""
-                CREATE TABLE template_preventivi (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
-                    nome VARCHAR NOT NULL,
-                    titolo VARCHAR DEFAULT '',
-                    descrizione TEXT DEFAULT '',
-                    importo_preventivato REAL DEFAULT 0,
-                    aliquota_iva REAL DEFAULT 22,
-                    sconto REAL DEFAULT 0,
-                    note_consuntivo TEXT DEFAULT '',
-                    creato_il VARCHAR
-                )
-            """)))
-        # Listino prezzi
-        if not _inspect(engine).has_table("listino_voci"):
-            conn.execute(text(_adapt_sql("""
-                CREATE TABLE listino_voci (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
-                    descrizione VARCHAR NOT NULL,
-                    unita_misura VARCHAR DEFAULT '',
-                    prezzo_unitario REAL DEFAULT 0,
-                    categoria VARCHAR DEFAULT '',
-                    data_creazione VARCHAR NOT NULL
-                )
-            """)))
-        # SAL — Stato Avanzamento Lavori
-        if not _inspect(engine).has_table("sal_lavoro"):
-            conn.execute(text(_adapt_sql("""
-                CREATE TABLE sal_lavoro (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
-                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
-                    numero INTEGER NOT NULL DEFAULT 1,
-                    data VARCHAR NOT NULL,
-                    percentuale REAL NOT NULL DEFAULT 0,
-                    importo_richiesto REAL NOT NULL DEFAULT 0,
-                    descrizione TEXT DEFAULT '',
-                    note TEXT DEFAULT '',
-                    stato VARCHAR NOT NULL DEFAULT 'emesso',
-                    data_creazione VARCHAR NOT NULL
-                )
-            """)))
-        # Rapportini di lavoro giornalieri
-        if not _inspect(engine).has_table("rapportini_lavoro"):
-            conn.execute(text(_adapt_sql("""
-                CREATE TABLE rapportini_lavoro (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
-                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
-                    data VARCHAR NOT NULL,
-                    ore_lavorate REAL DEFAULT 0,
-                    descrizione_attivita TEXT NOT NULL,
-                    materiali_note TEXT DEFAULT '',
-                    note TEXT DEFAULT '',
-                    data_creazione VARCHAR NOT NULL
-                )
-            """)))
-        # Promemoria manutenzioni / CRM
-        if not _inspect(engine).has_table("promemoria_clienti"):
-            conn.execute(text(_adapt_sql("""
-                CREATE TABLE promemoria_clienti (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
-                    cliente_id INTEGER REFERENCES clienti(id),
-                    titolo VARCHAR NOT NULL,
-                    note TEXT DEFAULT '',
-                    data_promemoria VARCHAR NOT NULL,
-                    tipo VARCHAR NOT NULL DEFAULT 'manutenzione',
-                    stato VARCHAR NOT NULL DEFAULT 'attivo',
-                    data_creazione VARCHAR NOT NULL
-                )
-            """)))
-
-        # Timesheet collaboratori
-        if not _inspect(engine).has_table("timesheet_collab"):
-            conn.execute(text(_adapt_sql("""
-                CREATE TABLE timesheet_collab (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lavoro_id INTEGER NOT NULL REFERENCES lavori(id),
-                    utente_id INTEGER NOT NULL REFERENCES utenti(id),
-                    nome_operaio VARCHAR NOT NULL,
-                    data VARCHAR NOT NULL,
-                    ore REAL NOT NULL DEFAULT 0,
-                    costo_orario REAL DEFAULT 0,
-                    note TEXT DEFAULT '',
-                    data_creazione VARCHAR NOT NULL
-                )
-            """)))
-        # Fix residuo_pagamento negativo (pagato > totale_documento = 0)
-        conn.execute(text(
-            "UPDATE lavori SET residuo_pagamento = 0 WHERE residuo_pagamento < 0"
-        ))
-        conn.commit()
-_run_migrations()
+# Schema gestito da Alembic — vedi alembic/versions/
+# Il Procfile esegue "alembic upgrade head" prima di avviare gunicorn.
 
 app = FastAPI(
     title="Mastro"
@@ -226,12 +73,13 @@ app = FastAPI(
 app.state.limiter = limiter
 
 app.add_middleware(CSRFMiddleware)
+_https_only = bool(os.getenv("RAILWAY_ENVIRONMENT_NAME") or os.getenv("RAILWAY_PROJECT_ID"))
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     max_age=86400 * 30,
     same_site="lax",
-    https_only=False,
+    https_only=_https_only,
 )
 
 templates.env.globals["VAPID_PUBLIC_KEY"] = os.getenv("VAPID_PUBLIC_KEY", "")

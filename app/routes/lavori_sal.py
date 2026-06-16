@@ -96,9 +96,9 @@ def pdf_sal(lavoro_id: int, sal_id: int, request: Request,
     from pathlib import Path
     from reportlab.platypus import Image as RLImage
     if azienda and azienda.logo_path:
-        lp = Path(azienda.logo_path)
-        if lp.exists():
-            img = RLImage(str(lp), width=120, height=60)
+        lp = azienda.logo_path
+        if lp.startswith("http") or Path(lp).exists():
+            img = RLImage(lp, width=120, height=60)
             img.hAlign = "LEFT"
             els.append(img)
             els.append(Spacer(1, 8))
