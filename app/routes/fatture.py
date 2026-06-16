@@ -13,11 +13,13 @@ from app.templates_config import templates
 router = APIRouter(prefix="/fatture", tags=["fatture"])
 
 
-def _fmt_data(d: str) -> str:
+def _fmt_data(d) -> str:
     try:
-        return datetime.strptime(d, "%Y-%m-%d").strftime("%d/%m/%Y")
+        if hasattr(d, "strftime"):
+            return d.strftime("%d/%m/%Y")
+        return datetime.strptime(str(d)[:10], "%Y-%m-%d").strftime("%d/%m/%Y")
     except Exception:
-        return d
+        return str(d) if d else ""
 
 
 def _componi_email_sollecito(
@@ -393,7 +395,7 @@ def liquidazione_iva(
         if (f.tipo_documento or "TD01") != "TD01":
             continue
         try:
-            mese = int(f.data_emissione[5:7])
+            mese = f.data_emissione.month if hasattr(f.data_emissione, "month") else int(str(f.data_emissione)[5:7])
         except Exception:
             continue
         q = (mese - 1) // 3 + 1
@@ -690,16 +692,16 @@ def crea_fattura_da_lavoro(
         anno_gen, numero_gen = crud.genera_numero_fattura(db, user_id)
         lavoro.numero_fattura = numero_gen
         if not lavoro.data_fattura:
-            lavoro.data_fattura = _date.today().isoformat()
+            lavoro.data_fattura = _date.today()
         db.commit()
         db.refresh(lavoro)
 
     lavoro.stato_fattura = "emessa"
     db.commit()
 
-    data_em = lavoro.data_fattura or _date.today().isoformat()
+    data_em = lavoro.data_fattura or _date.today()
     try:
-        anno = int(data_em[:4])
+        anno = data_em.year if hasattr(data_em, "year") else int(str(data_em)[:4])
     except (ValueError, TypeError):
         anno = _date.today().year
 

@@ -58,15 +58,11 @@ def _esegui(db: Session) -> None:
         data_rif = None
         ha_scadenza = False
         if lavoro and lavoro.data_scadenza_pagamento:
-            try:
-                data_rif = datetime.strptime(lavoro.data_scadenza_pagamento, "%Y-%m-%d").date()
-                ha_scadenza = True
-            except Exception:
-                pass
+            data_rif = lavoro.data_scadenza_pagamento
+            ha_scadenza = True
         if not data_rif:
-            try:
-                data_rif = datetime.strptime(fattura.data_emissione, "%Y-%m-%d").date()
-            except Exception:
+            data_rif = fattura.data_emissione
+            if not data_rif:
                 continue
 
         giorni = (oggi - data_rif).days
@@ -96,7 +92,7 @@ def _esegui(db: Session) -> None:
                 "numero": fattura.numero,
                 "anno": fattura.anno,
                 "importo": fattura.importo_totale,
-                "data_emissione": datetime.strptime(fattura.data_emissione, "%Y-%m-%d").date().strftime("%d/%m/%Y"),
+                "data_emissione": fattura.data_emissione.strftime("%d/%m/%Y") if hasattr(fattura.data_emissione, "strftime") else str(fattura.data_emissione),
                 "giorni": giorni,
                 "cliente": nome_cliente,
                 "ha_scadenza": ha_scadenza,

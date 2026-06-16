@@ -211,7 +211,7 @@ def genera_xml_fatturapa(
     if tipo_documento == "TD04":
         dati_pagamento = ""
     else:
-        data_scad = (lavoro.data_scadenza_pagamento or "").strip()
+        data_scad = str(lavoro.data_scadenza_pagamento) if lavoro.data_scadenza_pagamento else ""
         scad_tag  = f"        <DataScadenzaPagamento>{data_scad}</DataScadenzaPagamento>\n" if data_scad else ""
         dati_pagamento = (
             "    <DatiPagamento>\n"

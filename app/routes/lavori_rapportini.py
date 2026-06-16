@@ -1,5 +1,5 @@
 import io
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -31,7 +31,7 @@ def lista_rapportini(lavoro_id: int, request: Request,
         "lavoro": lavoro,
         "rapportini": rapportini,
         "totale_ore": totale_ore,
-        "oggi": datetime.now().strftime("%Y-%m-%d"),
+        "oggi": date.today(),
     })
 
 
@@ -151,7 +151,7 @@ def pdf_rapportino(lavoro_id: int, rapportino_id: int, request: Request,
 
     doc.build(els)
     buffer.seek(0)
-    data_str = r.data.replace("-", "")
+    data_str = r.data.strftime("%Y%m%d") if hasattr(r.data, "strftime") else str(r.data).replace("-", "")
     filename = f"Rapportino_{data_str}_{lavoro.titolo[:25].replace(' ', '_')}.pdf"
     return StreamingResponse(
         buffer,

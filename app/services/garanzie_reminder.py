@@ -36,9 +36,8 @@ def _esegui(db: Session) -> None:
     aggiornamenti_7 = []
 
     for g in garanzie:
-        try:
-            scad = datetime.strptime(g.data_scadenza, "%Y-%m-%d").date()
-        except Exception:
+        scad = g.data_scadenza
+        if not scad:
             continue
 
         giorni = (scad - oggi).days

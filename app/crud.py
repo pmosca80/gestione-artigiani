@@ -5,7 +5,7 @@ import calendar
 from datetime import datetime, timedelta
 from app.models import ImpostazioniAzienda
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from app.models import (
@@ -193,7 +193,7 @@ def get_lavori(
     if stato:
         query = query.filter(Lavoro.stato == stato)
 
-    oggi = datetime.now().strftime("%Y-%m-%d")
+    oggi = date.today()
 
     if pagamento == "da_incassare":
         query = query.filter(Lavoro.residuo_pagamento > 0)
@@ -244,16 +244,15 @@ def get_lavori(
     offset = (pagina - 1) * per_pagina
     lavori = query.offset(offset).limit(per_pagina).all()
 
-    oggi_data = datetime.now()
+    oggi_data = date.today()
     for lavoro in lavori:
         lavoro.giorni_ritardo = 0
         if lavoro.data_scadenza_pagamento and lavoro.stato_pagamento != "pagato":
             try:
-                scadenza = datetime.strptime(lavoro.data_scadenza_pagamento, "%Y-%m-%d")
-                differenza = (oggi_data - scadenza).days
+                differenza = (oggi_data - lavoro.data_scadenza_pagamento).days
                 if differenza > 0:
                     lavoro.giorni_ritardo = differenza
-            except:
+            except Exception:
                 pass
 
     return {
@@ -879,7 +878,7 @@ def calcola_totale_materiali_lavoro(db: Session, utente_id: int, lavoro_id: int)
 
 def get_dashboard_pro(db: Session, utente_id: int):
 
-    oggi = datetime.now().strftime("%Y-%m-%d")
+    oggi = date.today()
 
     lavori = db.query(Lavoro).filter(
         Lavoro.utente_id == utente_id
@@ -1029,7 +1028,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
     lavori_acconto = sum(1 for l in lavori if l.stato_pagamento == "acconto")
     lavori_da_pagare = sum(1 for l in lavori if l.stato_pagamento == "da_pagare")
     
-    oggi = datetime.now().strftime("%Y-%m-%d")
+    oggi = date.today()
 
     lavori_scaduti = [
         lavoro for lavoro in lavori
@@ -1063,7 +1062,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
 
     lavori_urgenti.sort(
         key=lambda l: (
-            l.data_scadenza_pagamento or "9999-12-31",
+            l.data_scadenza_pagamento or date(9999, 12, 31),
             -(l.residuo_pagamento or 0)
         )
     )
@@ -1210,7 +1209,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
     ]
 
     scadenzario.sort(
-        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+        key=lambda l: l.data_scadenza_pagamento or date(9999, 12, 31)
     )
 
     scadenzario = scadenzario[:10]
@@ -1237,12 +1236,11 @@ def get_dashboard_pro(db: Session, utente_id: int):
         delta_fatturato_pct = 0.0
 
     # ── Lavori in scadenza questa settimana ───────────────────────────────────
-    _fine_sett = (_today + _td_kpi(days=7)).isoformat()
-    _oggi_iso = _today.isoformat()
+    _fine_sett = _today + _td_kpi(days=7)
     lavori_scadenza_settimana = sorted(
         [l for l in lavori
          if l.data_scadenza_pagamento
-         and _oggi_iso <= l.data_scadenza_pagamento <= _fine_sett
+         and _today <= l.data_scadenza_pagamento <= _fine_sett
          and (l.residuo_pagamento or 0) > 0],
         key=lambda l: l.data_scadenza_pagamento
     )
@@ -1261,7 +1259,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
     fatturato_fatturapa_anno = sum(f.importo_totale or 0 for f in fatture_anno_list)
     fatture_mese_count = sum(
         1 for f in fatture_anno_list
-        if f.data_emissione and f.data_emissione.startswith(mese_corrente)
+        if f.data_emissione and str(f.data_emissione)[:7] == mese_corrente
     )
 
     # ── Preventivi (stati preventivo/preventivo_inviato/preventivo_accettato) ──
@@ -1269,17 +1267,16 @@ def get_dashboard_pro(db: Session, utente_id: int):
     lavori_preventivi = sum(1 for l in lavori if l.stato in _stati_preventivo)
 
     # ── Previsione incassi prossimi 30/60/90 giorni ───────────────────────────
-    _d30 = (_today + _td_kpi(days=30)).isoformat()
-    _d60 = (_today + _td_kpi(days=60)).isoformat()
-    _d90 = (_today + _td_kpi(days=90)).isoformat()
-    _oggi_iso = _today.isoformat()
+    _d30 = _today + _td_kpi(days=30)
+    _d60 = _today + _td_kpi(days=60)
+    _d90 = _today + _td_kpi(days=90)
 
-    def _prev_incassi(fine: str) -> float:
+    def _prev_incassi(fine) -> float:
         return sum(
             l.residuo_pagamento or 0
             for l in lavori
             if l.data_scadenza_pagamento
-            and _oggi_iso <= l.data_scadenza_pagamento <= fine
+            and _today <= l.data_scadenza_pagamento <= fine
             and (l.residuo_pagamento or 0) > 0
         )
 
@@ -1798,7 +1795,7 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
         .all()
     )
 
-    oggi = datetime.now().strftime("%Y-%m-%d")
+    oggi = date.today()
 
     totale_lavori = len(lavori)
     totale_documenti = sum(l.totale_documento or 0 for l in lavori)
@@ -1835,7 +1832,7 @@ def get_riepilogo_cliente(db: Session, cliente_id: int, utente_id: int):
 
     # Fatturato ultimi 12 mesi
     from datetime import date as _date, timedelta as _timedelta
-    un_anno_fa = (_date.today() - _timedelta(days=365)).strftime("%Y-%m-%d")
+    un_anno_fa = _date.today() - _timedelta(days=365)
     fatturato_12mesi = sum(
         l.totale_documento or 0
         for l in lavori
@@ -1961,14 +1958,20 @@ def elimina_allegato(
     allegato_id: int,
     utente_id: int
 ):
-    allegato = get_allegato_by_id(
-        db,
-        allegato_id,
-        utente_id
-    )
+    allegato = get_allegato_by_id(db, allegato_id, utente_id)
 
     if not allegato:
         return None
+
+    if allegato.percorso_file and allegato.percorso_file.startswith("http"):
+        try:
+            from app.services.cloudinary_service import elimina_file
+            elimina_file(allegato.percorso_file)
+        except Exception:
+            pass
+    elif allegato.percorso_file:
+        from pathlib import Path as _Path
+        _Path(allegato.percorso_file).unlink(missing_ok=True)
 
     db.delete(allegato)
     db.commit()
@@ -1998,11 +2001,8 @@ def get_or_create_cal_token(db: Session, utente_id: int) -> str:
 
 
 def get_agenda_scadenzario(db: Session, utente_id: int):
-    oggi = datetime.now().strftime("%Y-%m-%d")
-
-    data_oggi = datetime.now()
-    data_7_giorni = data_oggi + timedelta(days=7)
-    limite_7_giorni = data_7_giorni.strftime("%Y-%m-%d")
+    oggi = date.today()
+    limite_7_giorni = oggi + timedelta(days=7)
 
     lavori = (
         db.query(Lavoro)
@@ -2048,26 +2048,26 @@ def get_agenda_scadenzario(db: Session, utente_id: int):
     ]
 
     prossime_scadenze.sort(
-        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+        key=lambda l: l.data_scadenza_pagamento or date(9999, 12, 31)
     )
 
     prossimi_7_giorni.sort(
-        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+        key=lambda l: l.data_scadenza_pagamento or date(9999, 12, 31)
     )
 
     pagamenti_scaduti.sort(
-        key=lambda l: l.data_scadenza_pagamento or "9999-12-31"
+        key=lambda l: l.data_scadenza_pagamento or date(9999, 12, 31)
     )
 
     lavori_aperti.sort(
         key=lambda l: (
-            l.data_lavoro or "9999-12-31",
+            l.data_lavoro or date(9999, 12, 31),
             l.priorita or "normale"
         )
     )
 
     lavori_priorita_alta.sort(
-        key=lambda l: l.data_lavoro or "9999-12-31"
+        key=lambda l: l.data_lavoro or date(9999, 12, 31)
     )
 
     totale_scaduti = sum(
@@ -2172,7 +2172,7 @@ def get_notifiche_dashboard(
     db: Session,
     utente_id: int
 ):
-    oggi = datetime.now().strftime("%Y-%m-%d")
+    oggi = date.today()
 
     lavori = (
         db.query(Lavoro)
@@ -2226,13 +2226,14 @@ def get_notifiche_dashboard(
     }
 
 
-def _aggiungi_mesi(data_str: str, mesi: int) -> str:
-    d = datetime.strptime(data_str, "%Y-%m-%d")
-    target_month = d.month + mesi
-    target_year = d.year + (target_month - 1) // 12
+def _aggiungi_mesi(data, mesi: int):
+    if isinstance(data, str):
+        data = date.fromisoformat(data)
+    target_month = data.month + mesi
+    target_year = data.year + (target_month - 1) // 12
     target_month = ((target_month - 1) % 12) + 1
     max_day = calendar.monthrange(target_year, target_month)[1]
-    return f"{target_year:04d}-{target_month:02d}-{min(d.day, max_day):02d}"
+    return date(target_year, target_month, min(data.day, max_day))
 
 
 def crea_garanzia(

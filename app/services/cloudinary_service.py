@@ -19,6 +19,19 @@ def carica_immagine(contenuto: bytes, nome_file: str, folder: str = "lavori") ->
     return result["secure_url"]
 
 
+def carica_file(contenuto: bytes, nome_file: str, folder: str = "allegati") -> str:
+    import cloudinary.uploader  # type: ignore
+
+    result = cloudinary.uploader.upload(
+        contenuto,
+        folder=folder,
+        resource_type="auto",
+        use_filename=True,
+        unique_filename=True,
+    )
+    return result["secure_url"]
+
+
 def elimina_immagine(url: str) -> None:
     import cloudinary.uploader  # type: ignore
 
@@ -29,3 +42,12 @@ def elimina_immagine(url: str) -> None:
     if match:
         public_id = match.group(1)
         cloudinary.uploader.destroy(public_id)
+
+
+def elimina_file(url: str) -> None:
+    import cloudinary.uploader  # type: ignore
+
+    match = re.search(r"/upload/(?:v\d+/)?(.+)\.[^.]+$", url)
+    if match:
+        public_id = match.group(1)
+        cloudinary.uploader.destroy(public_id, resource_type="raw")

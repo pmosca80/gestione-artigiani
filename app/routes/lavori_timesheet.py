@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -42,7 +42,7 @@ def lista_timesheet(lavoro_id: int, request: Request,
         "per_operaio": per_operaio,
         "totale_ore": round(totale_ore, 2),
         "totale_costo": round(totale_costo, 2),
-        "oggi": datetime.now().strftime("%Y-%m-%d"),
+        "oggi": date.today(),
     })
 
 

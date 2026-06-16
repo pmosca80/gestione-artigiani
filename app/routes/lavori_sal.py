@@ -1,5 +1,5 @@
 import io
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -33,7 +33,7 @@ def lista_sal(lavoro_id: int, request: Request,
         "sal_list": sal_list,
         "preventivo": preventivo,
         "totale_richiesto": totale_richiesto,
-        "oggi": datetime.now().strftime("%Y-%m-%d"),
+        "oggi": date.today(),
     })
 
 

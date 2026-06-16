@@ -24,8 +24,8 @@ def lista_promemoria(
     solo_attivi = filtro != "tutti"
     promemoria = crud.get_promemoria(db, user_id, solo_attivi=solo_attivi)
     clienti = crud.get_clienti(db, "", user_id, pagina=1)["items"]
-    oggi = date.today().isoformat()
-    tra_30 = (date.today() + timedelta(days=30)).isoformat()
+    oggi = date.today()
+    tra_30 = oggi + timedelta(days=30)
 
     return templates.TemplateResponse(request=request, name="scadenzario.html", context={
         "promemoria": promemoria,

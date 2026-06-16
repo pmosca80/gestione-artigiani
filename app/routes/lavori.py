@@ -1,5 +1,5 @@
 ﻿from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import io
 import re
 
@@ -72,7 +72,7 @@ def lista_lavori(
             "ricerca": ricerca,
             "ordinamento": ordinamento,
             "totali": totali,
-            "oggi": datetime.now().strftime("%Y-%m-%d"),
+            "oggi": date.today(),
             "cliente_id": cliente_id,
         }
     )
@@ -153,7 +153,7 @@ def form_lavoro_rapido(
         .order_by(Cliente.ragione_sociale, Cliente.cognome, Cliente.nome)
         .all()
     )
-    oggi = datetime.now().strftime("%Y-%m-%d")
+    oggi = date.today()
     stato_iniziale = tipo if tipo in _STATI_VALIDI_RAPIDO else "da_fare"
     return templates.TemplateResponse(
         request=request,
@@ -240,10 +240,7 @@ def calendario_ics(token: str = "", db: Session = Depends(get_db)):
     for lav in lavori_list:
         # Evento data lavoro
         if lav.data_lavoro:
-            try:
-                d = _date.fromisoformat(lav.data_lavoro)
-            except (ValueError, TypeError):
-                d = None
+            d = lav.data_lavoro
             if d:
                 ev = Event()
                 ev.add("SUMMARY", lav.titolo or f"Lavoro #{lav.id}")
@@ -264,10 +261,7 @@ def calendario_ics(token: str = "", db: Session = Depends(get_db)):
 
         # Evento scadenza pagamento
         if lav.data_scadenza_pagamento and (lav.residuo_pagamento or 0) > 0:
-            try:
-                d = _date.fromisoformat(lav.data_scadenza_pagamento)
-            except (ValueError, TypeError):
-                d = None
+            d = lav.data_scadenza_pagamento
             if d:
                 ev = Event()
                 ev.add("SUMMARY", f"Pagamento: {lav.titolo or f'Lavoro #{lav.id}'}")
@@ -286,10 +280,7 @@ def calendario_ics(token: str = "", db: Session = Depends(get_db)):
     garanzie_list = db.query(_Garanzia).filter(_Garanzia.utente_id == user_id).all()
     for gar in garanzie_list:
         if gar.data_scadenza:
-            try:
-                d = _date.fromisoformat(gar.data_scadenza)
-            except (ValueError, TypeError):
-                d = None
+            d = gar.data_scadenza
             if d:
                 ev = Event()
                 ev.add("SUMMARY", f"Garanzia: {gar.descrizione or 'Garanzia'}")
@@ -487,8 +478,8 @@ def calendario_lavori(
         db.query(_Lavoro)
         .filter(
             _Lavoro.utente_id == user_id,
-            _Lavoro.data_lavoro >= primo.isoformat(),
-            _Lavoro.data_lavoro <= ultimo.isoformat(),
+            _Lavoro.data_lavoro >= primo,
+            _Lavoro.data_lavoro <= ultimo,
         )
         .order_by(_Lavoro.data_lavoro)
         .all()
@@ -513,7 +504,7 @@ def calendario_lavori(
             "mese_nome": MESI_IT[mese_sel],
             "settimane": settimane,
             "lpg": lpg,
-            "oggi": oggi.strftime("%Y-%m-%d"),
+            "oggi": oggi,
             "prev_anno": prev_anno,
             "prev_mese": prev_mese,
             "next_anno": next_anno,
@@ -627,7 +618,7 @@ def dettaglio_lavoro(
             "costo_totale": costo_totale,
             "utile_lordo": utile_lordo,
             "margine_percentuale": margine_percentuale,
-            "today": datetime.now().strftime("%Y-%m-%d"),
+            "today": date.today(),
             "allegati_lavoro": allegati_lavoro,
             "fattura_emessa": fattura_emessa,
             "voci_preventivo": voci_preventivo,
@@ -753,19 +744,25 @@ async def carica_allegato_lavoro(
         raise HTTPException(status_code=400, detail="Formato allegato non valido")
 
     nome_file = f"allegato_{lavoro_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{estensione}"
-    percorso_file = uploads_dir / nome_file
 
     contenuto = await allegato.read()
 
-    with open(percorso_file, "wb") as f:
-        f.write(contenuto)
+    from app.services.cloudinary_service import cloudinary_configurato, carica_file
+    if cloudinary_configurato():
+        percorso_salvato = carica_file(contenuto, nome_file, folder=f"allegati/{lavoro_id}")
+    else:
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        percorso_file = uploads_dir / nome_file
+        with open(percorso_file, "wb") as f:
+            f.write(contenuto)
+        percorso_salvato = str(percorso_file)
 
     crud.salva_allegato_lavoro(
         db=db,
         utente_id=user_id,
         lavoro_id=lavoro_id,
         nome_file=nome_file,
-        percorso_file=str(percorso_file),
+        percorso_file=percorso_salvato,
         tipo_file=estensione,
         descrizione=descrizione
     )
@@ -1059,7 +1056,7 @@ def pagina_pagamenti_lavoro(
         context={
             "lavoro": lavoro,
             "pagamenti": pagamenti,
-            "today": datetime.now().strftime("%Y-%m-%d")
+            "today": date.today()
         }
     )
 
@@ -1573,26 +1570,8 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
 
     pdf_bytes = buffer.getvalue()
 
-    pdf_dir = Path("pdf")
-    pdf_dir.mkdir(exist_ok=True)
-
-    nome_azienda = azienda.nome_azienda or "azienda"
-    nome_azienda = re.sub(r"[^a-zA-Z0-9_-]", "_", nome_azienda)
-
+    nome_azienda = re.sub(r"[^a-zA-Z0-9_-]", "_", azienda.nome_azienda or "azienda")
     filename = f"{nome_azienda}_{numero_pdf:04d}_lavoro_{lavoro.id}.pdf"
-    filepath = pdf_dir / filename
-
-    with open(filepath, "wb") as f:
-        f.write(pdf_bytes)
-
-    crud.salva_documento_pdf(
-        db=db,
-        utente_id=user_id,
-        lavoro_id=lavoro.id,
-        numero=numero_pdf,
-        nome_file=filename,
-        percorso_file=str(filepath)
-    )
 
     return Response(
         content=pdf_bytes,

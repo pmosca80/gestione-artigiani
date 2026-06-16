@@ -81,7 +81,7 @@ def export_xml(
             piva_cf = cli.partita_iva or cli.codice_fiscale or ""
         fe = SubElement(fat_el, "Fattura")
         fe.set("numero", f"{f.anno}/{str(f.numero).zfill(3)}")
-        fe.set("data", f.data_emissione)
+        fe.set("data", str(f.data_emissione))
         fe.set("cliente", nome_cli)
         fe.set("piva_cf", piva_cf)
         fe.set("imponibile", f"{float(f.importo_imponibile or 0):.2f}")

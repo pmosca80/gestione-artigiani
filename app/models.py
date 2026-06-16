@@ -1,6 +1,22 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float
+from datetime import date as _date_type
+
+from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey, Float, Date
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship
 from app.database import Base
+
+
+class FlexDate(TypeDecorator):
+    """Colonna DATE che accetta sia stringhe ISO sia oggetti date in scrittura."""
+    impl = Date
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if not value:
+            return None
+        if isinstance(value, _date_type):
+            return value
+        return _date_type.fromisoformat(str(value)[:10])
 
 
 # ========================
@@ -86,11 +102,11 @@ class Lavoro(Base):
     cliente_id = Column(Integer, ForeignKey("clienti.id"), nullable=False)
     utente_id = Column(Integer, ForeignKey("utenti.id"))
 
-    data_lavoro = Column(String, nullable=False)
+    data_lavoro = Column(FlexDate, nullable=False)
     titolo = Column(String, nullable=False)
     numero_preventivo = Column(String, nullable=True)
-    data_invio_preventivo = Column(String, nullable=True)
-    data_accettazione_preventivo = Column(String, nullable=True)
+    data_invio_preventivo = Column(FlexDate, nullable=True)
+    data_accettazione_preventivo = Column(FlexDate, nullable=True)
     descrizione = Column(Text, nullable=True)
 
     stato = Column(String, nullable=False, default="da_fare")
@@ -111,9 +127,9 @@ class Lavoro(Base):
     stato_pagamento = Column(String, default="da_pagare")
     importo_pagato = Column(Float, default=0)
     residuo_pagamento = Column(Float, default=0)
-    data_scadenza_pagamento = Column(String, nullable=True)
+    data_scadenza_pagamento = Column(FlexDate, nullable=True)
     numero_fattura = Column(Integer, nullable=True)
-    data_fattura = Column(String, nullable=True)
+    data_fattura = Column(FlexDate, nullable=True)
     stato_fattura = Column(String, nullable=True)
 
     note_consuntivo = Column(Text, nullable=True)
@@ -268,7 +284,7 @@ class PagamentoLavoro(Base):
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
 
-    data_pagamento = Column(String, nullable=False)
+    data_pagamento = Column(FlexDate, nullable=False)
     importo = Column(Float, default=0)
 
     metodo = Column(String, nullable=True)
@@ -302,7 +318,7 @@ class FatturaEmessa(Base):
 
     numero = Column(Integer, nullable=False)
     anno = Column(Integer, nullable=False)
-    data_emissione = Column(String, nullable=False)
+    data_emissione = Column(FlexDate, nullable=False)
 
     importo_imponibile = Column(Float, default=0)
     importo_iva = Column(Float, default=0)
@@ -370,9 +386,9 @@ class Garanzia(Base):
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=True)
 
     descrizione = Column(String, nullable=False)
-    data_installazione = Column(String, nullable=False)
+    data_installazione = Column(FlexDate, nullable=False)
     durata_mesi = Column(Integer, nullable=False, default=24)
-    data_scadenza = Column(String, nullable=False)
+    data_scadenza = Column(FlexDate, nullable=False)
     note = Column(Text, nullable=True)
 
     reminder_30g_inviato = Column(Integer, default=0)
@@ -390,7 +406,7 @@ class VocePrimaNota(Base):
     id = Column(Integer, primary_key=True, index=True)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
 
-    data = Column(String, nullable=False)
+    data = Column(FlexDate, nullable=False)
     descrizione = Column(String, nullable=False)
     importo = Column(Float, nullable=False)
     tipo = Column(String, nullable=False, default="uscita")  # "entrata" | "uscita"
@@ -418,7 +434,7 @@ class SalLavoro(Base):
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     numero = Column(Integer, nullable=False, default=1)
-    data = Column(String, nullable=False)
+    data = Column(FlexDate, nullable=False)
     percentuale = Column(Float, nullable=False, default=0)
     importo_richiesto = Column(Float, nullable=False, default=0)
     descrizione = Column(Text, nullable=True, default="")
@@ -433,7 +449,7 @@ class RapportinoLavoro(Base):
     id = Column(Integer, primary_key=True, index=True)
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
-    data = Column(String, nullable=False)
+    data = Column(FlexDate, nullable=False)
     ore_lavorate = Column(Float, nullable=True, default=0)
     descrizione_attivita = Column(Text, nullable=False)
     materiali_note = Column(Text, nullable=True, default="")
@@ -449,7 +465,7 @@ class PromemoriaCliente(Base):
     cliente_id = Column(Integer, ForeignKey("clienti.id"), nullable=True)
     titolo = Column(String, nullable=False)
     note = Column(Text, nullable=True, default="")
-    data_promemoria = Column(String, nullable=False)
+    data_promemoria = Column(FlexDate, nullable=False)
     tipo = Column(String, nullable=False, default="manutenzione")  # manutenzione/revisione/chiamata/ispezione
     stato = Column(String, nullable=False, default="attivo")  # attivo/completato
     data_creazione = Column(String, nullable=False)
@@ -464,7 +480,7 @@ class TimesheetCollab(Base):
     lavoro_id = Column(Integer, ForeignKey("lavori.id"), nullable=False)
     utente_id = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     nome_operaio = Column(String, nullable=False)
-    data = Column(String, nullable=False)
+    data = Column(FlexDate, nullable=False)
     ore = Column(Float, nullable=False, default=0)
     costo_orario = Column(Float, nullable=True, default=0)
     note = Column(Text, nullable=True, default="")

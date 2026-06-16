@@ -21,8 +21,7 @@ def _arricchisci(garanzie):
     risultati = []
     for g in garanzie:
         try:
-            scad = date.fromisoformat(g.data_scadenza)
-            giorni = (scad - oggi).days
+            giorni = (g.data_scadenza - oggi).days
         except Exception:
             giorni = None
         risultati.append({"g": g, "giorni": giorni})
@@ -68,7 +67,7 @@ def form_nuova_garanzia(
     return templates.TemplateResponse(
         request=request,
         name="garanzia_form.html",
-        context={"clienti": clienti, "durate": DURATE, "oggi": date.today().strftime("%Y-%m-%d")},
+        context={"clienti": clienti, "durate": DURATE, "oggi": date.today()},
     )
 
 
@@ -124,7 +123,7 @@ def crea_lavoro_da_garanzia(
         descrizione=f"Manutenzione programmata.\nGaranzia in scadenza: {g.data_scadenza}",
         stato="da_fare",
         priorita="normale",
-        data_lavoro=date.today().strftime("%Y-%m-%d"),
+        data_lavoro=date.today(),
         data_creazione=datetime.now().strftime("%Y-%m-%d"),
     )
     db.add(lavoro)

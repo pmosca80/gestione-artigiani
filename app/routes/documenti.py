@@ -30,7 +30,7 @@ def scarica_fattura_pdf(
     voci    = crud.get_voci_preventivo(db, user_id, lavoro_id)
 
     pdf     = genera_pdf_fattura(lavoro, lavoro.cliente, azienda, voci=voci or None)
-    anno    = (lavoro.data_fattura or "")[:4] or "0000"
+    anno    = lavoro.data_fattura.year if hasattr(lavoro.data_fattura, "year") else int(str(lavoro.data_fattura or "0000")[:4])
     fname   = f"fattura_{anno}_{lavoro.numero_fattura:03d}.pdf"
 
     return Response(
@@ -139,7 +139,7 @@ def scarica_fattura_xml(
         lavoro.numero_fattura = numero_gen
         if not lavoro.data_fattura:
             from datetime import date
-            lavoro.data_fattura = f"{anno_gen}-{date.today().month:02d}-{date.today().day:02d}"
+            lavoro.data_fattura = date.today()
         db.commit()
         db.refresh(lavoro)
 
@@ -148,9 +148,9 @@ def scarica_fattura_xml(
 
     # Salva nel registro fatture
     from datetime import date as _date
-    data_em = lavoro.data_fattura or _date.today().isoformat()
+    data_em = lavoro.data_fattura or _date.today()
     try:
-        anno = int(data_em[:4])
+        anno = data_em.year if hasattr(data_em, "year") else int(str(data_em)[:4])
     except (ValueError, TypeError):
         anno = _date.today().year
     imponibile_val = float(lavoro.importo_consuntivo or 0)
