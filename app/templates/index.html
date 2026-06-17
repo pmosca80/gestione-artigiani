@@ -374,7 +374,7 @@
                     <tr>
                         <td><strong>{{ lavoro.titolo }}</strong></td>
                         <td>{% if lavoro.cliente %}{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}{% else %}—{% endif %}</td>
-                        <td><span class="db {% if lavoro.data_scadenza_pagamento == oggi %}db-red{% else %}db-orange{% endif %}">{{ lavoro.data_scadenza_pagamento }}</span></td>
+                        <td><span class="db {% if (lavoro.data_scadenza_pagamento|string) == oggi %}db-red{% else %}db-orange{% endif %}">{{ lavoro.data_scadenza_pagamento }}</span></td>
                         <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
                         <td><a href="/lavori/{{ lavoro.id }}/pagamenti" class="d-btn d-btn-blue">Incassa</a></td>
                     </tr>
@@ -583,7 +583,7 @@
                         <tr>
                             <td><strong>{{ lavoro.titolo }}</strong></td>
                             <td>{% if lavoro.cliente %}{{ lavoro.cliente.nome }} {{ lavoro.cliente.cognome }}{% else %}—{% endif %}</td>
-                            <td>{% if lavoro.data_scadenza_pagamento %}{% if lavoro.data_scadenza_pagamento < oggi %}<span class="db db-red">{{ lavoro.data_scadenza_pagamento }}</span>{% else %}<span class="db db-orange">{{ lavoro.data_scadenza_pagamento }}</span>{% endif %}{% else %}—{% endif %}</td>
+                            <td>{% if lavoro.data_scadenza_pagamento %}{% if (lavoro.data_scadenza_pagamento|string) < oggi %}<span class="db db-red">{{ lavoro.data_scadenza_pagamento }}</span>{% else %}<span class="db db-orange">{{ lavoro.data_scadenza_pagamento }}</span>{% endif %}{% else %}—{% endif %}</td>
                             <td><span class="db db-red">€ {{ "%.2f"|format(lavoro.residuo_pagamento or 0) }}</span></td>
                             <td><a href="/lavori/{{ lavoro.id }}/pagamenti" class="d-btn d-btn-blue">Incassa</a></td>
                         </tr>
