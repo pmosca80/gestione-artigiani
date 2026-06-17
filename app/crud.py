@@ -982,7 +982,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
 
     lavori_mese = [
         lavoro for lavoro in lavori
-        if lavoro.data_creazione and lavoro.data_creazione.startswith(mese_corrente)
+        if lavoro.data_creazione and str(lavoro.data_creazione)[:7] == mese_corrente
     ]
 
     lavori_mese_count = len(lavori_mese)
@@ -1222,7 +1222,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
 
     for lavoro in lavori:
         if lavoro.data_creazione:
-            mese = lavoro.data_creazione[:7]  # es. 2026-05
+            mese = str(lavoro.data_creazione)[:7]  # es. 2026-05
 
             if mese not in mesi:
                 mesi[mese] = {
@@ -1263,7 +1263,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
     else:
         _mese_prec = f"{_today.year}-{_today.month - 1:02d}"
 
-    lavori_mese_prec = [l for l in lavori if l.data_creazione and l.data_creazione.startswith(_mese_prec)]
+    lavori_mese_prec = [l for l in lavori if l.data_creazione and str(l.data_creazione)[:7] == _mese_prec]
     totale_documenti_mese_prec = sum(l.totale_documento or 0 for l in lavori_mese_prec)
     margine_mese_prec = sum(l.margine or 0 for l in lavori_mese_prec)
 
@@ -1330,11 +1330,11 @@ def get_dashboard_pro(db: Session, utente_id: int):
     _anno_prec = str(_today.year - 1)
     fatturato_anno_corrente = sum(
         l.totale_documento or 0 for l in lavori
-        if (l.data_creazione or "").startswith(_anno_corr)
+        if str(l.data_creazione or "")[:4] == _anno_corr
     )
     fatturato_anno_prec = sum(
         l.totale_documento or 0 for l in lavori
-        if (l.data_creazione or "").startswith(_anno_prec)
+        if str(l.data_creazione or "")[:4] == _anno_prec
     )
     if fatturato_anno_prec > 0:
         delta_anno_pct = round(
@@ -1349,7 +1349,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
     _mesi_anno = [f"{_anno_corr}-{m:02d}" for m in range(1, 13)]
     grafico_anno_labels = _mesi_anno
     grafico_anno_fatturato = [
-        round(sum(l.totale_documento or 0 for l in lavori if (l.data_creazione or "").startswith(m)), 2)
+        round(sum(l.totale_documento or 0 for l in lavori if str(l.data_creazione or "")[:7] == m), 2)
         for m in _mesi_anno
     ]
     grafico_anno_obiettivo = [round(obiettivo_mensile, 2)] * 12
