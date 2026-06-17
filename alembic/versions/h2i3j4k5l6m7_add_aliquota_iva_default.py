@@ -1,7 +1,7 @@
 """add aliquota_iva_default to impostazioni_azienda
 
 Revision ID: h2i3j4k5l6m7
-Revises: g1h2i3j4k5l6
+Revises: g1h2i3j4k5l9
 Create Date: 2026-06-16
 
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'h2i3j4k5l6m7'
-down_revision = 'g1h2i3j4k5l6'
+down_revision = 'g1h2i3j4k5l9'
 branch_labels = None
 depends_on = None
 

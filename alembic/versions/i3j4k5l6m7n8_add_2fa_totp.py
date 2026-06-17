@@ -1,7 +1,7 @@
 """add totp_secret and totp_abilitato to utenti
 
 Revision ID: i3j4k5l6m7n8
-Revises: h2i3j4k5l6m7
+Revises: h2i3j4k5l6m9
 Create Date: 2026-06-16
 
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'i3j4k5l6m7n8'
-down_revision = 'h2i3j4k5l6m7'
+down_revision = 'h2i3j4k5l6m9'
 branch_labels = None
 depends_on = None
 

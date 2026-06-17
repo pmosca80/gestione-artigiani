@@ -1,14 +1,14 @@
 """Aggiunge tabella audit_log per tracciabilità operazioni fiscali.
 
-Revision ID: h2i3j4k5l6m7
-Revises: g1h2i3j4k5l6
+Revision ID: h2i3j4k5l6m9
+Revises: h2i3j4k5l6m7
 Create Date: 2026-06-16
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'h2i3j4k5l6m7'
-down_revision = 'g1h2i3j4k5l6'
+revision = 'h2i3j4k5l6m9'
+down_revision = 'h2i3j4k5l6m7'
 branch_labels = None
 depends_on = None
 
