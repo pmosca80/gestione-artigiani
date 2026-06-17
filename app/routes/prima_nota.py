@@ -10,6 +10,8 @@ from app.dependencies import get_current_user
 from app import crud
 from app.templates_config import templates
 from app.services.audit import log_audit, get_actor, get_client_ip
+from app.limiter import user_limiter
+from app.validators import DESCRIZIONE_MAX, NOTE_MAX, CATEGORIA_MAX, clean
 
 router = APIRouter(prefix="/prima-nota", tags=["prima-nota"])
 
@@ -62,6 +64,7 @@ def prima_nota_lista(
 
 
 @router.post("/", response_class=RedirectResponse)
+@user_limiter.limit("30/minute")
 def aggiungi_voce(
     request: Request,
     data: str = Form(...),
@@ -82,7 +85,9 @@ def aggiungi_voce(
     except (ValueError, TypeError):
         imp = 0.0
 
-    if imp > 0 and descrizione.strip():
+    desc_ok = clean(descrizione, DESCRIZIONE_MAX)
+    cat_ok = clean(categoria, CATEGORIA_MAX) or None
+    if imp > 0 and desc_ok:
         tipo_ok = tipo if tipo in ("entrata", "uscita") else "uscita"
         # IVA a credito solo su uscite con aliquota > 0
         # Calcola la quota IVA dal totale pagato: iva = totale * aliq / (100 + aliq)
@@ -93,10 +98,10 @@ def aggiungi_voce(
         voce = crud.crea_voce_prima_nota(
             db, user_id,
             data=data,
-            descrizione=descrizione.strip(),
+            descrizione=desc_ok,
             importo=round(imp, 2),
             tipo=tipo_ok,
-            categoria=categoria or None,
+            categoria=cat_ok,
             lavoro_id=lavoro_id or None,
             cliente_id=cliente_id or None,
             aliquota_iva=aliq,
@@ -106,7 +111,7 @@ def aggiungi_voce(
         log_audit(db, user_id, attore_id, attore_username,
                   "crea_prima_nota", "prima_nota", voce.id,
                   {"tipo": tipo_ok, "importo": round(imp, 2),
-                   "descrizione": descrizione.strip()[:80]},
+                   "descrizione": desc_ok[:80]},
                   get_client_ip(request))
 
     redirect_mese = mese or int(data[5:7])

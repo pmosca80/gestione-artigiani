@@ -10,4 +10,13 @@ def _get_ip(request: Request) -> str:
     return (request.client and request.client.host) or "unknown"
 
 
+def _get_user_or_ip(request: Request) -> str:
+    # Per route autenticate: chiave per user_id evita falsi positivi su NAT condivisi
+    user_id = request.session.get("user_id")
+    if user_id:
+        return f"user:{user_id}"
+    return _get_ip(request)
+
+
 limiter = Limiter(key_func=_get_ip)
+user_limiter = Limiter(key_func=_get_user_or_ip)

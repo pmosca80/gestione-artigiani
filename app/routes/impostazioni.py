@@ -22,6 +22,11 @@ from fastapi import HTTPException
 from sqlalchemy import text as sql_text
 from app.models import Utente, Cliente, Materiale, CaricoMateriale
 from app.templates_config import templates
+from app.validators import (
+    NOME_MAX, RAGIONE_SOCIALE_MAX, PARTITA_IVA_MAX, CODICE_FISCALE_MAX,
+    REGIME_FISCALE_MAX, INDIRIZZO_MAX, CAP_MAX, CITTA_MAX, PROVINCIA_MAX,
+    TELEFONO_MAX, EMAIL_MAX, PEC_MAX, PASSWORD_MAX, clean, check_magic,
+)
 
 
 # ─── helpers import CSV/XLSX ────────────────────────────────────────────────
@@ -127,20 +132,20 @@ def form_impostazioni_azienda(request: Request, db: Session = Depends(get_db), u
 @router.post("/azienda")
 def salva_impostazioni_azienda(
     request: Request,
-    nome_azienda: str = Form(""),
-    partita_iva: str = Form(""),
-    codice_fiscale: str = Form(""),
-    regime_fiscale: str = Form("RF01"),
-    indirizzo: str = Form(""),
-    cap: str = Form(""),
-    citta: str = Form(""),
-    provincia: str = Form(""),
-    telefono: str = Form(""),
-    email: str = Form(""),
-    pec_indirizzo: str = Form(""),
-    pec_smtp_host: str = Form(""),
+    nome_azienda: str = Form("", max_length=RAGIONE_SOCIALE_MAX),
+    partita_iva: str = Form("", max_length=PARTITA_IVA_MAX),
+    codice_fiscale: str = Form("", max_length=CODICE_FISCALE_MAX),
+    regime_fiscale: str = Form("RF01", max_length=REGIME_FISCALE_MAX),
+    indirizzo: str = Form("", max_length=INDIRIZZO_MAX),
+    cap: str = Form("", max_length=CAP_MAX),
+    citta: str = Form("", max_length=CITTA_MAX),
+    provincia: str = Form("", max_length=PROVINCIA_MAX),
+    telefono: str = Form("", max_length=TELEFONO_MAX),
+    email: str = Form("", max_length=EMAIL_MAX),
+    pec_indirizzo: str = Form("", max_length=PEC_MAX),
+    pec_smtp_host: str = Form("", max_length=200),
     pec_smtp_port: int = Form(465),
-    pec_smtp_password: str = Form(""),
+    pec_smtp_password: str = Form("", max_length=PASSWORD_MAX),
     aliquota_iva_default: str = Form("22"),
     logo: UploadFile = File(None),
     db: Session = Depends(get_db),
@@ -153,14 +158,15 @@ def salva_impostazioni_azienda(
         if estensione in [".png", ".jpg", ".jpeg"]:
             from app.services.cloudinary_service import cloudinary_configurato, carica_immagine
             contenuto = logo.file.read()
-            if cloudinary_configurato():
-                logo_path = carica_immagine(contenuto, f"logo{estensione}", folder=f"loghi/{user_id}")
-            else:
-                cartella = Path(f"uploads/loghi/{user_id}")
-                cartella.mkdir(parents=True, exist_ok=True)
-                percorso = cartella / f"logo{estensione}"
-                percorso.write_bytes(contenuto)
-                logo_path = str(percorso)
+            if check_magic(contenuto, estensione):
+                if cloudinary_configurato():
+                    logo_path = carica_immagine(contenuto, f"logo{estensione}", folder=f"loghi/{user_id}")
+                else:
+                    cartella = Path(f"uploads/loghi/{user_id}")
+                    cartella.mkdir(parents=True, exist_ok=True)
+                    percorso = cartella / f"logo{estensione}"
+                    percorso.write_bytes(contenuto)
+                    logo_path = str(percorso)
 
     crud.salva_impostazioni_azienda(
         db, user_id, nome_azienda, partita_iva, indirizzo, telefono, email, logo_path,
@@ -470,10 +476,11 @@ def ripristina_backup(
 ):
 
     if not backup_file.filename.endswith(".db"):
-        raise HTTPException(
-            status_code=400,
-            detail="File non valido"
-        )
+        raise HTTPException(status_code=400, detail="File non valido")
+
+    contenuto_backup = backup_file.file.read()
+    if not check_magic(contenuto_backup, ".db"):
+        raise HTTPException(status_code=400, detail="File non valido")
 
     db_path = Path("artigiani.db")
 
@@ -481,25 +488,17 @@ def ripristina_backup(
     sicurezza_dir.mkdir(exist_ok=True)
 
     # backup automatico prima del ripristino
-
     backup_sicurezza = (
         sicurezza_dir /
         f"pre_ripristino_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
     )
 
     if db_path.exists():
-        shutil.copy2(
-            db_path,
-            backup_sicurezza
-        )
+        shutil.copy2(db_path, backup_sicurezza)
 
     # sostituzione database
-
     with open(db_path, "wb") as buffer:
-        shutil.copyfileobj(
-            backup_file.file,
-            buffer
-        )
+        buffer.write(contenuto_backup)
 
     return RedirectResponse(
         url="/impostazioni/backup/pagina",

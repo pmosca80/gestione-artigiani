@@ -5,7 +5,13 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
+from app.limiter import user_limiter
 from app.templates_config import templates
+from app.validators import (
+    NOME_MAX, RAGIONE_SOCIALE_MAX, TELEFONO_MAX, EMAIL_MAX,
+    INDIRIZZO_MAX, CITTA_MAX, PROVINCIA_MAX, CAP_MAX,
+    PARTITA_IVA_MAX, CODICE_FISCALE_MAX, CODICE_DEST_MAX, PEC_MAX, NOTE_MAX, clean,
+)
 
 router = APIRouter(prefix="/clienti", tags=["clienti"])
 
@@ -47,11 +53,12 @@ def form_cliente(
 
 
 @router.post("/nuovo")
+@user_limiter.limit("20/minute")
 def crea_cliente_form(
     request: Request,
-    nome: str = Form(...),
-    cognome: str = Form(...),
-    telefono: str = Form(""),
+    nome: str = Form(..., max_length=NOME_MAX),
+    cognome: str = Form(..., max_length=NOME_MAX),
+    telefono: str = Form("", max_length=TELEFONO_MAX),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
@@ -134,21 +141,21 @@ def form_modifica_cliente(
 def modifica_cliente(
     request: Request,
     cliente_id: int,
-    tipo_cliente: str = Form("privato"),
-    nome: str = Form(""),
-    cognome: str = Form(""),
-    ragione_sociale: str = Form(""),
-    telefono: str = Form(""),
-    email: str = Form(""),
-    indirizzo: str = Form(""),
-    citta: str = Form(""),
-    provincia: str = Form(""),
-    cap: str = Form(""),
-    partita_iva: str = Form(""),
-    codice_fiscale: str = Form(""),
-    codice_destinatario: str = Form(""),
-    pec_destinatario: str = Form(""),
-    note: str = Form(""),
+    tipo_cliente: str = Form("privato", max_length=20),
+    nome: str = Form("", max_length=NOME_MAX),
+    cognome: str = Form("", max_length=NOME_MAX),
+    ragione_sociale: str = Form("", max_length=RAGIONE_SOCIALE_MAX),
+    telefono: str = Form("", max_length=TELEFONO_MAX),
+    email: str = Form("", max_length=EMAIL_MAX),
+    indirizzo: str = Form("", max_length=INDIRIZZO_MAX),
+    citta: str = Form("", max_length=CITTA_MAX),
+    provincia: str = Form("", max_length=PROVINCIA_MAX),
+    cap: str = Form("", max_length=CAP_MAX),
+    partita_iva: str = Form("", max_length=PARTITA_IVA_MAX),
+    codice_fiscale: str = Form("", max_length=CODICE_FISCALE_MAX),
+    codice_destinatario: str = Form("", max_length=CODICE_DEST_MAX),
+    pec_destinatario: str = Form("", max_length=PEC_MAX),
+    note: str = Form("", max_length=NOTE_MAX),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):

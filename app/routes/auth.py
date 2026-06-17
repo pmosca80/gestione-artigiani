@@ -12,6 +12,7 @@ from app.models import Utente
 from app.security import hash_password, verify_password
 from app.limiter import limiter
 from app.templates_config import templates
+from app.validators import USERNAME_MAX, PASSWORD_MAX, EMAIL_MAX
 
 router = APIRouter()
 
@@ -45,8 +46,8 @@ def login_page(request: Request, account_cancellato: str = None):
 @limiter.limit("5/minute")
 def login(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
+    username: str = Form(..., max_length=USERNAME_MAX),
+    password: str = Form(..., max_length=PASSWORD_MAX),
     db: Session = Depends(get_db),
 ):
     user = _find_user(db, username.strip().lower())
@@ -169,12 +170,12 @@ import re as _re
 @router.post("/register")
 def register(
     request: Request,
-    email: str = Form(...),
-    username: str = Form(...),
-    password: str = Form(...),
-    conferma_password: str = Form(...),
+    email: str = Form(..., max_length=EMAIL_MAX),
+    username: str = Form(..., max_length=USERNAME_MAX),
+    password: str = Form(..., max_length=PASSWORD_MAX),
+    conferma_password: str = Form(..., max_length=PASSWORD_MAX),
     accetta_termini: str = Form(""),
-    codice_promo: str = Form(""),
+    codice_promo: str = Form("", max_length=50),
     db: Session = Depends(get_db),
 ):
     email = email.strip().lower()
@@ -300,7 +301,7 @@ def forgot_password_page(request: Request):
 @limiter.limit("3/minute")
 def forgot_password(
     request: Request,
-    email: str = Form(...),
+    email: str = Form(..., max_length=EMAIL_MAX),
     db: Session = Depends(get_db),
 ):
     email = email.strip().lower()
@@ -356,8 +357,8 @@ def reset_password_token_page(token: str, request: Request, db: Session = Depend
 def reset_password_token(
     token: str,
     request: Request,
-    nuova_password: str = Form(...),
-    conferma_password: str = Form(...),
+    nuova_password: str = Form(..., max_length=PASSWORD_MAX),
+    conferma_password: str = Form(..., max_length=PASSWORD_MAX),
     db: Session = Depends(get_db),
 ):
     user = db.query(Utente).filter(Utente.token_reset == token).first()

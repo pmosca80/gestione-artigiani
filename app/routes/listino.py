@@ -6,6 +6,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, to_float
 from app import crud
 from app.templates_config import templates
+from app.validators import DESCRIZIONE_MAX, CATEGORIA_MAX, UNITA_MISURA_MAX, clean
 
 router = APIRouter(prefix="/listino", tags=["listino"])
 
@@ -55,10 +56,10 @@ def nuova_voce(
     crud.crea_listino_voce(
         db=db,
         utente_id=user_id,
-        descrizione=descrizione.strip(),
-        unita_misura=unita_misura.strip(),
+        descrizione=clean(descrizione, DESCRIZIONE_MAX),
+        unita_misura=clean(unita_misura, UNITA_MISURA_MAX),
         prezzo_unitario=to_float(prezzo_unitario),
-        categoria=categoria.strip(),
+        categoria=clean(categoria, CATEGORIA_MAX),
     )
     return RedirectResponse(url="/listino/", status_code=303)
 
@@ -78,10 +79,10 @@ def modifica_voce(
         db=db,
         voce_id=voce_id,
         utente_id=user_id,
-        descrizione=descrizione.strip(),
-        unita_misura=unita_misura.strip(),
+        descrizione=clean(descrizione, DESCRIZIONE_MAX),
+        unita_misura=clean(unita_misura, UNITA_MISURA_MAX),
         prezzo_unitario=to_float(prezzo_unitario),
-        categoria=categoria.strip(),
+        categoria=clean(categoria, CATEGORIA_MAX),
     )
     return RedirectResponse(url="/listino/", status_code=303)
 

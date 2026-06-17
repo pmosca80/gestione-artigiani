@@ -8,6 +8,7 @@ from app import crud
 from app.models import Materiale
 from app.dependencies import to_float
 from app.templates_config import templates
+from app.validators import NOME_MAX, CATEGORIA_MAX, UNITA_MISURA_MAX, NOTE_MAX, clean
 
 router = APIRouter(prefix="/materiali", tags=["materiali"])
 
@@ -52,15 +53,15 @@ def crea_materiale_form(
     crud.crea_materiale(
         db=db,
         utente_id=user_id,
-        nome=nome,
-        categoria=categoria,
-        unita_misura=unita_misura,
+        nome=clean(nome, NOME_MAX),
+        categoria=clean(categoria, CATEGORIA_MAX),
+        unita_misura=clean(unita_misura, UNITA_MISURA_MAX),
         quantita=to_float(quantita),
         scorta_minima=to_float(scorta_minima),
         prezzo_acquisto_pieno=to_float(prezzo_acquisto_pieno),
         prezzo_acquisto_scontato=to_float(prezzo_acquisto_scontato),
         prezzo_vendita_default=to_float(prezzo_vendita_default),
-        note=note
+        note=clean(note, NOTE_MAX),
     )
 
     return RedirectResponse(url="/materiali/", status_code=303)
@@ -127,7 +128,7 @@ def salva_movimento(
         materiale_id=materiale_id,
         tipo=tipo,
         quantita=to_float(quantita),
-        note=note
+        note=clean(note, NOTE_MAX),
     )
 
     return RedirectResponse(url="/materiali", status_code=303)

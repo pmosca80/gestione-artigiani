@@ -19,6 +19,8 @@ from app.services.calcoli import calcola_totali_lavoro
 from app.models import Materiale, MaterialeUsatoLavoro
 from app.logger import get_logger
 from app.services.audit import log_audit, get_actor, get_client_ip
+from app.limiter import user_limiter
+from app.validators import TITOLO_MAX, DESCRIZIONE_MAX, NOTE_MAX, NUMERO_FATTURA_MAX, clean, safe_redirect, check_magic
 from app.templates_config import templates
 logger = get_logger("lavori")
 
@@ -98,6 +100,7 @@ def form_lavoro(cliente_id: int, request: Request, db: Session = Depends(get_db)
 
 
 @router.post("/nuovo/{cliente_id}")
+@user_limiter.limit("20/minute")
 def crea_lavoro_form(
     request: Request,
     cliente_id: int,
@@ -124,18 +127,19 @@ def crea_lavoro_form(
         if azienda and (azienda.regime_fiscale or "RF01").upper() in _REGIMI_SENZA_IVA:
             aliquota_iva = "0"
 
+        titolo_ok = clean(titolo, TITOLO_MAX)
         nuovo = crud.crea_lavoro(
             db=db,
             cliente_id=cliente_id,
             data_lavoro=data_lavoro,
-            titolo=titolo,
-            descrizione=descrizione,
+            titolo=titolo_ok,
+            descrizione=clean(descrizione, DESCRIZIONE_MAX),
             stato=stato,
             importo_preventivato=to_float(importo_preventivato) if importo_preventivato else None,
             importo_consuntivo=to_float(importo_consuntivo) if importo_consuntivo else None,
             aliquota_iva=to_float(aliquota_iva, default=22),
             sconto=to_float(sconto, default=0),
-            note_consuntivo=note_consuntivo,
+            note_consuntivo=clean(note_consuntivo, NOTE_MAX),
             utente_id=user_id
         )
         attore_id, attore_username = get_actor(request, db)
@@ -143,7 +147,7 @@ def crea_lavoro_form(
                   "crea_lavoro", "lavori", nuovo.id,
                   {"consuntivo": float(nuovo.importo_consuntivo or 0),
                    "iva": float(nuovo.aliquota_iva or 0),
-                   "titolo": titolo[:80]},
+                   "titolo": titolo_ok[:80]},
                   get_client_ip(request))
 
         return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
@@ -177,6 +181,7 @@ def form_lavoro_rapido(
 
 
 @router.post("/nuovo-rapido")
+@user_limiter.limit("20/minute")
 def crea_lavoro_rapido(
     request: Request,
     cliente_id: int = Form(...),
@@ -698,9 +703,11 @@ async def carica_foto_lavoro(
     if estensione not in [".jpg", ".jpeg", ".png", ".webp"]:
         raise HTTPException(status_code=400, detail="Formato immagine non valido")
 
-    nome_file = f"lavoro_{lavoro_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{estensione}"
-
     contenuto = await foto.read()
+    if not check_magic(contenuto, estensione):
+        raise HTTPException(status_code=400, detail="Contenuto file non valido")
+
+    nome_file = f"lavoro_{lavoro_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{estensione}"
 
     from app.services.cloudinary_service import cloudinary_configurato, carica_immagine
     if cloudinary_configurato():
@@ -765,9 +772,11 @@ async def carica_allegato_lavoro(
     if estensione not in estensioni_permesse:
         raise HTTPException(status_code=400, detail="Formato allegato non valido")
 
-    nome_file = f"allegato_{lavoro_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{estensione}"
-
     contenuto = await allegato.read()
+    if not check_magic(contenuto, estensione):
+        raise HTTPException(status_code=400, detail="Contenuto file non valido")
+
+    nome_file = f"allegato_{lavoro_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{estensione}"
 
     from app.services.cloudinary_service import cloudinary_configurato, carica_file
     if cloudinary_configurato():
@@ -832,8 +841,8 @@ def modifica_lavoro(
             db=db,
             lavoro_id=lavoro_id,
             data_lavoro=data_lavoro,
-            titolo=titolo,
-            descrizione=descrizione,
+            titolo=clean(titolo, TITOLO_MAX),
+            descrizione=clean(descrizione, DESCRIZIONE_MAX),
             stato=stato,
             importo_preventivato=to_float(importo_preventivato) if importo_preventivato else None,
             importo_consuntivo=to_float(importo_consuntivo) if importo_consuntivo else None,
@@ -843,7 +852,7 @@ def modifica_lavoro(
             sconto=to_float(sconto),
             utente_id=user_id,
             data_scadenza_pagamento=data_scadenza_pagamento,
-            note_consuntivo=note_consuntivo,
+            note_consuntivo=clean(note_consuntivo, NOTE_MAX),
             numero_fattura=int(numero_fattura) if numero_fattura.strip() else None,
             data_fattura=data_fattura,
             ritenuta_acconto=ritenuta_acconto == "1",
@@ -906,7 +915,7 @@ def aggiungi_voce_lavoro(
     lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
-    crud.crea_voce_preventivo(db, user_id, lavoro_id, descrizione, quantita, unita_misura, prezzo_unitario)
+    crud.crea_voce_preventivo(db, user_id, lavoro_id, clean(descrizione, DESCRIZIONE_MAX), quantita, unita_misura, prezzo_unitario)
     return RedirectResponse(url=f"/lavori/{lavoro_id}/voci", status_code=303)
 
 @router.post("/voci-preventivo/{voce_id}/elimina")
@@ -1897,6 +1906,7 @@ def cambia_stato_lavoro(
         "preventivo", "preventivo_inviato", "preventivo_accettato",
         "da_fare", "in_corso", "completato", "annullato",
     }
+    redirect_to = safe_redirect(redirect_to)
     lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
     if not lavoro or nuovo_stato not in _stati_validi:
         raise HTTPException(status_code=404)

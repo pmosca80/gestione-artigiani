@@ -8,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app import crud
 from app.templates_config import templates
+from app.validators import TITOLO_MAX, NOTE_MAX, clean
 
 router = APIRouter(prefix="/scadenzario", tags=["scadenzario"])
 
@@ -50,9 +51,9 @@ def nuovo_promemoria(
 ):
     cid = int(cliente_id) if cliente_id.isdigit() else None
     crud.crea_promemoria(
-        db=db, utente_id=user_id, titolo=titolo.strip(),
+        db=db, utente_id=user_id, titolo=clean(titolo, TITOLO_MAX),
         data_promemoria=data_promemoria, tipo=tipo,
-        note=note.strip(), cliente_id=cid,
+        note=clean(note, NOTE_MAX), cliente_id=cid,
     )
     return RedirectResponse(url="/scadenzario/manutenzioni", status_code=303)
 

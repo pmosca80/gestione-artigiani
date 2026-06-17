@@ -14,6 +14,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, to_float
 from app import crud
 from app.templates_config import templates
+from app.validators import DESCRIZIONE_MAX, NOTE_MAX, clean
 
 router = APIRouter(tags=["sal"])
 
@@ -53,7 +54,8 @@ def nuovo_sal(lavoro_id: int, request: Request,
         db=db, utente_id=user_id, lavoro_id=lavoro_id,
         data=data, percentuale=to_float(percentuale),
         importo_richiesto=to_float(importo_richiesto),
-        descrizione=descrizione.strip(), note=note.strip(),
+        descrizione=clean(descrizione, DESCRIZIONE_MAX),
+        note=clean(note, NOTE_MAX),
     )
     return RedirectResponse(url=f"/lavori/{lavoro_id}/sal", status_code=303)
 

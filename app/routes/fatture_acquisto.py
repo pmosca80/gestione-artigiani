@@ -9,6 +9,8 @@ from app.dependencies import get_current_user
 from app import crud
 from app.templates_config import templates
 from app.services.audit import log_audit, get_actor, get_client_ip
+from app.limiter import user_limiter
+from app.validators import DESCRIZIONE_MAX, NOTE_MAX, CATEGORIA_MAX, NUMERO_FATTURA_MAX, clean
 
 router = APIRouter(prefix="/fatture-acquisto", tags=["fatture-acquisto"])
 
@@ -54,6 +56,7 @@ def lista_fatture_acquisto(
 
 
 @router.post("/", response_class=RedirectResponse)
+@user_limiter.limit("30/minute")
 def crea_fattura(
     request: Request,
     data_fattura: str = Form(...),
@@ -79,28 +82,29 @@ def crea_fattura(
     iva = round(imponibile * aliq / 100, 2)
     totale = round(imponibile + iva, 2)
 
-    if imponibile > 0 and descrizione.strip():
+    desc_ok = clean(descrizione, DESCRIZIONE_MAX)
+    if imponibile > 0 and desc_ok:
         fa = crud.crea_fattura_acquisto(
             db,
             utente_id=user_id,
             data_fattura=data_fattura,
-            descrizione=descrizione,
+            descrizione=desc_ok,
             importo_imponibile=imponibile,
             aliquota_iva=aliq,
             importo_iva=iva,
             importo_totale=totale,
-            numero_fattura=numero_fattura,
-            categoria=categoria,
+            numero_fattura=clean(numero_fattura, NUMERO_FATTURA_MAX),
+            categoria=clean(categoria, CATEGORIA_MAX),
             fornitore_id=fornitore_id or None,
             lavoro_id=lavoro_id or None,
             data_scadenza=data_scadenza,
-            note=note,
+            note=clean(note, NOTE_MAX),
         )
         attore_id, attore_username = get_actor(request, db)
         log_audit(db, user_id, attore_id, attore_username,
                   "crea_fattura_acquisto", "fatture_acquisto", fa.id,
                   {"imponibile": imponibile, "iva": iva, "totale": totale,
-                   "descrizione": descrizione[:80]},
+                   "descrizione": desc_ok[:80]},
                   get_client_ip(request))
 
     anno = anno_redirect or int(data_fattura[:4])

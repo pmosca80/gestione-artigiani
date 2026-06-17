@@ -72,6 +72,16 @@ app = FastAPI(
 
 app.state.limiter = limiter
 
+_MAX_BODY_BYTES = 512 * 1024  # 512 KB — protegge da payload bomb
+
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > _MAX_BODY_BYTES:
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"detail": "Payload troppo grande."}, status_code=413)
+    return await call_next(request)
+
 app.add_middleware(CSRFMiddleware)
 _https_only = bool(os.getenv("RAILWAY_ENVIRONMENT_NAME") or os.getenv("RAILWAY_PROJECT_ID"))
 app.add_middleware(

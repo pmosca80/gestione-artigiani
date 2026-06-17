@@ -10,6 +10,7 @@ from app.dependencies import get_current_user
 from app import crud
 from app.templates_config import templates
 from app.services.audit import log_audit, get_actor, get_client_ip
+from app.limiter import user_limiter
 
 router = APIRouter(prefix="/fatture", tags=["fatture"])
 
@@ -533,7 +534,9 @@ def crea_link_pagamento(
 
 
 @router.post("/{fattura_id}/invia-email")
+@user_limiter.limit("5/minute")
 def invia_fattura_email(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -600,7 +603,9 @@ def invia_fattura_email(
 
 
 @router.post("/{fattura_id}/invia-pdf")
+@user_limiter.limit("5/minute")
 def invia_fattura_pdf_route(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -736,6 +741,7 @@ def aggiorna_pagamento(
 
 
 @router.post("/{fattura_id}/nota-credito")
+@user_limiter.limit("10/minute")
 def crea_nota_credito(
     request: Request,
     fattura_id: int,
@@ -830,6 +836,7 @@ def aggiorna_stato(
 
 
 @router.post("/crea-da-lavoro/{lavoro_id}")
+@user_limiter.limit("10/minute")
 def crea_fattura_da_lavoro(
     request: Request,
     lavoro_id: int,

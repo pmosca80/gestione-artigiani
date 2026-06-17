@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from app.validators import DESCRIZIONE_MAX, NOTE_MAX, clean
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -89,10 +90,10 @@ def crea_garanzia(
         utente_id=user_id,
         cliente_id=cliente_id,
         lavoro_id=lid,
-        descrizione=descrizione,
+        descrizione=clean(descrizione, DESCRIZIONE_MAX),
         data_installazione=data_installazione,
         durata_mesi=durata_mesi,
-        note=note,
+        note=clean(note, NOTE_MAX),
     )
     return RedirectResponse(url="/garanzie/", status_code=303)
 

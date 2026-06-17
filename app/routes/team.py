@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.services.piani import get_base_url, get_piano, ha_team, max_collaboratori
 from app.templates_config import templates
+from app.validators import USERNAME_MAX, PASSWORD_MAX
 
 router = APIRouter(tags=["team"])
 
@@ -167,8 +168,8 @@ def pagina_register_invito(token: str, request: Request, db: Session = Depends(g
 def completa_register_invito(
     token: str,
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
+    username: str = Form(..., max_length=USERNAME_MAX),
+    password: str = Form(..., max_length=PASSWORD_MAX),
     db: Session = Depends(get_db),
 ):
     from app.models import InvitoAccount, Utente

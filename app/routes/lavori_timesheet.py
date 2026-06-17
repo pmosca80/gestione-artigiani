@@ -8,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, to_float
 from app import crud
 from app.templates_config import templates
+from app.validators import NOME_MAX, NOTE_MAX, clean
 
 router = APIRouter(tags=["timesheet"])
 
@@ -60,11 +61,11 @@ def nuovo_timesheet(lavoro_id: int, request: Request,
         raise HTTPException(status_code=404)
     crud.crea_timesheet_entry(
         db=db, utente_id=user_id, lavoro_id=lavoro_id,
-        nome_operaio=nome_operaio,
+        nome_operaio=clean(nome_operaio, NOME_MAX),
         data=data,
         ore=to_float(ore),
         costo_orario=to_float(costo_orario),
-        note=note,
+        note=clean(note, NOTE_MAX),
     )
     return RedirectResponse(url=f"/lavori/{lavoro_id}/timesheet", status_code=303)
 

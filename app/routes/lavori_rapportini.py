@@ -14,6 +14,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, to_float
 from app import crud
 from app.templates_config import templates
+from app.validators import DESCRIZIONE_MAX, NOTE_MAX, NOME_MAX, clean
 
 router = APIRouter(tags=["rapportini"])
 
@@ -50,8 +51,9 @@ def nuovo_rapportino(lavoro_id: int, request: Request,
     crud.crea_rapportino(
         db=db, utente_id=user_id, lavoro_id=lavoro_id,
         data=data, ore_lavorate=to_float(ore_lavorate),
-        descrizione_attivita=descrizione_attivita.strip(),
-        materiali_note=materiali_note.strip(), note=note.strip(),
+        descrizione_attivita=clean(descrizione_attivita, DESCRIZIONE_MAX),
+        materiali_note=clean(materiali_note, NOTE_MAX),
+        note=clean(note, NOTE_MAX),
     )
     return RedirectResponse(url=f"/lavori/{lavoro_id}/rapportini", status_code=303)
 
