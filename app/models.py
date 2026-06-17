@@ -242,6 +242,10 @@ class Lavoro(TimestampMixin, Base):
 
     data_fine_prevista = Column(FlexDate, nullable=True)
 
+    # Multi-tenancy collaboratori: NULL = visibile solo al titolare, altrimenti
+    # il lavoro è visibile/modificabile solo dal collaboratore assegnato.
+    assegnato_a_id = Column(Integer, ForeignKey("utenti.id"), nullable=True)
+
     data_creazione = Column(FlexDateTime, nullable=False)
 
     cliente = relationship("Cliente", back_populates="lavori")
@@ -382,6 +386,7 @@ class ImpostazioniAzienda(TimestampMixin, Base):
     pec_smtp_host = Column(String, nullable=True)
     pec_smtp_port = Column(Integer, nullable=True, default=465)
     pec_smtp_password = Column(EncryptedString, nullable=True)
+    invio_automatico_sdi = Column(Boolean, nullable=False, default=False)
 
 
 class DocumentoPDF(Base):

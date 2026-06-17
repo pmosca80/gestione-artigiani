@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import richiedi_titolare
 from app.services.piani import (
     LIMITE_CLIENTI_FREE,
     conta_clienti,
@@ -16,7 +17,7 @@ from app.services.piani import (
 )
 from app.templates_config import templates
 
-router = APIRouter(tags=["piani"])
+router = APIRouter(tags=["piani"], dependencies=[Depends(richiedi_titolare)])
 
 
 def _get_user_id(request: Request) -> int | None:

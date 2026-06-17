@@ -7,11 +7,11 @@ from fastapi.responses import HTMLResponse, Response, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, richiedi_titolare
 from app import crud
 from app.templates_config import templates
 
-router = APIRouter(prefix="/export", tags=["export"])
+router = APIRouter(prefix="/export", tags=["export"], dependencies=[Depends(richiedi_titolare)])
 
 
 @router.get("/", response_class=HTMLResponse)

@@ -15,14 +15,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente, lavori_timesheet, stripe_webhook, fatture_acquisto, audit
-from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, get_current_user
+from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, AccessoNegato, get_current_user
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
 from app.logger import get_logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.notifiche import controlla_scadenze
-from app.services.backup import esegui_backup
+from app.services.backup import esegui_backup, verifica_ripristino_backup
 from app.services.reminder_fatture import controlla_fatture_non_pagate
 from app.services.garanzie_reminder import controlla_garanzie
 from app.limiter import limiter
@@ -239,6 +239,12 @@ scheduler.add_job(
     replace_existing=True,
 )
 scheduler.add_job(
+    verifica_ripristino_backup,
+    trigger=CronTrigger(day_of_week="sun", hour=3, minute=0),
+    id="verifica_ripristino_backup",
+    replace_existing=True,
+)
+scheduler.add_job(
     controlla_fatture_non_pagate,
     trigger=CronTrigger(hour=8, minute=30),
     id="reminder_fatture",
@@ -251,7 +257,7 @@ scheduler.add_job(
     replace_existing=True,
 )
 scheduler.start()
-logger.info("Scheduler avviato — scadenze 08:00, fatture 08:30, garanzie 09:00, backup 02:00")
+logger.info("Scheduler avviato — scadenze 08:00, fatture 08:30, garanzie 09:00, backup 02:00, verifica ripristino domenica 03:00")
 
 
 @app.get("/")
@@ -366,6 +372,10 @@ async def account_disattivato_handler(request: Request, exc: AccountDisattivato)
         context={"disattivato": True},
         status_code=403
     )
+
+@app.exception_handler(AccessoNegato)
+async def accesso_negato_handler(request: Request, exc: AccessoNegato):
+    return RedirectResponse(url="/?errore=area_riservata", status_code=303)
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):

@@ -282,8 +282,7 @@
             <div class="profilo-item-label">📅 Ultima visita</div>
             {% if riepilogo.ultima_visita %}
                 <div class="profilo-item-val">
-                    {% set d = riepilogo.ultima_visita.data %}
-                    {{ d[8:10] }}/{{ d[5:7] }}/{{ d[0:4] }}
+                    {{ riepilogo.ultima_visita.data.strftime('%d/%m/%Y') }}
                 </div>
                 <div class="profilo-item-sub">
                     <a href="/lavori/{{ riepilogo.ultima_visita.id }}" style="color:#6b7280; text-decoration:none;">
@@ -323,7 +322,7 @@
             {% if riepilogo.cliente_dal %}
                 {% set cd = riepilogo.cliente_dal %}
                 {% set mesi_it = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'] %}
-                <div class="profilo-item-val">{{ mesi_it[cd[5:7]|int - 1] }} {{ cd[0:4] }}</div>
+                <div class="profilo-item-val">{{ mesi_it[cd.month - 1] }} {{ cd.year }}</div>
             {% else %}
                 <div class="profilo-item-val" style="color:#9ca3af;">—</div>
             {% endif %}

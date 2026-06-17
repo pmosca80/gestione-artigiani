@@ -342,6 +342,17 @@
                            placeholder="Password del tuo account PEC"
                            autocomplete="current-password">
                 </div>
+                <div class="form-group span2" style="flex-direction:row;align-items:center;gap:10px;">
+                    <input type="checkbox" name="invio_automatico_sdi" id="invio_automatico_sdi"
+                           value="true" style="width:auto;"
+                           {% if azienda and azienda.invio_automatico_sdi %}checked{% endif %}>
+                    <label for="invio_automatico_sdi" style="margin:0;">
+                        Invia automaticamente a SDI quando emetto una fattura
+                    </label>
+                </div>
+                <div style="font-size:12px;color:#6b7280;margin-top:-6px;">
+                    Se disattivato, dovrai cliccare "Invia a SDI" manualmente da ogni fattura nel registro.
+                </div>
             </div>
 
             <div class="form-section-title">Logo aziendale</div>

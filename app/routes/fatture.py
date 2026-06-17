@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response, Streamin
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, scope_collaboratore, is_collaboratore
 from app import crud
 from app.templates_config import templates
 from app.services.audit import log_audit, get_actor, get_client_ip
@@ -113,7 +113,7 @@ def registro_fatture(
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
 
-    fatture = crud.get_fatture_registro(db, user_id, anno_sel)
+    fatture = crud.get_fatture_registro(db, user_id, anno_sel, assegnato_a_id=scope_collaboratore(request, db))
 
     tot_imponibile = sum(f.importo_imponibile or 0 for f in fatture)
     tot_iva = sum(f.importo_iva or 0 for f in fatture)
@@ -166,6 +166,7 @@ def registro_fatture(
 
 @router.get("/export-excel")
 def export_excel(
+    request: Request,
     anno: int = None,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -179,7 +180,7 @@ def export_excel(
 
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
-    fatture = crud.get_fatture_registro(db, user_id, anno_sel)
+    fatture = crud.get_fatture_registro(db, user_id, anno_sel, assegnato_a_id=scope_collaboratore(request, db))
     azienda = crud.get_impostazioni_azienda(db, user_id)
     nome_az = azienda.nome_azienda or "Azienda"
 
@@ -338,6 +339,7 @@ def export_excel(
 
 @router.get("/export.csv")
 def export_csv_fatture(
+    request: Request,
     anno: int = None,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -348,7 +350,7 @@ def export_csv_fatture(
     from fastapi.responses import Response as _Response
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
-    fatture_list = crud.get_fatture_registro(db, user_id, anno_sel)
+    fatture_list = crud.get_fatture_registro(db, user_id, anno_sel, assegnato_a_id=scope_collaboratore(request, db))
 
     righe = ["N. Fattura,Data,Cliente,P.IVA/CF,Imponibile,IVA,Bollo,Totale,Stato"]
     for f in fatture_list:
@@ -387,6 +389,9 @@ def liquidazione_iva(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    if is_collaboratore(request, db):
+        return RedirectResponse("/fatture/", status_code=303)
+
     from app.models import VocePrimaNota, FatturaAcquisto
     _REGIMI_SENZA_IVA = {"RF19", "RF02"}
     # TD01=fattura, TD04=nota di credito (iva negativa), TD05=nota di debito (iva positiva)
@@ -396,7 +401,7 @@ def liquidazione_iva(
     anni_disponibili = crud.get_anni_fatture(db, user_id)
     anno_sel = anno or (anni_disponibili[0] if anni_disponibili else datetime.now().year)
 
-    fatture = crud.get_fatture_registro(db, user_id, anno_sel)
+    fatture = crud.get_fatture_registro(db, user_id, anno_sel, assegnato_a_id=scope_collaboratore(request, db))
     azienda = crud.get_impostazioni_azienda(db, user_id)
     regime = (azienda.regime_fiscale if azienda else "RF01") or "RF01"
     forfettario = regime in _REGIMI_SENZA_IVA
@@ -757,6 +762,17 @@ def crea_nota_credito(
               "nota_credito", "fatture_emesse", fattura_id,
               {"nc_id": nc.id, "totale": float(nc.importo_totale or 0)},
               get_client_ip(request))
+
+    if nc.lavoro:
+        azienda = crud.get_impostazioni_azienda(db, user_id)
+        from app.services.sdi import invia_automatico
+        invia_automatico(
+            db, azienda, nc.lavoro, nc,
+            tipo_documento="TD04",
+            fattura_rif_numero=nc.fattura_rif_numero,
+            fattura_rif_anno=nc.fattura_rif_anno,
+        )
+
     return RedirectResponse(
         f"/fatture/?anno={nc.anno}&nc_creata={nc.id}", status_code=303
     )
@@ -852,7 +868,7 @@ def crea_fattura_da_lavoro(
         errori_fatturapa, nome_file_fatturapa, bollo_dovuto, _REGIMI_SENZA_IVA,
     )
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404)
 
@@ -937,6 +953,9 @@ def crea_fattura_da_lavoro(
               {"numero": lavoro.numero_fattura, "anno": anno,
                "imponibile": imponibile_val, "iva": iva_val, "totale": totale_val},
               get_client_ip(request))
+
+    from app.services.sdi import invia_automatico
+    invia_automatico(db, azienda, lavoro, fattura_salvata)
 
     return RedirectResponse(f"/fatture/?anno={anno}&creata=1", status_code=303)
 

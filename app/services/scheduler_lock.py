@@ -14,6 +14,7 @@ _LOCK_IDS: dict[str, int] = {
     "controlla_fatture":  1002,
     "controlla_garanzie": 1003,
     "backup_giornaliero": 1004,
+    "verifica_ripristino_backup": 1005,
 }
 
 

@@ -78,27 +78,32 @@ function _mostraToastSWUpdate(newWorker) {
         <a href="/materiali/">📦 Magazzino</a>
         <a href="/garanzie/">🛡️ Garanzie</a>
         <a href="/fatture/">🧾 Fatture</a>
+        {% if not request.session.get('is_collaboratore') %}
         <a href="/fatture/liquidazione-iva">🧮 Liquidazione IVA</a>
         <a href="/fatture-acquisto/">📥 Fatture Passive</a>
         <a href="/prima-nota/">📒 Prima Nota</a>
+        {% endif %}
         <a href="/lavori/analisi/economica">📊 Analisi</a>
 
         <div class="nav-group-sep"></div>
         <span class="nav-group-label">Documenti</span>
         <a href="/documenti">📄 Archivio PDF</a>
         <a href="/lavori/allegati/archivio">📎 Allegati</a>
+        {% if not request.session.get('is_collaboratore') %}
         <a href="/export/">💾 Export Contabilità</a>
+        {% endif %}
 
         <div class="nav-group-sep"></div>
         <span class="nav-group-label">Account</span>
+        {% if not request.session.get('is_collaboratore') %}
         <a href="/impostazioni/azienda">⚙️ Impostazioni</a>
         <a href="/impostazioni/profilo">👤 Profilo</a>
         <a href="/impostazioni/sicurezza">🔐 Sicurezza</a>
-        {% if not request.session.get('is_collaboratore') %}
         <a href="/team">👥 Team</a>
         <a href="/audit/">🔍 Audit log</a>
         {% endif %}
         {% set _piano = request.session.get('piano') %}
+        {% if not request.session.get('is_collaboratore') %}
         {% if _piano == 'business' %}
         <a href="/piani" style="font-weight:700;color:#d97706;">Business ✓</a>
         {% elif _piano == 'pro' %}
@@ -107,6 +112,7 @@ function _mostraToastSWUpdate(newWorker) {
         <a href="/piani" style="font-weight:700;color:#0284c7;">Starter ✓</a>
         {% else %}
         <a href="/piani" style="font-weight:700;color:#7c3aed;">Free →</a>
+        {% endif %}
         {% endif %}
         {% if request.session.get('username') == 'admin' %}
         <a href="/impostazioni/admin" style="font-weight:700;color:#dc2626;">🔧 Admin</a>

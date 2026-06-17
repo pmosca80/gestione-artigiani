@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, scope_collaboratore
 from app import crud
 from app.limiter import user_limiter
 from app.templates_config import templates
@@ -23,7 +23,7 @@ def lista_clienti(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    risultato = crud.get_clienti(db, cerca, user_id, pagina=pagina)
+    risultato = crud.get_clienti(db, cerca, user_id, pagina=pagina, assegnato_a_id=scope_collaboratore(request, db))
 
     return templates.TemplateResponse(
         request=request,
@@ -79,7 +79,7 @@ def dettaglio_cliente(
     user_id: int = Depends(get_current_user),
 ):
 
-    cliente = crud.get_cliente_by_id(db, cliente_id, user_id)
+    cliente = crud.get_cliente_by_id(db, cliente_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
 
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
@@ -125,7 +125,7 @@ def form_modifica_cliente(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    cliente = crud.get_cliente_by_id(db, cliente_id, user_id)
+    cliente = crud.get_cliente_by_id(db, cliente_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
 
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
@@ -159,6 +159,10 @@ def modifica_cliente(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    esistente = crud.get_cliente_by_id(db, cliente_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
+    if not esistente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+
     cliente = crud.aggiorna_cliente(
         db=db,
         cliente_id=cliente_id,
@@ -189,9 +193,14 @@ def modifica_cliente(
 @router.post("/{cliente_id}/elimina")
 def elimina_cliente(
     cliente_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    esistente = crud.get_cliente_by_id(db, cliente_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
+    if not esistente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+
     risultato = crud.elimina_cliente(db, cliente_id, user_id)
 
     if risultato is None:

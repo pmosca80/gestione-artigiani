@@ -132,6 +132,20 @@
         </form>
     </div>
 
+    <div class="form-card" style="margin-top:28px;">
+        <div class="form-section-title">📦 I tuoi dati</div>
+        <p style="font-size:13px;color:#6b7280;margin:0 0 16px;line-height:1.6;">
+            Scarica una copia completa di tutti i dati associati al tuo account in formato JSON
+            (clienti, lavori, fatture, materiali e tutto il resto) — art. 20 GDPR, diritto alla portabilità.
+        </p>
+        <a href="/impostazioni/gdpr/export"
+           style="display:inline-block;background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;
+                  border-radius:9px;padding:10px 20px;font-size:13px;font-weight:700;
+                  text-decoration:none;font-family:'DM Sans',sans-serif;">
+            ⬇️ Esporta i miei dati
+        </a>
+    </div>
+
     <div style="margin-top:20px;">
         <a href="/impostazioni/azienda" style="font-size:13px;color:#6b7280;">← Torna alle impostazioni azienda</a>
     </div>
@@ -140,9 +154,11 @@
     <div class="form-card" style="border-color:#fecaca; margin-top: 28px;">
         <div class="form-section-title" style="color:#dc2626; border-color:#fecaca;">⚠️ Zona pericolosa</div>
         <p style="font-size:13px;color:#6b7280;margin:0 0 16px;line-height:1.6;">
-            La cancellazione rende l'account inaccessibile e anonimizza tutti i tuoi dati.
-            I contenuti (lavori, clienti, fatture) rimarranno nel sistema ma non saranno più raggiungibili.
-            Questa operazione <strong>non è reversibile</strong>.
+            La cancellazione elimina definitivamente i dati non soggetti a obblighi di conservazione
+            (materiali, magazzino, listino, promemoria, foto, allegati, rapportini, SAL, fornitori).
+            Clienti, lavori e fatture vengono anonimizzati nei dati personali ma le righe contabili
+            restano, perché la legge impone la conservazione dei documenti fiscali per 10 anni.
+            Questa operazione <strong>non è reversibile</strong> — ti consigliamo di esportare prima i tuoi dati.
         </p>
         <div id="del-account-btn">
             <button type="button" onclick="showDelAccount()"

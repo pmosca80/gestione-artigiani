@@ -43,11 +43,21 @@ def get_clienti(
     utente_id: int | None = None,
     pagina: int = 1,
     per_pagina: int = 20,
+    assegnato_a_id: int | None = None,
 ):
     query = db.query(Cliente)
 
     if utente_id is not None:
         query = query.filter(Cliente.utente_id == utente_id)
+
+    if assegnato_a_id is not None:
+        # Visibile se ha un lavoro assegnato al collaboratore, oppure se non ha
+        # ancora nessun lavoro (cliente "non reclamato" da nessuno).
+        assegnati_sub = db.query(Lavoro.cliente_id).filter(Lavoro.assegnato_a_id == assegnato_a_id)
+        con_lavori_sub = db.query(Lavoro.cliente_id)
+        query = query.filter(
+            or_(Cliente.id.in_(assegnati_sub), Cliente.id.notin_(con_lavori_sub))
+        )
 
     if cerca:
         cerca_like = f"%{cerca}%"
@@ -101,8 +111,15 @@ def crea_cliente(db: Session, nome: str, cognome: str, telefono: str, utente_id:
     return nuovo_cliente
 
 
-def get_cliente_by_id(db: Session, cliente_id: int, utente_id: int | None = None):
+def get_cliente_by_id(db: Session, cliente_id: int, utente_id: int | None = None, assegnato_a_id: int | None = None):
     query = db.query(Cliente).filter(Cliente.id == cliente_id)
+
+    if assegnato_a_id is not None:
+        assegnati_sub = db.query(Lavoro.cliente_id).filter(Lavoro.assegnato_a_id == assegnato_a_id)
+        con_lavori_sub = db.query(Lavoro.cliente_id)
+        query = query.filter(
+            or_(Cliente.id.in_(assegnati_sub), Cliente.id.notin_(con_lavori_sub))
+        )
 
     if utente_id is not None:
         query = query.filter(Cliente.utente_id == utente_id)
@@ -184,11 +201,15 @@ def get_lavori(
     cliente_id: int | None = None,
     pagina: int = 1,
     per_pagina: int = 20,
+    assegnato_a_id: int | None = None,
 ):
     query = db.query(Lavoro)
 
     if utente_id is not None:
         query = query.filter(Lavoro.utente_id == utente_id)
+
+    if assegnato_a_id is not None:
+        query = query.filter(Lavoro.assegnato_a_id == assegnato_a_id)
 
     if cliente_id is not None:
         query = query.filter(Lavoro.cliente_id == cliente_id)
@@ -275,11 +296,14 @@ def get_lavori_by_cliente(db: Session, cliente_id: int, utente_id: int | None = 
     return query.order_by(Lavoro.id.desc()).all()
 
 
-def get_lavoro_by_id(db: Session, lavoro_id: int, utente_id: int | None = None):
+def get_lavoro_by_id(db: Session, lavoro_id: int, utente_id: int | None = None, assegnato_a_id: int | None = None):
     query = db.query(Lavoro).filter(Lavoro.id == lavoro_id)
 
     if utente_id is not None:
         query = query.filter(Lavoro.utente_id == utente_id)
+
+    if assegnato_a_id is not None:
+        query = query.filter(Lavoro.assegnato_a_id == assegnato_a_id)
 
     return query.first()
 
@@ -296,7 +320,8 @@ def crea_lavoro(
     aliquota_iva,
     sconto,
     note_consuntivo,
-    utente_id
+    utente_id,
+    assegnato_a_id=None,
 ):
 
     numero_preventivo = None
@@ -317,6 +342,7 @@ def crea_lavoro(
         aliquota_iva=aliquota_iva,
         sconto=sconto,
         note_consuntivo=note_consuntivo,
+        assegnato_a_id=assegnato_a_id,
         data_creazione=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
 
@@ -347,6 +373,7 @@ def aggiorna_lavoro(
     data_fattura: str = "",
     ritenuta_acconto: bool = False,
     aliquota_ritenuta: float = 20.0,
+    assegnato_a_id: int | None = -1,
 ):
     lavoro = db.query(Lavoro).filter(
         Lavoro.id == lavoro_id,
@@ -379,6 +406,9 @@ def aggiorna_lavoro(
             lavoro.data_fattura = data_fattura
         lavoro.ritenuta_acconto = ritenuta_acconto
         lavoro.aliquota_ritenuta = aliquota_ritenuta
+
+        if assegnato_a_id != -1:
+            lavoro.assegnato_a_id = assegnato_a_id
 
         # calcoli automatici
         lavoro.totale_manodopera = ore_lavoro * costo_orario
@@ -766,6 +796,7 @@ def salva_impostazioni_azienda(
     pec_smtp_port: int = 465,
     pec_smtp_password: str = "",
     aliquota_iva_default: float = 22,
+    invio_automatico_sdi: bool = False,
 ):
     azienda = db.query(ImpostazioniAzienda).filter(
         ImpostazioniAzienda.utente_id == utente_id
@@ -799,6 +830,7 @@ def salva_impostazioni_azienda(
         azienda.pec_smtp_password = pec_smtp_password.strip() or None
 
     azienda.aliquota_iva_default = float(aliquota_iva_default) if aliquota_iva_default is not None else 22
+    azienda.invio_automatico_sdi = bool(invio_automatico_sdi)
 
     db.commit()
     db.refresh(azienda)
@@ -2576,11 +2608,13 @@ def salva_fattura_emessa(
     return fattura
 
 
-def get_fatture_registro(db: Session, utente_id: int, anno: int | None = None):
+def get_fatture_registro(db: Session, utente_id: int, anno: int | None = None, assegnato_a_id: int | None = None):
     q = (
         db.query(FatturaEmessa)
         .filter(FatturaEmessa.utente_id == utente_id)
     )
+    if assegnato_a_id is not None:
+        q = q.join(Lavoro, FatturaEmessa.lavoro_id == Lavoro.id).filter(Lavoro.assegnato_a_id == assegnato_a_id)
     if anno:
         q = q.filter(FatturaEmessa.anno == anno)
     return q.order_by(FatturaEmessa.numero.asc()).all()

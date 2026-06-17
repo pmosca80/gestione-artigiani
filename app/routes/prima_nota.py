@@ -6,14 +6,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, richiedi_titolare
 from app import crud
 from app.templates_config import templates
 from app.services.audit import log_audit, get_actor, get_client_ip
 from app.limiter import user_limiter
 from app.validators import DESCRIZIONE_MAX, NOTE_MAX, CATEGORIA_MAX, clean
 
-router = APIRouter(prefix="/prima-nota", tags=["prima-nota"])
+router = APIRouter(prefix="/prima-nota", tags=["prima-nota"], dependencies=[Depends(richiedi_titolare)])
 
 _CATEGORIE = ["carburante", "materiali", "attrezzatura", "compenso", "varie"]
 

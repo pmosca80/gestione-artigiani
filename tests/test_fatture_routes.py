@@ -146,6 +146,51 @@ def test_crea_da_lavoro_idempotente(client_http, db, utente_test):
     assert len(fatture) == 1
 
 
+def test_crea_da_lavoro_invia_automaticamente_se_abilitato(client_http, db, utente_test):
+    """Con invio_automatico_sdi=True e PEC configurata, l'invio a SDI parte da solo."""
+    from unittest.mock import patch
+
+    az = _crea_azienda(db, utente_test.id)
+    az.pec_indirizzo = "azienda@pec.it"
+    az.pec_smtp_host = "smtp.pec.it"
+    az.pec_smtp_password = "segreta"
+    az.invio_automatico_sdi = True
+    db.commit()
+
+    cli = _crea_cliente_cf(db, utente_test.id)
+    lav = _crea_lavoro(db, utente_test.id, cli.id)
+
+    with patch("app.services.sdi.invia_xml_a_sdi") as mock_invia, \
+         patch("app.services.fatturapa.genera_xml_fatturapa", return_value=b"<xml/>"):
+        resp = client_http.post(f"/fatture/crea-da-lavoro/{lav.id}", follow_redirects=False)
+
+    assert resp.status_code == 303
+    mock_invia.assert_called_once()
+    fatture = crud.get_fatture_registro(db, utente_test.id)
+    assert fatture[0].stato == "inviata_sdi"
+
+
+def test_crea_da_lavoro_non_invia_se_disabilitato(client_http, db, utente_test):
+    """Senza invio_automatico_sdi, la fattura resta in stato 'emessa' e nessun invio parte."""
+    from unittest.mock import patch
+
+    az = _crea_azienda(db, utente_test.id)
+    az.pec_indirizzo = "azienda@pec.it"
+    az.pec_smtp_host = "smtp.pec.it"
+    az.pec_smtp_password = "segreta"
+    db.commit()
+
+    cli = _crea_cliente_cf(db, utente_test.id)
+    lav = _crea_lavoro(db, utente_test.id, cli.id)
+
+    with patch("app.services.sdi.invia_xml_a_sdi") as mock_invia:
+        client_http.post(f"/fatture/crea-da-lavoro/{lav.id}", follow_redirects=False)
+
+    mock_invia.assert_not_called()
+    fatture = crud.get_fatture_registro(db, utente_test.id)
+    assert fatture[0].stato != "inviata_sdi"
+
+
 def test_crea_da_lavoro_lavoro_inesistente(client_http, db, utente_test):
     _crea_azienda(db, utente_test.id)
     resp = client_http.post("/fatture/crea-da-lavoro/999999", follow_redirects=False)
@@ -257,6 +302,30 @@ def test_crea_nota_credito_td04(client_http, db, utente_test):
     assert nc is not None
     assert nc.fattura_rif_numero == fat.numero
     assert nc.fattura_rif_anno == fat.anno
+
+
+def test_crea_nota_credito_invia_automaticamente_se_abilitato(client_http, db, utente_test):
+    """La nota di credito TD04 viene inviata a SDI in automatico come la fattura originale."""
+    from unittest.mock import patch
+
+    az = _crea_azienda(db, utente_test.id)
+    az.pec_indirizzo = "azienda@pec.it"
+    az.pec_smtp_host = "smtp.pec.it"
+    az.pec_smtp_password = "segreta"
+    az.invio_automatico_sdi = True
+    db.commit()
+
+    cli = _crea_cliente_cf(db, utente_test.id)
+    lav = _crea_lavoro(db, utente_test.id, cli.id)
+    fat = _crea_fattura(db, utente_test.id, lav.id)
+
+    with patch("app.services.sdi.invia_xml_a_sdi") as mock_invia, \
+         patch("app.services.fatturapa.genera_xml_fatturapa", return_value=b"<xml/>") as mock_genera:
+        resp = client_http.post(f"/fatture/{fat.id}/nota-credito", follow_redirects=False)
+
+    assert resp.status_code == 303
+    mock_invia.assert_called_once()
+    assert mock_genera.call_args.kwargs["tipo_documento"] == "TD04"
 
 
 def test_crea_nota_credito_fattura_non_trovata(client_http, db, utente_test):

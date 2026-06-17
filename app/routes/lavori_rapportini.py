@@ -11,7 +11,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 
 from app.database import get_db
-from app.dependencies import get_current_user, to_float
+from app.dependencies import get_current_user, to_float, scope_collaboratore
 from app import crud
 from app.templates_config import templates
 from app.validators import DESCRIZIONE_MAX, NOTE_MAX, NOME_MAX, clean
@@ -23,7 +23,7 @@ router = APIRouter(tags=["rapportini"])
 def lista_rapportini(lavoro_id: int, request: Request,
                      db: Session = Depends(get_db),
                      user_id: int = Depends(get_current_user)):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404)
     rapportini = crud.get_rapportini_lavoro(db, user_id, lavoro_id)
@@ -45,7 +45,7 @@ def nuovo_rapportino(lavoro_id: int, request: Request,
                      note: str = Form(""),
                      db: Session = Depends(get_db),
                      user_id: int = Depends(get_current_user)):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404)
     crud.crea_rapportino(
@@ -70,7 +70,7 @@ def elimina_rapportino(lavoro_id: int, rapportino_id: int, request: Request,
 def pdf_rapportino(lavoro_id: int, rapportino_id: int, request: Request,
                    db: Session = Depends(get_db),
                    user_id: int = Depends(get_current_user)):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     r = crud.get_rapportino_by_id(db, rapportino_id, user_id)
     if not lavoro or not r:
         raise HTTPException(status_code=404)

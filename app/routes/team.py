@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, is_collaboratore as _solo_titolare
 from app.services.piani import get_base_url, get_piano, ha_team, max_collaboratori
 from app.templates_config import templates
 from app.validators import USERNAME_MAX, PASSWORD_MAX
@@ -14,16 +14,6 @@ from app.validators import USERNAME_MAX, PASSWORD_MAX
 router = APIRouter(tags=["team"])
 
 MAX_COLLABORATORI = 3
-
-
-def _solo_titolare(request: Request, db: Session) -> bool:
-    """True se il logged-in user è un collaboratore (non può gestire il team)."""
-    from app.models import Utente
-    uid = request.session.get("user_id")
-    if not uid:
-        return False
-    u = db.query(Utente).filter(Utente.id == uid).first()
-    return bool(u and getattr(u, "titolare_id", None))
 
 
 @router.get("/team", response_class=HTMLResponse)

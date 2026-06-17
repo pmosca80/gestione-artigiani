@@ -60,6 +60,22 @@ def _invia_alert(messaggio: str) -> None:
         logger.warning(f"Impossibile inviare alert backup: {e}")
 
 
+def _s3_client():
+    import boto3
+    from botocore.client import Config
+
+    endpoint = os.getenv("BACKUP_S3_ENDPOINT") or None
+    region = os.getenv("BACKUP_S3_REGION", "auto")
+    return boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        aws_access_key_id=os.getenv("BACKUP_S3_KEY_ID"),
+        aws_secret_access_key=os.getenv("BACKUP_S3_SECRET"),
+        region_name=region,
+        config=Config(signature_version="s3v4"),
+    )
+
+
 @con_lock("backup_giornaliero")
 def esegui_backup() -> None:
     """Backup giornaliero: pg_dump → gzip → S3. Non lancia mai eccezioni."""
@@ -102,21 +118,8 @@ def _esegui(db_url: str) -> None:
             f"Backup sospettosamente piccolo ({len(dati_gz)} byte) — dump non affidabile"
         )
 
-    import boto3
-    from botocore.client import Config
-
-    endpoint = os.getenv("BACKUP_S3_ENDPOINT") or None
-    region = os.getenv("BACKUP_S3_REGION", "auto")
     bucket = os.getenv("BACKUP_S3_BUCKET")
-
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=os.getenv("BACKUP_S3_KEY_ID"),
-        aws_secret_access_key=os.getenv("BACKUP_S3_SECRET"),
-        region_name=region,
-        config=Config(signature_version="s3v4"),
-    )
+    s3 = _s3_client()
 
     s3.put_object(
         Bucket=bucket,
@@ -138,3 +141,90 @@ def _pulisci_vecchi(s3, bucket: str) -> None:
             logger.info(f"Backup vecchio rimosso: {obj['Key']}")
     except Exception as e:
         logger.warning(f"Pulizia backup fallita: {e}")
+
+
+@con_lock("verifica_ripristino_backup")
+def verifica_ripristino_backup() -> None:
+    """Settimanale: scarica l'ultimo backup, lo ripristina in un DB temporaneo e verifica
+    che sia effettivamente leggibile. Un backup integro che non si ripristina è un
+    incidente silenzioso — questo job lo rende visibile. Non lancia mai eccezioni."""
+    if not _configurato():
+        logger.warning("Verifica ripristino saltata: backup non configurato")
+        return
+
+    db_url = os.getenv("DATABASE_URL", "")
+    if not db_url or not db_url.startswith("postgres"):
+        logger.warning("Verifica ripristino saltata: DATABASE_URL non configurata o non PostgreSQL")
+        return
+
+    try:
+        _verifica_ripristino(db_url)
+    except Exception as e:
+        msg = str(e)
+        logger.error(f"Verifica ripristino backup fallita: {msg}")
+        _invia_alert(f"Verifica ripristino backup fallita: {msg}")
+
+
+def _verifica_ripristino(db_url: str) -> None:
+    import secrets
+    from urllib.parse import urlparse, urlunparse
+
+    bucket = os.getenv("BACKUP_S3_BUCKET")
+    s3 = _s3_client()
+
+    risposta = s3.list_objects_v2(Bucket=bucket, Prefix="backup_")
+    oggetti = sorted(risposta.get("Contents", []), key=lambda o: o["Key"], reverse=True)
+    if not oggetti:
+        raise RuntimeError("Nessun backup trovato su S3 da verificare")
+
+    ultima_key = oggetti[0]["Key"]
+    corpo = s3.get_object(Bucket=bucket, Key=ultima_key)["Body"].read()
+    dump_sql = gzip.decompress(corpo)
+
+    if not dump_sql:
+        raise RuntimeError(f"Backup {ultima_key} vuoto dopo decompressione")
+
+    parsed = urlparse(db_url)
+    nome_db_temp = f"backup_verify_{secrets.token_hex(6)}"
+    admin_url = urlunparse(parsed._replace(path="/postgres"))
+    temp_url = urlunparse(parsed._replace(path=f"/{nome_db_temp}"))
+
+    crea = subprocess.run(
+        ["psql", admin_url, "-v", "ON_ERROR_STOP=1", "-c", f'CREATE DATABASE "{nome_db_temp}";'],
+        capture_output=True,
+        timeout=60,
+    )
+    if crea.returncode != 0:
+        raise RuntimeError(f"Creazione DB temporaneo di verifica fallita: {crea.stderr.decode()[:300]}")
+
+    try:
+        ripristino = subprocess.run(
+            ["psql", temp_url, "-v", "ON_ERROR_STOP=1"],
+            input=dump_sql,
+            capture_output=True,
+            timeout=300,
+        )
+        if ripristino.returncode != 0:
+            raise RuntimeError(
+                f"Ripristino di verifica fallito (backup {ultima_key}): {ripristino.stderr.decode()[:400]}"
+            )
+
+        verifica = subprocess.run(
+            ["psql", temp_url, "-t", "-c", "SELECT count(*) FROM utenti;"],
+            capture_output=True,
+            timeout=30,
+        )
+        if verifica.returncode != 0:
+            raise RuntimeError(f"Verifica post-ripristino fallita: {verifica.stderr.decode()[:300]}")
+        try:
+            righe = int(verifica.stdout.decode().strip())
+        except ValueError:
+            raise RuntimeError("Verifica post-ripristino: output inatteso da psql")
+
+        logger.info(f"Verifica ripristino OK — backup {ultima_key}, tabella utenti: {righe} righe")
+    finally:
+        subprocess.run(
+            ["psql", admin_url, "-c", f'DROP DATABASE IF EXISTS "{nome_db_temp}";'],
+            capture_output=True,
+            timeout=60,
+        )

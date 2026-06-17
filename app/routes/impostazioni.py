@@ -5,13 +5,15 @@ import shutil
 from datetime import datetime
 
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
+import json
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, richiedi_titolare
 from app import crud
 from app.logger import get_logger
+from app.limiter import user_limiter
 from openpyxl import Workbook
 
 logger = get_logger("admin")
@@ -114,7 +116,7 @@ def _leggi_file(contenuto: bytes, filename: str):
         headers = [c.strip() for c in rows[0]]
         return headers, rows[1:]
 
-router = APIRouter(prefix="/impostazioni", tags=["impostazioni"])
+router = APIRouter(prefix="/impostazioni", tags=["impostazioni"], dependencies=[Depends(richiedi_titolare)])
 
 
 @router.get("/azienda", response_class=HTMLResponse)
@@ -147,6 +149,7 @@ def salva_impostazioni_azienda(
     pec_smtp_port: int = Form(465),
     pec_smtp_password: str = Form("", max_length=PASSWORD_MAX),
     aliquota_iva_default: str = Form("22"),
+    invio_automatico_sdi: bool = Form(False),
     logo: UploadFile = File(None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -180,6 +183,7 @@ def salva_impostazioni_azienda(
         pec_smtp_port=pec_smtp_port,
         pec_smtp_password=pec_smtp_password,
         aliquota_iva_default=float(aliquota_iva_default) if aliquota_iva_default else 22,
+        invio_automatico_sdi=invio_automatico_sdi,
     )
     return RedirectResponse(url="/impostazioni/azienda?salvato=1", status_code=303)
 
@@ -1040,6 +1044,25 @@ def salva_profilo(
     )
 
 
+@router.get("/gdpr/export")
+@user_limiter.limit("5/minute")
+def esporta_dati_gdpr(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+):
+    """Export dati personali in formato machine-readable (art. 20 GDPR — portabilità)."""
+    from app.services.gdpr import esporta_dati_utente
+    dati = esporta_dati_utente(db, user_id)
+    contenuto = json.dumps(dati, indent=2, ensure_ascii=False, default=str)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return Response(
+        content=contenuto.encode("utf-8"),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="dati_mastro_{ts}.json"'},
+    )
+
+
 @router.post("/cancella-account")
 def cancella_account(
     request: Request,
@@ -1053,6 +1076,9 @@ def cancella_account(
         return RedirectResponse("/impostazioni/profilo?errore=admin_no_delete", status_code=303)
     if conferma_testo.strip().upper() != "CANCELLA":
         return RedirectResponse("/impostazioni/profilo?errore=conferma_errata", status_code=303)
+
+    from app.services.gdpr import cancella_dati_utente
+    cancella_dati_utente(db, user_id)
 
     utente.email = None
     utente.attivo = 0

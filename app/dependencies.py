@@ -19,6 +19,11 @@ class AccountDisattivato(Exception):
     pass
 
 
+class AccessoNegato(Exception):
+    """Area riservata al titolare: il collaboratore loggato non può accedervi."""
+    pass
+
+
 def _check_piano_trial(utente, db: Session) -> None:
     """Verifica piano Pro e scadenza trial. Lancia AccountScaduto se trial finito."""
     piano = getattr(utente, "piano", None) or "free"
@@ -111,6 +116,51 @@ def verifica_account(request: Request, db: Session) -> int:
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> int:
     return verifica_account(request, db)
+
+
+def get_attore(request: Request, db: Session):
+    """Utente effettivamente loggato (non risolto al titolare). None se non autenticato."""
+    from app.models import Utente
+    uid = request.session.get("user_id")
+    if not uid:
+        return None
+    return db.query(Utente).filter(Utente.id == uid).first()
+
+
+def is_collaboratore(request: Request, db: Session) -> bool:
+    """True se l'utente loggato è un collaboratore (non il titolare dell'account)."""
+    u = get_attore(request, db)
+    return bool(u and getattr(u, "titolare_id", None))
+
+
+def scope_collaboratore(request: Request, db: Session) -> int | None:
+    """ID del collaboratore loggato per filtrare i dati visibili, o None se titolare (vede tutto)."""
+    u = get_attore(request, db)
+    if u and getattr(u, "titolare_id", None):
+        return u.id
+    return None
+
+
+def lavoro_consentito(lavoro, request: Request, db: Session) -> bool:
+    """True se il lavoro esiste ed è visibile/modificabile dall'utente loggato."""
+    if lavoro is None:
+        return False
+    scope = scope_collaboratore(request, db)
+    if scope is None:
+        return True
+    return lavoro.assegnato_a_id == scope
+
+
+def blocca_collaboratore(request: Request, db: Session) -> bool:
+    """True se l'utente loggato è un collaboratore e l'area richiesta deve essergli negata."""
+    return is_collaboratore(request, db)
+
+
+def richiedi_titolare(request: Request, db: Session = Depends(get_db)) -> None:
+    """Dependency per router riservati al titolare (impostazioni, contabilità, billing).
+    Da usare come APIRouter(dependencies=[Depends(richiedi_titolare)])."""
+    if is_collaboratore(request, db):
+        raise AccessoNegato()
 
 
 def to_float(valore, default=0.0):

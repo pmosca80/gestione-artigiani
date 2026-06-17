@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Resp
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, scope_collaboratore
 from app import crud
 from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa, errori_fatturapa, bollo_dovuto, _REGIMI_SENZA_IVA
 from app.templates_config import templates
@@ -22,7 +22,7 @@ def scarica_fattura_pdf(
 ):
     from app.services.pdf_fattura import genera_pdf_fattura
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro or not lavoro.numero_fattura:
         raise HTTPException(status_code=404, detail="Fattura non trovata")
 
@@ -49,7 +49,7 @@ def scarica_preventivo_pdf(
 ):
     from app.services.pdf_fattura import genera_pdf_preventivo
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -88,7 +88,7 @@ def scarica_fattura_xml(
 ):
     from app import crud as _crud
 
-    lavoro = _crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = _crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 

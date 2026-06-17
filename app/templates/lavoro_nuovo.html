@@ -263,6 +263,17 @@
                     <textarea name="note_consuntivo"
                               placeholder="Condizioni di pagamento, garanzie, esclusioni..."></textarea>
                 </div>
+                {% if collaboratori %}
+                <div class="form-group span2">
+                    <label>Assegnato a</label>
+                    <select name="assegnato_a_id">
+                        <option value="0">— Solo io (titolare) —</option>
+                        {% for c in collaboratori %}
+                        <option value="{{ c.id }}">{{ c.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
             </div>
         </div>
 

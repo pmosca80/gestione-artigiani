@@ -13,7 +13,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 
 from app.database import get_db
-from app.dependencies import get_current_user, to_float
+from app.dependencies import get_current_user, to_float, scope_collaboratore
 from app import crud
 from app.services.calcoli import calcola_totali_lavoro
 from app.models import Materiale, MaterialeUsatoLavoro
@@ -57,6 +57,7 @@ def lista_lavori(
         ordinamento=ordinamento,
         utente_id=user_id,
         pagina=pagina,
+        assegnato_a_id=scope_collaboratore(request, db),
     )
 
     totali = crud.get_totali_lavori(risultato["items"])
@@ -91,11 +92,15 @@ def form_lavoro(cliente_id: int, request: Request, db: Session = Depends(get_db)
 
     template_preventivi = crud.get_template_preventivi(db, user_id)
     azienda = crud.get_impostazioni_azienda(db, user_id)
+    collaboratori = crud.get_collaboratori_utente(db, user_id) if not scope_collaboratore(request, db) else []
 
     return templates.TemplateResponse(
         request=request,
         name="lavoro_nuovo.html",
-        context={"cliente": cliente, "template_preventivi": template_preventivi, "azienda": azienda}
+        context={
+            "cliente": cliente, "template_preventivi": template_preventivi, "azienda": azienda,
+            "collaboratori": collaboratori,
+        }
     )
 
 
@@ -113,13 +118,15 @@ def crea_lavoro_form(
     note_consuntivo: str = Form(""),
     aliquota_iva: str = Form("22"),
     sconto: str = Form("0"),
+    assegnato_a_id: int = Form(0),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
 
     _REGIMI_SENZA_IVA = {"RF19", "RF02"}
     try:
-        cliente = crud.get_cliente_by_id(db, cliente_id, user_id)
+        scope = scope_collaboratore(request, db)
+        cliente = crud.get_cliente_by_id(db, cliente_id, user_id, assegnato_a_id=scope)
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente non trovato")
 
@@ -140,7 +147,8 @@ def crea_lavoro_form(
             aliquota_iva=to_float(aliquota_iva, default=22),
             sconto=to_float(sconto, default=0),
             note_consuntivo=clean(note_consuntivo, NOTE_MAX),
-            utente_id=user_id
+            utente_id=user_id,
+            assegnato_a_id=scope if scope is not None else (assegnato_a_id or None),
         )
         attore_id, attore_username = get_actor(request, db)
         log_audit(db, user_id, attore_id, attore_username,
@@ -191,8 +199,7 @@ def crea_lavoro_rapido(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    from app.models import Cliente
-    cliente = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.utente_id == user_id).first()
+    cliente = crud.get_cliente_by_id(db, cliente_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
     _REGIMI_SENZA_IVA = {"RF19", "RF02"}
@@ -215,6 +222,7 @@ def crea_lavoro_rapido(
         sconto=0,
         note_consuntivo="",
         utente_id=user_id,
+        assegnato_a_id=scope_collaboratore(request, db),
     )
     return RedirectResponse(url=f"/lavori/{lavoro.id}", status_code=303)
 
@@ -547,7 +555,7 @@ def dettaglio_lavoro(
     user_id: int = Depends(get_current_user),
 ):
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
 
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
@@ -662,13 +670,14 @@ def dettaglio_lavoro(
 @router.get("/{lavoro_id}/modifica", response_class=HTMLResponse)
 def form_modifica_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
    
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
 
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
     foto_lavoro = crud.get_foto_lavoro(db, user_id, lavoro_id)
     azienda = crud.get_impostazioni_azienda(db, user_id)
+    collaboratori = crud.get_collaboratori_utente(db, user_id) if not scope_collaboratore(request, db) else []
 
     return templates.TemplateResponse(
         request=request,
@@ -677,6 +686,7 @@ def form_modifica_lavoro(lavoro_id: int, request: Request, db: Session = Depends
             "lavoro": lavoro,
             "foto_lavoro": foto_lavoro,
             "azienda": azienda,
+            "collaboratori": collaboratori,
     }
 )
 
@@ -690,7 +700,7 @@ async def carica_foto_lavoro(
     user_id: int = Depends(get_current_user),
 ):
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -754,7 +764,7 @@ async def carica_allegato_lavoro(
     user_id: int = Depends(get_current_user),
 ):
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -820,13 +830,15 @@ def modifica_lavoro(
     data_fattura: str = Form(""),
     ritenuta_acconto: str = Form("0"),
     aliquota_ritenuta: str = Form("20"),
+    assegnato_a_id: int = Form(-1),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
 
     _REGIMI_SENZA_IVA = {"RF19", "RF02"}
     try:
-        lavoro_esistente = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+        scope = scope_collaboratore(request, db)
+        lavoro_esistente = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope)
         if not lavoro_esistente:
             raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -857,6 +869,7 @@ def modifica_lavoro(
             data_fattura=data_fattura,
             ritenuta_acconto=ritenuta_acconto == "1",
             aliquota_ritenuta=to_float(aliquota_ritenuta, default=20.0),
+            assegnato_a_id=(-1 if scope is not None else (assegnato_a_id if assegnato_a_id > 0 else None)),
         )
 
         calcola_totali_lavoro(db, lavoro_id)
@@ -879,7 +892,7 @@ def modifica_lavoro(
 @router.post("/{lavoro_id}/elimina")
 def elimina_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
     
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
 
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
@@ -892,7 +905,7 @@ def elimina_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_d
 
 @router.get("/{lavoro_id}/voci", response_class=HTMLResponse)
 def form_voci_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
     voci = crud.get_voci_preventivo(db, user_id, lavoro_id)
@@ -905,6 +918,7 @@ def form_voci_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get
 @router.post("/{lavoro_id}/voci")
 def aggiungi_voce_lavoro(
     lavoro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
     descrizione: str = Form(...),
@@ -912,7 +926,7 @@ def aggiungi_voce_lavoro(
     unita_misura: str = Form(""),
     prezzo_unitario: float = Form(0),
 ):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
     crud.crea_voce_preventivo(db, user_id, lavoro_id, clean(descrizione, DESCRIZIONE_MAX), quantita, unita_misura, prezzo_unitario)
@@ -931,7 +945,7 @@ def elimina_voce_preventivo(voce_id: int, db: Session = Depends(get_db), user_id
 @router.get("/{lavoro_id}/materiali", response_class=HTMLResponse)
 def form_materiali_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -1092,7 +1106,7 @@ def pagina_pagamenti_lavoro(
     user_id: int = Depends(get_current_user),
 ):
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -1171,7 +1185,7 @@ def genera_ricevuta_pagamento(
     if not pagamento:
         raise HTTPException(status_code=404, detail="Pagamento non trovato")
 
-    lavoro = crud.get_lavoro_by_id(db, pagamento.lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, pagamento.lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -1290,7 +1304,7 @@ def genera_ricevuta_pagamento(
 @router.get("/{lavoro_id}/pdf")
 def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -1678,7 +1692,7 @@ def apri_lavoro(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
     if lavoro.stato not in ("preventivo", "preventivo_inviato", "preventivo_accettato"):
@@ -1701,7 +1715,8 @@ def converti_preventivo(
     lavoro = crud.get_lavoro_by_id(
         db,
         lavoro_id,
-        user_id
+        user_id,
+        assegnato_a_id=scope_collaboratore(request, db),
     )
 
     if not lavoro:
@@ -1726,7 +1741,7 @@ def converti_in_fattura(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
 
@@ -1791,7 +1806,8 @@ def invia_preventivo(
     lavoro = crud.get_lavoro_by_id(
         db,
         lavoro_id,
-        user_id
+        user_id,
+        assegnato_a_id=scope_collaboratore(request, db),
     )
 
     if not lavoro:
@@ -1842,7 +1858,8 @@ def accetta_preventivo(
     lavoro = crud.get_lavoro_by_id(
         db,
         lavoro_id,
-        user_id
+        user_id,
+        assegnato_a_id=scope_collaboratore(request, db),
     )
 
     if not lavoro:
@@ -1862,10 +1879,11 @@ def accetta_preventivo(
 @router.post("/{lavoro_id}/timer/inizia")
 def timer_inizia(
     lavoro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404)
     if not crud.get_sessione_aperta(db, user_id, lavoro_id):
@@ -1876,10 +1894,11 @@ def timer_inizia(
 @router.post("/{lavoro_id}/timer/ferma")
 def timer_ferma(
     lavoro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404)
     sessione = crud.get_sessione_aperta(db, user_id, lavoro_id)
@@ -1907,7 +1926,7 @@ def cambia_stato_lavoro(
         "da_fare", "in_corso", "completato", "annullato",
     }
     redirect_to = safe_redirect(redirect_to)
-    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id)
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro or nuovo_stato not in _stati_validi:
         raise HTTPException(status_code=404)
     stato_precedente = lavoro.stato
