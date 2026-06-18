@@ -7,6 +7,13 @@ from datetime import date
 from app import models
 
 
+def test_health_check(client_http):
+    """/health deve rispondere senza sessione e senza dipendere dal DB."""
+    resp = client_http.get("/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
 # ── /clienti/ ────────────────────────────────────────────────────────────────
 
 def test_lista_clienti_vuota(client_http):

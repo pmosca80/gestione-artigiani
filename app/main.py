@@ -96,6 +96,13 @@ app.add_middleware(
 
 templates.env.globals["VAPID_PUBLIC_KEY"] = os.getenv("VAPID_PUBLIC_KEY", "")
 
+
+@app.get("/health")
+def health():
+    """Liveness check leggero, senza DB: serve a distinguere "processo vivo"
+    da "app funzionante" (quest'ultimo richiede una query, vedi "/")."""
+    return {"status": "ok"}
+
 app.mount(
     "/static",
     StaticFiles(directory=str(BASE_DIR / "static")),
