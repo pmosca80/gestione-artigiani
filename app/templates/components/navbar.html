@@ -488,12 +488,21 @@ window._wa = function (btn) {
     var banner = document.getElementById('cookie-banner');
     var btn = document.getElementById('cookie-ok-btn');
     if (!banner) return;
+    // Il banner e' fixed a tutta larghezza: senza questo padding copre (e blocca
+    // i click su) qualunque contenuto reale finisca nella sua stessa fascia in
+    // basso, su pagine corte o viewport piccoli — non solo visivamente.
+    function aggiornaPadding() {
+        document.body.style.paddingBottom = banner.style.display === 'none' ? '' : banner.offsetHeight + 'px';
+    }
     if (localStorage.getItem('cookie_ok') !== '1') {
         banner.style.display = 'flex';
+        aggiornaPadding();
+        window.addEventListener('resize', aggiornaPadding);
     }
     btn.addEventListener('click', function () {
         localStorage.setItem('cookie_ok', '1');
         banner.style.display = 'none';
+        document.body.style.paddingBottom = '';
     });
 })();
 

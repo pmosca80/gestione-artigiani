@@ -73,7 +73,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 
-_MAX_BODY_BYTES = 512 * 1024  # 512 KB — protegge da payload bomb
+_MAX_BODY_BYTES = 15 * 1024 * 1024  # 15 MB — copre foto/allegati reali, protegge da payload bomb
 
 @app.middleware("http")
 async def limit_body_size(request: Request, call_next):
