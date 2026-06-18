@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
 from app.csrf import CSRFMiddleware
+from app.security_headers import SecurityHeadersMiddleware
 from app.templates_config import templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -84,6 +85,7 @@ async def limit_body_size(request: Request, call_next):
 
 app.add_middleware(CSRFMiddleware)
 _https_only = bool(os.getenv("RAILWAY_ENVIRONMENT_NAME") or os.getenv("RAILWAY_PROJECT_ID"))
+app.add_middleware(SecurityHeadersMiddleware, https_only=_https_only)
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
