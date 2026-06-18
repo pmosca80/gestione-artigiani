@@ -21,6 +21,9 @@ build/
 # Upload utenti
 uploads/
 
+# Export Excel generati a runtime (clienti/lavori/materiali)
+export/
+
 # Log applicazione e PDF generati
 logs/
 pdf/
