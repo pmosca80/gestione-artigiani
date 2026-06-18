@@ -74,5 +74,8 @@ def nuovo_timesheet(lavoro_id: int, request: Request,
 def elimina_timesheet(lavoro_id: int, entry_id: int, request: Request,
                       db: Session = Depends(get_db),
                       user_id: int = Depends(get_current_user)):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
+    if not lavoro:
+        raise HTTPException(status_code=404)
     crud.elimina_timesheet_entry(db, entry_id, user_id)
     return RedirectResponse(url=f"/lavori/{lavoro_id}/timesheet", status_code=303)

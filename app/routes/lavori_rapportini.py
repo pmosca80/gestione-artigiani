@@ -62,6 +62,9 @@ def nuovo_rapportino(lavoro_id: int, request: Request,
 def elimina_rapportino(lavoro_id: int, rapportino_id: int, request: Request,
                        db: Session = Depends(get_db),
                        user_id: int = Depends(get_current_user)):
+    lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
+    if not lavoro:
+        raise HTTPException(status_code=404)
     crud.elimina_rapportino(db, rapportino_id, user_id)
     return RedirectResponse(url=f"/lavori/{lavoro_id}/rapportini", status_code=303)
 

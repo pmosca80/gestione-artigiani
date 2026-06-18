@@ -267,6 +267,90 @@ def test_collaboratore_vede_cliente_senza_lavori(client_sessione, db):
 
 # ── Scoping fatture ──────────────────────────────────────────────────────────
 
+def test_collaboratore_non_elimina_rapportino_su_lavoro_altrui(client_sessione, db):
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    cli = _cliente(db, tit.id)
+    altrui = _lavoro(db, tit.id, cli.id, titolo="Non mio", assegnato_a_id=None)
+    rapportino = models.RapportinoLavoro(
+        utente_id=tit.id, lavoro_id=altrui.id, data=oggi_str,
+        ore_lavorate=2, descrizione_attivita="Test", data_creazione=oggi_str,
+    )
+    db.add(rapportino); db.commit(); db.refresh(rapportino)
+
+    _login(client_sessione, "collab@test.it")
+    resp = client_sessione.post(
+        f"/lavori/{altrui.id}/rapportini/{rapportino.id}/elimina", follow_redirects=False,
+    )
+    assert resp.status_code == 404
+    assert db.query(models.RapportinoLavoro).filter_by(id=rapportino.id).first() is not None
+
+
+def test_collaboratore_non_elimina_sal_su_lavoro_altrui(client_sessione, db):
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    cli = _cliente(db, tit.id)
+    altrui = _lavoro(db, tit.id, cli.id, titolo="Non mio", assegnato_a_id=None)
+    sal = models.SalLavoro(
+        utente_id=tit.id, lavoro_id=altrui.id, numero=1, data=oggi_str,
+        percentuale=50, importo_richiesto=500, data_creazione=oggi_str,
+    )
+    db.add(sal); db.commit(); db.refresh(sal)
+
+    _login(client_sessione, "collab@test.it")
+    resp = client_sessione.post(
+        f"/lavori/{altrui.id}/sal/{sal.id}/elimina", follow_redirects=False,
+    )
+    assert resp.status_code == 404
+    resp2 = client_sessione.post(
+        f"/lavori/{altrui.id}/sal/{sal.id}/stato", follow_redirects=False,
+    )
+    assert resp2.status_code == 404
+    assert db.query(models.SalLavoro).filter_by(id=sal.id).first() is not None
+
+
+def test_collaboratore_non_elimina_timesheet_su_lavoro_altrui(client_sessione, db):
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    cli = _cliente(db, tit.id)
+    altrui = _lavoro(db, tit.id, cli.id, titolo="Non mio", assegnato_a_id=None)
+    entry = models.TimesheetCollab(
+        utente_id=tit.id, lavoro_id=altrui.id, nome_operaio="Mario",
+        data=oggi_str, ore=4, costo_orario=15, data_creazione=oggi_str,
+    )
+    db.add(entry); db.commit(); db.refresh(entry)
+
+    _login(client_sessione, "collab@test.it")
+    resp = client_sessione.post(
+        f"/lavori/{altrui.id}/timesheet/{entry.id}/elimina", follow_redirects=False,
+    )
+    assert resp.status_code == 404
+    assert db.query(models.TimesheetCollab).filter_by(id=entry.id).first() is not None
+
+
+def test_collaboratore_non_modifica_fattura_su_lavoro_altrui(client_sessione, db):
+    """IDOR: un collaboratore non può cambiare stato/inviare una fattura di un lavoro non suo."""
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    cli = _cliente(db, tit.id)
+    altrui = _lavoro(db, tit.id, cli.id, titolo="Non mio", assegnato_a_id=None)
+    fattura = models.FatturaEmessa(
+        utente_id=tit.id, lavoro_id=altrui.id, numero=1, anno=oggi.year,
+        data_emissione=oggi_str, importo_imponibile=100, importo_iva=22,
+        importo_totale=122, nome_file="f1.xml", data_creazione=oggi_str, stato="emessa",
+    )
+    db.add(fattura); db.commit(); db.refresh(fattura)
+
+    _login(client_sessione, "collab@test.it")
+    resp = client_sessione.post(
+        f"/fatture/{fattura.id}/stato", data={"stato": "pagata"}, follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=fattura_non_trovata" in resp.headers["location"]
+    db.refresh(fattura)
+    assert fattura.stato == "emessa"
+
+
 def test_collaboratore_vede_solo_fatture_dei_propri_lavori(client_sessione, db):
     tit = _titolare(db)
     collab = _collaboratore(db, tit.id)

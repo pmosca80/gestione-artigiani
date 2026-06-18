@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response, Streamin
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, scope_collaboratore, is_collaboratore
+from app.dependencies import get_current_user, scope_collaboratore, is_collaboratore, lavoro_consentito
 from app import crud
 from app.templates_config import templates
 from app.services.audit import log_audit, get_actor, get_client_ip
@@ -497,6 +497,7 @@ def liquidazione_iva(
 
 @router.post("/{fattura_id}/crea-link")
 def crea_link_pagamento(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -511,7 +512,7 @@ def crea_link_pagamento(
         FatturaEmessa.id == fattura_id,
         FatturaEmessa.utente_id == user_id,
     ).first()
-    if not fattura:
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
 
     try:
@@ -554,7 +555,7 @@ def invia_fattura_email(
         FatturaEmessa.id == fattura_id,
         FatturaEmessa.utente_id == user_id,
     ).first()
-    if not fattura:
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
 
     lav = fattura.lavoro
@@ -627,7 +628,7 @@ def invia_fattura_pdf_route(
         FatturaEmessa.id == fattura_id,
         FatturaEmessa.utente_id == user_id,
     ).first()
-    if not fattura:
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
 
     lav = fattura.lavoro
@@ -685,6 +686,7 @@ def invia_fattura_pdf_route(
 
 @router.post("/{fattura_id}/invia-sdi")
 def invia_fattura_sdi(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -698,7 +700,7 @@ def invia_fattura_sdi(
         FatturaEmessa.id == fattura_id,
         FatturaEmessa.utente_id == user_id,
     ).first()
-    if not fattura:
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
 
     lav = fattura.lavoro
@@ -737,6 +739,12 @@ def aggiorna_pagamento(
     user_id: int = Depends(get_current_user),
 ):
     """Segna la fattura come pagata / da pagare aggiornando il Lavoro collegato."""
+    from app.models import FatturaEmessa
+    fattura = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id, FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
     crud.aggiorna_pagamento_fattura(db, fattura_id, user_id, stato)
     attore_id, attore_username = get_actor(request, db)
     log_audit(db, user_id, attore_id, attore_username,
@@ -754,6 +762,12 @@ def crea_nota_credito(
     user_id: int = Depends(get_current_user),
 ):
     """Crea una nota di credito (TD04) a storno totale della fattura originale."""
+    from app.models import FatturaEmessa
+    fattura_orig = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id, FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura_orig or not lavoro_consentito(fattura_orig.lavoro, request, db):
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
     nc = crud.crea_nota_credito(db, user_id, fattura_id)
     if not nc:
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
@@ -780,6 +794,7 @@ def crea_nota_credito(
 
 @router.post("/{fattura_id}/sollecito-cliente")
 def sollecito_cliente(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -795,7 +810,7 @@ def sollecito_cliente(
         FatturaEmessa.id == fattura_id,
         FatturaEmessa.utente_id == user_id,
     ).first()
-    if not fattura:
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
         return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
 
     lav = fattura.lavoro
@@ -843,6 +858,12 @@ def aggiorna_stato(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    from app.models import FatturaEmessa
+    fattura = db.query(FatturaEmessa).filter(
+        FatturaEmessa.id == fattura_id, FatturaEmessa.utente_id == user_id,
+    ).first()
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
+        return RedirectResponse("/fatture/?errore=fattura_non_trovata", status_code=303)
     crud.aggiorna_stato_fattura(db, fattura_id, user_id, stato)
     attore_id, attore_username = get_actor(request, db)
     log_audit(db, user_id, attore_id, attore_username,
@@ -962,6 +983,7 @@ def crea_fattura_da_lavoro(
 
 @router.get("/{fattura_id}/scarica-xml")
 def scarica_xml_da_registro(
+    request: Request,
     fattura_id: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -975,7 +997,7 @@ def scarica_xml_da_registro(
     from app.services.fatturapa import genera_xml_fatturapa, nome_file_fatturapa
 
     fattura = db.query(_FE).filter(_FE.id == fattura_id, _FE.utente_id == user_id).first()
-    if not fattura:
+    if not fattura or not lavoro_consentito(fattura.lavoro, request, db):
         raise HTTPException(status_code=404)
 
     lav = fattura.lavoro
