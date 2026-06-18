@@ -302,6 +302,24 @@ def test_voci_lavoro_altrui_404(client_http, db, utente_test):
     assert resp.status_code == 404
 
 
+def test_timer_inizia_e_ferma(client_http, db, lavoro_test):
+    """Avvia e ferma il timer di lavoro: regressione per data_creazione/inizio
+    diventati datetime (non più stringa) dopo la migrazione j4k5l6m7n8o9 —
+    chiudi_sessione() chiamava strptime() su un valore già datetime."""
+    resp = client_http.post(f"/lavori/{lavoro_test.id}/timer/inizia", follow_redirects=False)
+    assert resp.status_code == 303
+
+    sessione = crud.get_sessione_aperta(db, lavoro_test.utente_id, lavoro_test.id)
+    assert sessione is not None
+
+    resp = client_http.post(f"/lavori/{lavoro_test.id}/timer/ferma", follow_redirects=False)
+    assert resp.status_code == 303
+
+    db.refresh(sessione)
+    assert sessione.fine is not None
+    assert sessione.ore_calcolate is not None
+
+
 # ── Pagine aggregate ──────────────────────────────────────────────────────────
 
 def test_agenda_scadenzario_ok(client_http):

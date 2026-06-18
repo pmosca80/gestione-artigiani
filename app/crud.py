@@ -1058,7 +1058,7 @@ def get_dashboard_pro(db: Session, utente_id: int):
 
     ultimi_lavori = sorted(
         lavori,
-        key=lambda l: l.data_creazione or "",
+        key=lambda l: l.data_creazione or datetime.min,
         reverse=True
     )[:5]
 
@@ -2852,9 +2852,9 @@ def chiudi_sessione(db: Session, sessione_id: int, utente_id: int):
     if not s:
         return None
     fine = datetime.now()
-    inizio = datetime.strptime(s.inizio, "%Y-%m-%d %H:%M:%S")
+    inizio = s.inizio if not isinstance(s.inizio, str) else datetime.strptime(s.inizio, "%Y-%m-%d %H:%M:%S")
     ore = (fine - inizio).total_seconds() / 3600
-    s.fine = fine.strftime("%Y-%m-%d %H:%M:%S")
+    s.fine = fine
     s.ore_calcolate = round(ore, 2)
     db.commit()
     db.refresh(s)
