@@ -1,4 +1,4 @@
-﻿alembic==1.18.4
+alembic==1.18.4
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
@@ -49,7 +49,7 @@ stripe>=10.0.0
 cloudinary>=1.36
 uvicorn==0.44.0
 pywebpush>=2.0.0
-icalendar>=6.0
+icalendar>=7.1.3
 resend>=2.0
 requests>=2.31
 pyotp>=2.9
