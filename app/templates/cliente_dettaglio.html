@@ -9,6 +9,17 @@
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
         body { font-family: 'DM Sans', sans-serif; }
 
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
         /* HERO */
         .cliente-hero {
             background: linear-gradient(135deg, #0f172a, #1e3a5f);
@@ -273,8 +284,16 @@
         <div class="cliente-hero-actions">
             <a href="/clienti/{{ cliente.id }}/modifica" class="btn-hero btn-hero-outline">✏️ Modifica</a>
             <a href="/lavori/nuovo/{{ cliente.id }}" class="btn-hero btn-hero-white">➕ Nuovo lavoro</a>
+            <form action="/clienti/{{ cliente.id }}/elimina" method="post" style="display:inline;"
+                  onsubmit="return confirm('Eliminare questo cliente? L\'operazione non è reversibile.')">
+                <button type="submit" class="btn-hero btn-hero-outline">🗑️ Elimina</button>
+            </form>
         </div>
     </div>
+
+    {% if request.query_params.get("errore") == "ha_lavori" %}
+    <div class="alert-error">⚠️ Non è possibile eliminare questo cliente: ha dei lavori collegati. Elimina prima i lavori, oppure assegnali a un altro cliente.</div>
+    {% endif %}
 
     <!-- PROFILO CLIENTE -->
     <div class="profilo-strip">

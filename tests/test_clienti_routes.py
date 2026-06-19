@@ -181,6 +181,23 @@ def test_elimina_cliente_con_lavori_bloccato(client_http, db, utente_test, clien
     assert rimasto is not None
 
 
+def test_dettaglio_cliente_ha_bottone_elimina(client_http, cliente_test):
+    """Regressione: la pagina dettaglio cliente non aveva nessun bottone o
+    form che chiamasse POST /clienti/{id}/elimina — la route esisteva ed
+    era testata, ma era irraggiungibile dall'interfaccia."""
+    resp = client_http.get(f"/clienti/{cliente_test.id}")
+    assert resp.status_code == 200
+    assert f'/clienti/{cliente_test.id}/elimina' in resp.text
+
+
+def test_dettaglio_cliente_mostra_messaggio_se_bloccato(client_http, cliente_test):
+    """Il redirect con ?errore=ha_lavori deve mostrare un messaggio
+    leggibile, non limitarsi a tornare alla pagina senza spiegazioni."""
+    resp = client_http.get(f"/clienti/{cliente_test.id}?errore=ha_lavori")
+    assert resp.status_code == 200
+    assert "lavori collegati" in resp.text
+
+
 # ── GET /clienti/nuovo ────────────────────────────────────────────────────────
 
 def test_form_nuovo_cliente_ok(client_http):
