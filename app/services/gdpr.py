@@ -144,6 +144,15 @@ def cancella_dati_utente(db: Session, utente_id: int) -> None:
     for model in _TABELLE_DA_ELIMINARE:
         db.query(model).filter(model.utente_id == utente_id).delete()
 
+    # Collaboratore: i timesheet che lo riguardano sono registrati sotto
+    # l'utente_id del TITOLARE (non il suo), quindi il filtro sopra non li
+    # tocca. Anonimizza il suo nome/collegamento ovunque sia stato segnato
+    # come collaboratore, mantenendo ore/importi per la contabilità del titolare.
+    db.query(models.TimesheetCollab).filter(models.TimesheetCollab.collaboratore_id == utente_id).update({
+        "nome_operaio": "Collaboratore eliminato",
+        "collaboratore_id": None,
+    })
+
     # Fornitori: nessun vincolo fiscale diretto; sganciati dai documenti conservati
     db.query(models.VocePrimaNota).filter(models.VocePrimaNota.utente_id == utente_id).update(
         {"fornitore_id": None}

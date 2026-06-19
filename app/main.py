@@ -286,7 +286,17 @@ def home(
     if not _raw_utente or _raw_utente.attivo == 0:
         request.session.clear()
         return RedirectResponse(url="/login", status_code=303)
-    user_id = getattr(_raw_utente, "titolare_id", None) or raw_user_id
+
+    _titolare_id = getattr(_raw_utente, "titolare_id", None)
+    if _titolare_id:
+        # Collaboratore: se il titolare ha cancellato/disattivato l'account,
+        # blocca anche qui — ogni altra route lo fa già tramite get_current_user.
+        _titolare = db.query(_Utente).filter(_Utente.id == _titolare_id).first()
+        if not _titolare or _titolare.attivo == 0:
+            request.session.clear()
+            return RedirectResponse(url="/login", status_code=303)
+
+    user_id = _titolare_id or raw_user_id
 
     azienda = crud.get_impostazioni_azienda(db, user_id)
     if not _raw_utente.onboarding_done and not request.session.get("is_collaboratore"):

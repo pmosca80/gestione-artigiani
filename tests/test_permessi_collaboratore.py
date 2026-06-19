@@ -134,6 +134,35 @@ def test_titolare_non_bloccato_su_stesse_aree(client_sessione, db, path):
     assert resp.status_code == 200
 
 
+def test_collaboratore_bloccato_da_home_se_titolare_disattivato(client_sessione, db):
+    """Regressione: la home page "/" risolveva l'id effettivo al titolare
+    controllando solo lo stato attivo del collaboratore, non quello del
+    titolare — a differenza di ogni altra route (che usa get_current_user
+    e blocca correttamente). Un collaboratore poteva continuare a vedere
+    la dashboard anche dopo che il titolare aveva cancellato l'account."""
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    _login(client_sessione, "collab@test.it")
+
+    tit.attivo = 0
+    db.commit()
+
+    resp = client_sessione.get("/", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/login"
+
+
+def test_collaboratore_home_ok_se_titolare_attivo(client_sessione, db):
+    """Controllo di non-regressione: con il titolare attivo, la home
+    continua a funzionare normalmente per il collaboratore."""
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    _login(client_sessione, "collab@test.it")
+
+    resp = client_sessione.get("/", follow_redirects=False)
+    assert resp.status_code == 200
+
+
 def test_liquidazione_iva_bloccata_per_collaboratore(client_sessione, db):
     tit = _titolare(db)
     _collaboratore(db, tit.id)

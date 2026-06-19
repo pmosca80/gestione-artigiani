@@ -5,6 +5,9 @@ from datetime import date
 from app import models
 from app.services.gdpr import cancella_dati_utente, esporta_dati_utente
 
+oggi = date.today()
+oggi_str = str(oggi)
+
 
 # ── esporta_dati_utente ──────────────────────────────────────────────────────
 
@@ -164,6 +167,39 @@ def test_cancella_anonimizza_lavoro_ma_conserva_importi(db, utente_test, lavoro_
     assert lavoro.titolo == "[anonimizzato]"
     assert lavoro.descrizione is None
     assert lavoro.importo_preventivato == importo_originale  # importi conservati
+
+
+def test_cancella_collaboratore_anonimizza_timesheet_del_titolare(db, utente_test, lavoro_test):
+    """Regressione: i timesheet di un collaboratore sono registrati con
+    utente_id = titolare (per la contabilità del titolare), non con
+    l'id del collaboratore. La cancellazione GDPR del collaboratore
+    filtrava solo per utente_id == suo_id, quindi non toccava mai questi
+    record — il suo nome e il collegamento restavano per sempre nei dati
+    del titolare. Ore/importi vanno conservati (servono al titolare),
+    solo l'identità del collaboratore va anonimizzata."""
+    collaboratore = models.Utente(
+        username="collab_ts@test.it", password="x", piano="free",
+        attivo=2, onboarding_done=True, data_registrazione=oggi_str,
+        titolare_id=utente_test.id, ruolo="collaboratore",
+    )
+    db.add(collaboratore); db.commit(); db.refresh(collaboratore)
+
+    ts = models.TimesheetCollab(
+        lavoro_id=lavoro_test.id, utente_id=utente_test.id,
+        nome_operaio="Mario Collaboratore", collaboratore_id=collaboratore.id,
+        data=oggi, ore=8.0, costo_orario=15.0,
+        data_creazione=oggi_str,
+    )
+    db.add(ts); db.commit(); db.refresh(ts)
+    ts_id = ts.id
+
+    cancella_dati_utente(db, collaboratore.id)
+
+    ts_dopo = db.query(models.TimesheetCollab).filter(models.TimesheetCollab.id == ts_id).first()
+    assert ts_dopo is not None  # riga del titolare conservata
+    assert ts_dopo.ore == 8.0  # ore/importi intatti per la contabilità del titolare
+    assert ts_dopo.collaboratore_id is None
+    assert ts_dopo.nome_operaio != "Mario Collaboratore"
 
 
 def test_cancella_non_elimina_fatture_emesse(db, utente_test, lavoro_test):
