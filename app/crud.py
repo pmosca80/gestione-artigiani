@@ -74,17 +74,20 @@ def get_clienti(
     offset = (pagina - 1) * per_pagina
     clienti = query.offset(offset).limit(per_pagina).all()
 
+    clienti_ids = [cliente.id for cliente in clienti]
+    residui_per_cliente = dict(
+        db.query(Lavoro.cliente_id, func.sum(Lavoro.residuo_pagamento))
+        .filter(
+            Lavoro.cliente_id.in_(clienti_ids),
+            Lavoro.utente_id == utente_id,
+            Lavoro.residuo_pagamento > 0,
+        )
+        .group_by(Lavoro.cliente_id)
+        .all()
+    ) if clienti_ids else {}
+
     for cliente in clienti:
-        totale_residuo = (
-            db.query(func.sum(Lavoro.residuo_pagamento))
-            .filter(
-                Lavoro.cliente_id == cliente.id,
-                Lavoro.utente_id == utente_id,
-                Lavoro.residuo_pagamento > 0
-            )
-            .scalar()
-        ) or 0
-        cliente.totale_residuo = totale_residuo
+        cliente.totale_residuo = residui_per_cliente.get(cliente.id) or 0
 
     clienti.sort(key=lambda c: c.totale_residuo or 0, reverse=True)
 
@@ -1147,14 +1150,19 @@ def get_dashboard_pro(db: Session, utente_id: int):
         .all()
     )
 
+    materiale_ids = {riga.materiale_id for riga in materiali_usati}
+    nomi_materiali = dict(
+        db.query(Materiale.id, Materiale.nome)
+        .filter(Materiale.id.in_(materiale_ids))
+        .all()
+    ) if materiale_ids else {}
+
     riepilogo_materiali_usati = {}
 
     for riga in materiali_usati:
-        materiale = db.query(Materiale).filter(Materiale.id == riga.materiale_id).first()
+        nome = nomi_materiali.get(riga.materiale_id)
 
-        if materiale:
-            nome = materiale.nome
-
+        if nome:
             if nome not in riepilogo_materiali_usati:
                 riepilogo_materiali_usati[nome] = {
                     "nome": nome,

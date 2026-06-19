@@ -2,8 +2,28 @@
 Test per le funzioni in crud.py.
 Nessuna chiamata HTTP — si testa la logica pura con sessione DB diretta.
 """
+from contextlib import contextmanager
 from datetime import date, timedelta
+
+from sqlalchemy import event
+
 from app import crud, models
+from app.database import engine
+
+
+@contextmanager
+def conta_query(engine):
+    """Conta le query SQL eseguite nel blocco, per intercettare regressioni N+1."""
+    eseguite = []
+
+    def _registra(conn, cursor, statement, parameters, context, executemany):
+        eseguite.append(statement)
+
+    event.listen(engine, "before_cursor_execute", _registra)
+    try:
+        yield eseguite
+    finally:
+        event.remove(engine, "before_cursor_execute", _registra)
 
 
 def _crea_lavoro_con_fattura(db, utente_id, cliente_id, importo=1000.0):
@@ -180,6 +200,102 @@ def test_get_clienti_ricerca(db, utente_test):
 
     assert result["totale"] == 1
     assert result["items"][0].nome == "Bianchi"
+
+
+def test_get_clienti_residuo_senza_n_piu_1(db, utente_test):
+    """Regressione N+1: get_clienti() calcolava il residuo pagamenti con una
+    query SQL per ogni cliente della pagina. Con 15 clienti il numero di
+    query eseguite deve restare costante (poche query fisse), non crescere
+    linearmente con il numero di clienti."""
+    clienti = []
+    for i in range(15):
+        c = models.Cliente(
+            utente_id=utente_test.id,
+            tipo_cliente="privato",
+            nome=f"Cliente{i}",
+            cognome="Test",
+            data_creazione=str(date.today()),
+        )
+        db.add(c)
+        db.flush()
+        clienti.append(c)
+
+        db.add(models.Lavoro(
+            utente_id=utente_test.id,
+            cliente_id=c.id,
+            titolo="Lavoro",
+            stato="in_corso",
+            data_lavoro=str(date.today()),
+            residuo_pagamento=100.0,
+            data_creazione=str(date.today()),
+        ))
+    db.commit()
+
+    with conta_query(engine) as queries:
+        result = crud.get_clienti(db, utente_id=utente_test.id, per_pagina=20)
+
+    assert result["totale"] == 15
+    assert all((c.totale_residuo or 0) == 100.0 for c in result["items"])
+    assert len(queries) <= 4, (
+        f"get_clienti ha eseguito {len(queries)} query con 15 clienti — "
+        "probabile regressione N+1 (una query extra per cliente)."
+    )
+
+
+# ── get_dashboard_pro ────────────────────────────────────────────────────────
+
+def test_get_dashboard_pro_materiali_usati_senza_n_piu_1(db, utente_test, cliente_test):
+    """Regressione N+1: il riepilogo materiali più usati della dashboard
+    cercava il nome del materiale con una query per ogni riga di utilizzo.
+    Eseguendo la dashboard due volte, con un numero di materiali diversi
+    usati nella seconda volta, il numero di query eseguite non deve
+    crescere in proporzione al numero di materiali in più (un'unica query
+    aggiuntiva, indipendente da quanti sono)."""
+
+    def _aggiungi_materiali_usati(n, offset):
+        lavoro = models.Lavoro(
+            utente_id=utente_test.id,
+            cliente_id=cliente_test.id,
+            titolo="Lavoro",
+            stato="in_corso",
+            data_lavoro=str(date.today()),
+            data_creazione=str(date.today()),
+        )
+        db.add(lavoro)
+        db.flush()
+
+        for i in range(n):
+            materiale = models.Materiale(
+                utente_id=utente_test.id,
+                nome=f"Materiale{offset + i}",
+                data_creazione=str(date.today()),
+            )
+            db.add(materiale)
+            db.flush()
+            db.add(models.MaterialeUsatoLavoro(
+                utente_id=utente_test.id,
+                lavoro_id=lavoro.id,
+                materiale_id=materiale.id,
+                quantita=1,
+                costo_unitario=10,
+                data_creazione=str(date.today()),
+            ))
+        db.commit()
+
+    _aggiungi_materiali_usati(3, offset=0)
+    with conta_query(engine) as queries_poche:
+        crud.get_dashboard_pro(db, utente_test.id)
+
+    _aggiungi_materiali_usati(20, offset=100)
+    with conta_query(engine) as queries_tante:
+        crud.get_dashboard_pro(db, utente_test.id)
+
+    differenza = len(queries_tante) - len(queries_poche)
+    assert differenza <= 2, (
+        f"get_dashboard_pro ha eseguito {differenza} query in più dopo aver "
+        "aggiunto 20 materiali — probabile regressione N+1 (una query per "
+        "materiale per trovarne il nome)."
+    )
 
 
 # ── _controlla (regressione: strptime su FlexDate) ───────────────────────────
