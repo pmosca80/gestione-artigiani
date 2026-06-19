@@ -208,14 +208,18 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     _stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+    from fastapi.responses import JSONResponse
+
+    if not webhook_secret:
+        # Senza secret non c'è modo di verificare che il payload venga
+        # davvero da Stripe: fidarsi comunque (come prima) permetteva a
+        # chiunque di POSTare un evento "checkout.session.completed" falso
+        # e attivarsi un piano a pagamento gratis.
+        return JSONResponse({"error": "STRIPE_WEBHOOK_SECRET non configurata"}, status_code=400)
+
     try:
-        if webhook_secret:
-            event = _stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-        else:
-            import json
-            event = _stripe.Event.construct_from(json.loads(payload), _stripe.api_key)
+        event = _stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
     except Exception:
-        from fastapi.responses import JSONResponse
         return JSONResponse({"error": "invalid"}, status_code=400)
 
     evt_type = event["type"]
@@ -239,7 +243,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if subscription_id:
             _revoca_pro_by_subscription(db, subscription_id)
 
-    from fastapi.responses import JSONResponse
     return JSONResponse({"ok": True})
 
 
