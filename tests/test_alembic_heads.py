@@ -7,16 +7,21 @@ in CI/locale se si ripete lo stesso errore, invece di scoprirlo al deploy.
 """
 from pathlib import Path
 
+from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def _script_directory() -> ScriptDirectory:
+def _config() -> Config:
     cfg = Config(str(BASE_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(BASE_DIR / "alembic"))
-    return ScriptDirectory.from_config(cfg)
+    return cfg
+
+
+def _script_directory() -> ScriptDirectory:
+    return ScriptDirectory.from_config(_config())
 
 
 def test_una_sola_head_alembic():
@@ -34,3 +39,13 @@ def test_nessun_revision_id_duplicato():
     ids = [rev.revision for rev in script.walk_revisions()]
     duplicati = {rid for rid in ids if ids.count(rid) > 1}
     assert not duplicati, f"Revision id duplicati tra i file di migrazione: {duplicati}"
+
+
+def test_upgrade_head_da_db_vuoto_su_sqlite():
+    """Applica tutta la catena di migrazioni da zero su SQLite (in locale si
+    sviluppa su SQLite, in produzione su Postgres). La vecchia catena
+    presupponeva tabelle già esistenti (create_all() pre-Alembic) e falliva
+    su un DB vuoto; la baseline (2480529b19e6) ricostruisce tutto da zero."""
+    cfg = _config()
+    cfg.set_main_option("sqlalchemy.url", "sqlite:///:memory:")
+    command.upgrade(cfg, "head")
