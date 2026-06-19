@@ -1752,6 +1752,10 @@ def modifica_materiale_usato_lavoro(
         return None
 
     lavoro_id = usato.lavoro_id
+
+    if quantita <= 0 or prezzo_unitario_cliente < 0:
+        return lavoro_id  # input non valido: nessuna modifica, ma redirect regolare
+
     differenza = quantita - (usato.quantita or 0)
 
     materiale = (

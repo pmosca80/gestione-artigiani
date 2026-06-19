@@ -50,13 +50,14 @@ def nuovo_sal(lavoro_id: int, request: Request,
     lavoro = crud.get_lavoro_by_id(db, lavoro_id, user_id, assegnato_a_id=scope_collaboratore(request, db))
     if not lavoro:
         raise HTTPException(status_code=404)
-    crud.crea_sal(
-        db=db, utente_id=user_id, lavoro_id=lavoro_id,
-        data=data, percentuale=to_float(percentuale),
-        importo_richiesto=to_float(importo_richiesto),
-        descrizione=clean(descrizione, DESCRIZIONE_MAX),
-        note=clean(note, NOTE_MAX),
-    )
+    if to_float(importo_richiesto) > 0:
+        crud.crea_sal(
+            db=db, utente_id=user_id, lavoro_id=lavoro_id,
+            data=data, percentuale=to_float(percentuale),
+            importo_richiesto=to_float(importo_richiesto),
+            descrizione=clean(descrizione, DESCRIZIONE_MAX),
+            note=clean(note, NOTE_MAX),
+        )
     return RedirectResponse(url=f"/lavori/{lavoro_id}/sal", status_code=303)
 
 

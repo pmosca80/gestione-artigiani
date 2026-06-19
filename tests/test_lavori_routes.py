@@ -356,3 +356,134 @@ def test_form_nuovo_rapido_ok(client_http):
     """GET /lavori/nuovo-rapido → 200."""
     resp = client_http.get("/lavori/nuovo-rapido")
     assert resp.status_code == 200
+
+
+# ── Validazione importi negativi (pagamenti, materiali, SAL) ─────────────────
+
+def test_pagamento_importo_negativo_non_registrato(client_http, db, lavoro_test):
+    """Regressione: un importo negativo veniva registrato come un pagamento
+    valido, falsificando la contabilità (sembra un rimborso al cliente)."""
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/pagamenti",
+        data={"data_pagamento": str(date.today()), "importo": "-500", "metodo": "contanti"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=importo" in resp.headers["location"]
+    assert db.query(models.PagamentoLavoro).filter(
+        models.PagamentoLavoro.lavoro_id == lavoro_test.id
+    ).count() == 0
+
+
+def test_pagamento_importo_zero_non_registrato(client_http, db, lavoro_test):
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/pagamenti",
+        data={"data_pagamento": str(date.today()), "importo": "0", "metodo": "contanti"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert db.query(models.PagamentoLavoro).filter(
+        models.PagamentoLavoro.lavoro_id == lavoro_test.id
+    ).count() == 0
+
+
+def test_pagamento_importo_positivo_registrato(client_http, db, lavoro_test):
+    """Controllo di non-regressione: un importo valido deve continuare a funzionare."""
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/pagamenti",
+        data={"data_pagamento": str(date.today()), "importo": "500", "metodo": "contanti"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore" not in resp.headers["location"]
+    assert db.query(models.PagamentoLavoro).filter(
+        models.PagamentoLavoro.lavoro_id == lavoro_test.id
+    ).count() == 1
+
+
+def _materiale(db, utente_id, quantita=100):
+    m = models.Materiale(
+        utente_id=utente_id, nome="Tubo PVC", quantita=quantita,
+        data_creazione=str(date.today()),
+    )
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    # Lo scarico materiale richiede un carico con scorta residua disponibile.
+    db.add(models.CaricoMateriale(
+        utente_id=utente_id, materiale_id=m.id,
+        quantita_iniziale=quantita, quantita_residua=quantita,
+        prezzo_acquisto=5.0, data_carico=date.today(),
+    ))
+    db.commit()
+    return m
+
+
+def test_materiale_quantita_negativa_non_registrato(client_http, db, utente_test, lavoro_test):
+    """Regressione: una quantità negativa abbassava artificialmente il
+    totale fatturabile del lavoro invece di essere rifiutata."""
+    materiale = _materiale(db, utente_test.id)
+
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/materiali",
+        data={"materiale_id": materiale.id, "quantita": "-5", "prezzo_unitario_cliente": "10"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=quantita" in resp.headers["location"]
+    assert db.query(models.MaterialeUsatoLavoro).filter(
+        models.MaterialeUsatoLavoro.lavoro_id == lavoro_test.id
+    ).count() == 0
+
+
+def test_materiale_prezzo_negativo_non_registrato(client_http, db, utente_test, lavoro_test):
+    materiale = _materiale(db, utente_test.id)
+
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/materiali",
+        data={"materiale_id": materiale.id, "quantita": "2", "prezzo_unitario_cliente": "-10"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=quantita" in resp.headers["location"]
+    assert db.query(models.MaterialeUsatoLavoro).filter(
+        models.MaterialeUsatoLavoro.lavoro_id == lavoro_test.id
+    ).count() == 0
+
+
+def test_materiale_quantita_positiva_registrato(client_http, db, utente_test, lavoro_test):
+    materiale = _materiale(db, utente_test.id)
+
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/materiali",
+        data={"materiale_id": materiale.id, "quantita": "2", "prezzo_unitario_cliente": "10"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore" not in resp.headers["location"]
+    assert db.query(models.MaterialeUsatoLavoro).filter(
+        models.MaterialeUsatoLavoro.lavoro_id == lavoro_test.id
+    ).count() == 1
+
+
+def test_modifica_materiale_usato_quantita_negativa_ignorata(client_http, db, utente_test, lavoro_test):
+    """La modifica con quantità negativa non deve alterare la riga esistente."""
+    materiale = _materiale(db, utente_test.id)
+    usato = models.MaterialeUsatoLavoro(
+        utente_id=utente_test.id, lavoro_id=lavoro_test.id, materiale_id=materiale.id,
+        quantita=3, costo_unitario=5, prezzo_unitario_cliente=10,
+        data_creazione=str(date.today()),
+    )
+    db.add(usato)
+    db.commit()
+    db.refresh(usato)
+
+    resp = client_http.post(
+        f"/lavori/materiali-usati/{usato.id}/modifica",
+        data={"quantita": "-99", "prezzo_unitario_cliente": "10"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    db.refresh(usato)
+    assert usato.quantita == 3  # invariata

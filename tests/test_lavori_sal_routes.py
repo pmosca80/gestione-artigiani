@@ -108,6 +108,24 @@ def test_crea_sal_happy_path(client_http, db, utente_test, lavoro_test):
     assert sal_list[0].numero == 1
 
 
+def test_crea_sal_importo_negativo_non_registrato(client_http, db, utente_test, lavoro_test):
+    """Regressione: un SAL con importo negativo veniva registrato, falsificando
+    il totale già richiesto/pagato sul lavoro."""
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/sal/nuovo",
+        data={
+            "data": oggi_str,
+            "percentuale": "40",
+            "importo_richiesto": "-800",
+            "descrizione": "SAL con importo negativo",
+            "note": "",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert crud.get_sal_lavoro(db, utente_test.id, lavoro_test.id) == []
+
+
 def test_crea_sal_importo_virgola(client_http, db, utente_test, lavoro_test):
     """POST con importo in formato italiano ('750,50') → 750.5 in DB."""
     client_http.post(

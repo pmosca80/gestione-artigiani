@@ -991,6 +991,12 @@ def aggiungi_materiale_lavoro(
     user_id: int = Depends(get_current_user),
 ):
 
+    if to_float(quantita) <= 0 or to_float(prezzo_unitario_cliente) < 0:
+        return RedirectResponse(
+            url=f"/lavori/{lavoro_id}/materiali?errore=quantita",
+            status_code=303
+        )
+
     risultato = crud.aggiungi_materiale_a_lavoro(
         db=db,
         utente_id=user_id,
@@ -1134,6 +1140,12 @@ def aggiungi_pagamento_lavoro(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+
+    if to_float(importo) <= 0:
+        return RedirectResponse(
+            url=f"/lavori/{lavoro_id}/pagamenti?errore=importo",
+            status_code=303
+        )
 
     risultato = crud.aggiungi_pagamento_lavoro(
         db=db,
