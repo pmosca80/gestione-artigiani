@@ -1,7 +1,6 @@
 from fastapi.responses import FileResponse
 from pathlib import Path
 from fastapi import UploadFile, File
-import shutil
 from datetime import datetime
 
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
@@ -17,8 +16,6 @@ from app.limiter import user_limiter
 from openpyxl import Workbook
 
 logger = get_logger("admin")
-
-import zipfile
 
 from fastapi import HTTPException
 from sqlalchemy import text as sql_text
@@ -187,110 +184,6 @@ def salva_impostazioni_azienda(
     )
     return RedirectResponse(url="/impostazioni/azienda?salvato=1", status_code=303)
 
-@router.get("/backup")
-def crea_backup_database(request: Request, user_id: int = Depends(get_current_user)):
-
-    db_path = Path("artigiani.db")
-
-    if not db_path.exists():
-        raise HTTPException(status_code=404, detail="Database non trovato")
-
-    backup_dir = Path("backup")
-    backup_dir.mkdir(exist_ok=True)
-
-    nome_backup = f"backup_artigiani_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-    backup_path = backup_dir / nome_backup
-
-    shutil.copy(db_path, backup_path)
-
-    return FileResponse(
-        path=backup_path,
-        filename=nome_backup,
-        media_type="application/octet-stream"
-    )
-@router.get("/backup/pagina", response_class=HTMLResponse)
-def pagina_backup(request: Request, user_id: int = Depends(get_current_user)):
-
-    backup_dir = Path("backup")
-
-    backup_files = []
-
-    if backup_dir.exists():
-
-        for file in backup_dir.glob("*.db"):
-
-            backup_files.append({
-                "nome": file.name,
-                "dimensione": round(
-                    file.stat().st_size / 1024 / 1024,
-                    2
-                ),
-                "data": datetime.fromtimestamp(
-                    file.stat().st_mtime
-                )
-            })
-
-    backup_files.sort(
-        key=lambda x: x["data"],
-        reverse=True
-    )
-
-    ultimo_backup = None
-
-    if backup_dir.exists():
-
-        files = list(backup_dir.glob("*.db"))
-
-        if files:
-
-            ultimo_file = max(
-                files,
-                key=lambda f: f.stat().st_mtime
-            )
-
-            ultimo_backup = datetime.fromtimestamp(
-                ultimo_file.stat().st_mtime
-            )
-
-    return templates.TemplateResponse(
-        request=request,
-        name="backup.html",
-        context={
-            "ultimo_backup": ultimo_backup,
-            "backup_files": backup_files,
-        }
-    )
-@router.get("/backup/completo")
-def crea_backup_completo(request: Request, user_id: int = Depends(get_current_user)):
-
-    backup_dir = Path("backup")
-    backup_dir.mkdir(exist_ok=True)
-
-    nome_zip = f"backup_completo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-    zip_path = backup_dir / nome_zip
-
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-
-        db_path = Path("artigiani.db")
-        if db_path.exists():
-            zipf.write(db_path, arcname="artigiani.db")
-
-        for cartella in ["uploads", "pdf"]:
-            cartella_path = Path(cartella)
-
-            if cartella_path.exists():
-                for file in cartella_path.rglob("*"):
-                    if file.is_file():
-                        zipf.write(
-                            file,
-                            arcname=str(file)
-                        )
-
-    return FileResponse(
-        path=zip_path,
-        filename=nome_zip,
-        media_type="application/zip"
-    )
 @router.get("/export/clienti")
 def esporta_clienti_excel(
     request: Request,
@@ -470,77 +363,6 @@ def esporta_materiali_excel(
         path=file_path,
         filename=nome_file,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-@router.post("/backup/ripristina")
-def ripristina_backup(
-    request: Request,
-    backup_file: UploadFile = File(...),
-    user_id: int = Depends(get_current_user),
-):
-
-    if not backup_file.filename.endswith(".db"):
-        raise HTTPException(status_code=400, detail="File non valido")
-
-    contenuto_backup = backup_file.file.read()
-    if not check_magic(contenuto_backup, ".db"):
-        raise HTTPException(status_code=400, detail="File non valido")
-
-    db_path = Path("artigiani.db")
-
-    sicurezza_dir = Path("backup")
-    sicurezza_dir.mkdir(exist_ok=True)
-
-    # backup automatico prima del ripristino
-    backup_sicurezza = (
-        sicurezza_dir /
-        f"pre_ripristino_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-    )
-
-    if db_path.exists():
-        shutil.copy2(db_path, backup_sicurezza)
-
-    # sostituzione database
-    with open(db_path, "wb") as buffer:
-        buffer.write(contenuto_backup)
-
-    return RedirectResponse(
-        url="/impostazioni/backup/pagina",
-        status_code=303
-    )
-
-@router.get("/backup/download/{filename}")
-def download_backup(
-    filename: str,
-    request: Request,
-    user_id: int = Depends(get_current_user),
-):
-    file_path = Path("backup") / filename
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File non trovato")
-
-    return FileResponse(
-        path=file_path,
-        filename=filename,
-        media_type="application/octet-stream"
-    )
-    
-@router.get("/backup/elimina/{filename}")
-def elimina_backup(
-    filename: str,
-    request: Request,
-    user_id: int = Depends(get_current_user),
-):
-
-    file_path = Path("backup") / filename
-
-    if file_path.exists():
-        file_path.unlink()
-
-    return RedirectResponse(
-        "/impostazioni/backup/pagina",
-        status_code=303
     )
 
 @router.get("/import", response_class=HTMLResponse)

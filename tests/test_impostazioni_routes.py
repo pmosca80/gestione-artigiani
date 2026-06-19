@@ -220,3 +220,23 @@ def test_export_materiali_xlsx(client_http):
     resp = client_http.get("/impostazioni/export/materiali")
     assert resp.status_code == 200
     assert "spreadsheetml" in resp.headers["content-type"]
+
+
+# ── Backup legacy rimosso ──────────────────────────────────────────────────────
+
+def test_route_backup_legacy_rimosse(client_http):
+    """Le vecchie route di backup SQLite (/backup, /backup/pagina,
+    /backup/completo, /backup/ripristina, /backup/download/{f},
+    /backup/elimina/{f}) permettevano a QUALUNQUE titolare — non solo a un
+    vero admin di piattaforma — di scaricare/eliminare file arbitrari nella
+    cartella backup/ e persino sovrascrivere l'intero database con un file
+    .db caricato a piacere. Rimosse perché non raggiungibili da nessun link
+    dell'app e già sostituite dal backup S3 con verifica di ripristino
+    automatica (app/services/backup.py). Questo test impedisce che vengano
+    reintrodotte per errore."""
+    assert client_http.get("/impostazioni/backup").status_code == 404
+    assert client_http.get("/impostazioni/backup/pagina").status_code == 404
+    assert client_http.get("/impostazioni/backup/completo").status_code == 404
+    assert client_http.post("/impostazioni/backup/ripristina").status_code == 404
+    assert client_http.get("/impostazioni/backup/download/x.db").status_code == 404
+    assert client_http.get("/impostazioni/backup/elimina/x.db").status_code == 404
