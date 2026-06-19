@@ -123,6 +123,41 @@ def test_login_email_non_verificata(auth_client, db):
     assert "verifica" in resp.text.lower()
 
 
+# ── POST /verifica-2fa ───────────────────────────────────────────────────────
+
+def test_verifica_2fa_rate_limit(auth_client, db):
+    """Dopo 5 tentativi al minuto con codice errato, il 6° deve dare 429.
+
+    Regressione: l'endpoint che verifica il codice TOTP a 6 cifre (~1 milione
+    di combinazioni) non aveva alcun rate limit, a differenza di login e
+    reset password — bruteforceable in tempi ragionevoli."""
+    import pyotp
+
+    secret = pyotp.random_base32()
+    u = _utente(db, "totp@test.it", "mia_password")
+    u.totp_secret = secret
+    u.totp_abilitato = True
+    db.commit()
+
+    ip = {"X-Forwarded-For": "10.0.0.50"}
+
+    resp = auth_client.post(
+        "/login",
+        data={"username": "totp@test.it", "password": "mia_password"},
+        headers=ip,
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/verifica-2fa"
+
+    for _ in range(5):
+        resp = auth_client.post("/verifica-2fa", data={"codice": "000000"}, headers=ip)
+        assert resp.status_code == 200
+
+    resp = auth_client.post("/verifica-2fa", data={"codice": "000000"}, headers=ip)
+    assert resp.status_code == 429
+
+
 # ── GET /register ─────────────────────────────────────────────────────────────
 
 def test_register_page_ok(auth_client):

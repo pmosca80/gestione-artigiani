@@ -116,6 +116,7 @@ def verifica_2fa_page(request: Request):
 
 
 @router.post("/verifica-2fa")
+@limiter.limit("5/minute")
 def verifica_2fa(
     request: Request,
     codice: str = Form(...),
