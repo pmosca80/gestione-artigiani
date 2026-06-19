@@ -38,9 +38,23 @@ _TABELLE_DA_ELIMINARE = [
 ]
 
 
+# Credenziali e token: l'ORM li decifra/espone in chiaro in lettura, quindi
+# vanno esclusi esplicitamente dall'export — non sono "dati personali" nel
+# senso dell'art. 20 GDPR, sono materiale d'autenticazione. Inclusi in un
+# file scaricabile, un secret TOTP o una password PEC permettono di
+# bypassare il 2FA o autenticarsi come l'utente per sempre.
+_CAMPI_ESCLUSI_EXPORT = {
+    models.Utente: {"password", "totp_secret", "token_verifica", "token_reset", "token_reset_scadenza"},
+    models.ImpostazioniAzienda: {"pec_smtp_password"},
+}
+
+
 def _serializza(obj) -> dict:
+    escludi = _CAMPI_ESCLUSI_EXPORT.get(type(obj), set())
     out = {}
     for col in obj.__table__.columns:
+        if col.name in escludi:
+            continue
         val = getattr(obj, col.name)
         if isinstance(val, (date, datetime)):
             val = val.isoformat()

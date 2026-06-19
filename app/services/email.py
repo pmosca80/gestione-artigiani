@@ -330,6 +330,43 @@ def invia_conferma_pro(username: str) -> None:
     _send(to=username, subject="Piano Pro attivato ⭐ — Mastro", html=corpo)
 
 
+def invia_conferma_cancellazione_account(email: str) -> None:
+    """Conferma via email che la cancellazione GDPR (art. 17) è stata eseguita.
+    Inviata DOPO la cancellazione: serve come riscontro all'utente che la
+    richiesta è stata presa in carico, non per autorizzarla."""
+    if "@" not in (email or "") or not smtp_configurato():
+        return
+
+    corpo = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8">
+<style>
+  body{{margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;}}
+  .wrap{{max-width:560px;margin:40px auto;background:white;border-radius:16px;
+        overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);}}
+  .hdr{{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);padding:32px 36px;text-align:center;}}
+  .hdr h1{{color:white;font-size:24px;margin:0;font-weight:700;}}
+  .bdy{{padding:32px 36px;}}
+  .bdy p{{font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;}}
+  .ftr{{background:#f8fafc;padding:16px 36px;text-align:center;
+        font-size:12px;color:#9ca3af;border-top:1px solid #f1f5f9;}}
+</style></head>
+<body><div class="wrap">
+  <div class="hdr"><h1>Account cancellato</h1></div>
+  <div class="bdy">
+    <p>Confermiamo che il tuo account Mastro e i dati personali collegati sono
+    stati cancellati, come richiesto (art. 17 GDPR — diritto all'oblio).</p>
+    <p>Le righe contabili soggette a conservazione fiscale obbligatoria
+    (fatture, prima nota) sono state anonimizzate ma mantenute, come previsto
+    dalla legge italiana (art. 2220 c.c.).</p>
+    <p>Se non hai richiesto tu questa cancellazione, contattaci immediatamente
+    rispondendo a questa email.</p>
+  </div>
+  <div class="ftr">© 2026 Mastro</div>
+</div></body></html>"""
+
+    _send(to=email, subject="Il tuo account Mastro è stato cancellato", html=corpo)
+
+
 def invia_notifica_firma_preventivo(
     *,
     artigiano_email: str,

@@ -24,6 +24,45 @@ def test_esporta_dati_serializza_date_come_stringhe(db, utente_test, lavoro_test
     assert isinstance(dati["lavori"][0]["data_lavoro"], str)
 
 
+def test_esporta_dati_non_include_credenziali(db, utente_test):
+    """Regressione: l'export GDPR (art. 20) decifrava e includeva in chiaro
+    la password hash e il secret TOTP del 2FA — chiunque intercettasse il
+    file scaricato avrebbe potuto bypassare il 2FA per sempre o tentare un
+    attacco offline sulla password. Questi campi sono materiale
+    d'autenticazione, non "dati personali" nel senso dell'art. 20."""
+    utente_test.totp_secret = "JBSWY3DPEHPK3PXP"
+    utente_test.totp_abilitato = True
+    utente_test.token_verifica = "token-verifica-segreto"
+    utente_test.token_reset = "token-reset-segreto"
+    db.commit()
+
+    dati = esporta_dati_utente(db, utente_test.id)
+    utente_esportato = dati["utente"]
+
+    for campo in ("password", "totp_secret", "token_verifica", "token_reset", "token_reset_scadenza"):
+        assert campo not in utente_esportato, f"'{campo}' non deve comparire nell'export GDPR"
+
+    # i campi non sensibili restano presenti
+    assert utente_esportato["username"] == utente_test.username
+    assert utente_esportato["totp_abilitato"] is True
+
+
+def test_esporta_dati_non_include_password_pec(db, utente_test):
+    """Regressione: pec_smtp_password è cifrata in DB ma l'ORM la decifra in
+    lettura — l'export non deve includerla in chiaro."""
+    db.add(models.ImpostazioniAzienda(
+        utente_id=utente_test.id,
+        nome_azienda="Idraulica Rossi",
+        pec_smtp_password="superSegretaPEC123",
+    ))
+    db.commit()
+
+    dati = esporta_dati_utente(db, utente_test.id)
+
+    assert len(dati["impostazioni_azienda"]) == 1
+    assert "pec_smtp_password" not in dati["impostazioni_azienda"][0]
+
+
 def test_esporta_dati_non_include_dati_di_altri_utenti(db, utente_test, cliente_test):
     altro = models.Utente(username="altro@example.com", password="x", attivo=1)
     db.add(altro)
@@ -192,3 +231,34 @@ def test_cancella_account_route_anonimizza_e_cancella_dati(client_http, db, uten
 
     cliente = db.query(models.Cliente).filter(models.Cliente.id == cliente_test.id).first()
     assert cliente.nome == "Cliente"  # anonimizzato, non eliminato
+
+
+def test_export_route_registra_audit_log(client_http, db, utente_test):
+    """Per accountability (art. 5(2) GDPR) ogni export deve restare
+    tracciato: chi, quando, su quale account."""
+    utente_id = utente_test.id
+    client_http.get("/impostazioni/gdpr/export")
+
+    voce = db.query(models.AuditLog).filter(
+        models.AuditLog.utente_id == utente_id,
+        models.AuditLog.azione == "export_dati_gdpr",
+    ).first()
+    assert voce is not None
+
+
+def test_cancella_account_route_registra_audit_log(client_http, db, utente_test):
+    """La cancellazione GDPR deve restare tracciata nell'audit log, che
+    sopravvive alla cancellazione dell'account (non è soggetto a oblio:
+    serve come prova che la richiesta è stata eseguita)."""
+    utente_id = utente_test.id
+    client_http.post(
+        "/impostazioni/cancella-account",
+        data={"conferma_testo": "CANCELLA"},
+        follow_redirects=False,
+    )
+
+    voce = db.query(models.AuditLog).filter(
+        models.AuditLog.utente_id == utente_id,
+        models.AuditLog.azione == "cancellazione_account_gdpr",
+    ).first()
+    assert voce is not None

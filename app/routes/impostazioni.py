@@ -13,6 +13,7 @@ from app.dependencies import get_current_user, richiedi_titolare
 from app import crud
 from app.logger import get_logger
 from app.limiter import user_limiter
+from app.services.audit import log_audit, get_actor, get_client_ip
 from openpyxl import Workbook
 
 logger = get_logger("admin")
@@ -878,6 +879,12 @@ def esporta_dati_gdpr(
     dati = esporta_dati_utente(db, user_id)
     contenuto = json.dumps(dati, indent=2, ensure_ascii=False, default=str)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    attore_id, attore_username = get_actor(request, db)
+    log_audit(db, user_id, attore_id, attore_username,
+              "export_dati_gdpr", "utenti", user_id,
+              None, get_client_ip(request))
+
     return Response(
         content=contenuto.encode("utf-8"),
         media_type="application/json",
@@ -899,6 +906,10 @@ def cancella_account(
     if conferma_testo.strip().upper() != "CANCELLA":
         return RedirectResponse("/impostazioni/profilo?errore=conferma_errata", status_code=303)
 
+    email_destinatario = utente.email
+    attore_id, attore_username = get_actor(request, db)
+    ip = get_client_ip(request)
+
     from app.services.gdpr import cancella_dati_utente
     cancella_dati_utente(db, user_id)
 
@@ -912,6 +923,18 @@ def cancella_account(
     utente.stripe_customer_id = None
     utente.stripe_subscription_id = None
     db.commit()
+
+    log_audit(db, user_id, attore_id, attore_username,
+              "cancellazione_account_gdpr", "utenti", user_id, None, ip)
+
+    if email_destinatario:
+        import threading
+        from app.services.email import invia_conferma_cancellazione_account
+        threading.Thread(
+            target=invia_conferma_cancellazione_account,
+            args=(email_destinatario,),
+            daemon=True,
+        ).start()
 
     request.session.clear()
     return RedirectResponse("/login?account_cancellato=1", status_code=303)
