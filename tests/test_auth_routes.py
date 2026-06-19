@@ -123,6 +123,79 @@ def test_login_email_non_verificata(auth_client, db):
     assert "verifica" in resp.text.lower()
 
 
+def test_login_backoff_per_account_blocca_anche_con_ip_diversi(auth_client, db):
+    """Regressione: il rate limit di /login è solo per-IP. Un attaccante con
+    IP rotanti poteva tentare password illimitate sullo stesso account. Dopo
+    SOGLIA_TENTATIVI_LOGIN fallimenti (anche da IP diversi), l'account entra
+    in backoff e rifiuta il tentativo successivo SENZA NEMMENO controllare
+    la password — qui usiamo la password corretta per dimostrarlo."""
+    from app.routes.auth import SOGLIA_TENTATIVI_LOGIN
+
+    _utente(db, "backoff@test.it", "password_giusta")
+
+    for i in range(SOGLIA_TENTATIVI_LOGIN + 1):  # supera la soglia
+        resp = auth_client.post(
+            "/login",
+            data={"username": "backoff@test.it", "password": "sbagliata"},
+            headers={"X-Forwarded-For": f"10.50.0.{i}"},
+        )
+        assert resp.status_code == 200
+
+    resp = auth_client.post(
+        "/login",
+        data={"username": "backoff@test.it", "password": "password_giusta"},
+        headers={"X-Forwarded-For": "10.50.0.250"},
+    )
+    assert resp.status_code == 200
+    assert "Credenziali errate" in resp.text  # rifiutato pur con la password giusta: backoff attivo
+
+
+def test_login_pochi_tentativi_falliti_non_blocca(auth_client, db):
+    """Controllo di non-regressione: un utente che sbaglia un paio di volte
+    e poi digita la password giusta deve continuare ad accedere normalmente."""
+    _utente(db, "pochierrori@test.it", "password_giusta")
+
+    for i in range(2):
+        auth_client.post(
+            "/login",
+            data={"username": "pochierrori@test.it", "password": "sbagliata"},
+            headers={"X-Forwarded-For": f"10.51.0.{i}"},
+        )
+
+    resp = auth_client.post(
+        "/login",
+        data={"username": "pochierrori@test.it", "password": "password_giusta"},
+        headers={"X-Forwarded-For": "10.51.0.99"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/"
+
+
+def test_login_corretto_azzera_contatore_tentativi(auth_client, db):
+    """Un login riuscito deve azzerare il contatore: niente penalizzazione
+    residua per i tentativi falliti precedenti."""
+    utente = _utente(db, "azzera@test.it", "password_giusta")
+
+    auth_client.post(
+        "/login",
+        data={"username": "azzera@test.it", "password": "sbagliata"},
+        headers={"X-Forwarded-For": "10.52.0.1"},
+    )
+    db.refresh(utente)
+    assert utente.tentativi_falliti_login == 1
+
+    auth_client.post(
+        "/login",
+        data={"username": "azzera@test.it", "password": "password_giusta"},
+        headers={"X-Forwarded-For": "10.52.0.2"},
+        follow_redirects=False,
+    )
+    db.refresh(utente)
+    assert utente.tentativi_falliti_login == 0
+    assert utente.bloccato_fino is None
+
+
 # ── POST /verifica-2fa ───────────────────────────────────────────────────────
 
 def test_verifica_2fa_rate_limit(auth_client, db):

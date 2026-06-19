@@ -134,6 +134,10 @@ class Utente(TimestampMixin, Base):
     totp_secret = Column(EncryptedString, nullable=True)
     totp_abilitato = Column(Boolean, nullable=False, default=False)
 
+    # Backoff esponenziale anti brute-force per-account su /login
+    tentativi_falliti_login = Column(Integer, nullable=False, default=0)
+    bloccato_fino = Column(String, nullable=True)
+
 
 # ========================
 # CLIENTE

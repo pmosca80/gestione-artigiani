@@ -16,6 +16,42 @@ from app.validators import USERNAME_MAX, PASSWORD_MAX, EMAIL_MAX
 
 router = APIRouter()
 
+# Backoff esponenziale anti brute-force per-account: dopo SOGLIA tentativi
+# falliti consecutivi, ogni tentativo successivo richiede un'attesa crescente
+# (capped) prima di essere anche solo verificato. Niente lockout fisso: un
+# attaccante che conosce solo username/email non può tenere bloccato
+# l'account a tempo indefinito, può solo rallentarlo.
+SOGLIA_TENTATIVI_LOGIN = 5
+ATTESA_BASE_SECONDI = 30
+ATTESA_MAX_SECONDI = 900  # 15 minuti
+
+
+def _in_backoff_login(user: Utente) -> bool:
+    if not user.bloccato_fino:
+        return False
+    try:
+        return datetime.now() < datetime.fromisoformat(user.bloccato_fino)
+    except (ValueError, TypeError):
+        return False
+
+
+def _registra_tentativo_login_falito(db: Session, user: Utente) -> None:
+    user.tentativi_falliti_login = (user.tentativi_falliti_login or 0) + 1
+    if user.tentativi_falliti_login > SOGLIA_TENTATIVI_LOGIN:
+        attesa = min(
+            ATTESA_BASE_SECONDI * 2 ** (user.tentativi_falliti_login - SOGLIA_TENTATIVI_LOGIN - 1),
+            ATTESA_MAX_SECONDI,
+        )
+        user.bloccato_fino = (datetime.now() + timedelta(seconds=attesa)).isoformat()
+    db.commit()
+
+
+def _reset_tentativi_login(db: Session, user: Utente) -> None:
+    if user.tentativi_falliti_login or user.bloccato_fino:
+        user.tentativi_falliti_login = 0
+        user.bloccato_fino = None
+        db.commit()
+
 
 def _base_url(request: Request) -> str:
     env_url = os.getenv("BASE_URL", "").rstrip("/")
@@ -58,6 +94,15 @@ def login(
             context={"errore": "Credenziali errate"},
         )
 
+    if _in_backoff_login(user):
+        # Stesso messaggio di "password errata": non deve trasparire che
+        # l'account esiste o è sotto attacco. Niente verifica della password,
+        # per non resettare il timer né sprecare CPU su bcrypt.
+        return templates.TemplateResponse(
+            request=request, name="login.html",
+            context={"errore": "Credenziali errate"},
+        )
+
     password_ok = False
     try:
         password_ok = verify_password(password, user.password)
@@ -70,10 +115,13 @@ def login(
         password_ok = True
 
     if not password_ok:
+        _registra_tentativo_login_falito(db, user)
         return templates.TemplateResponse(
             request=request, name="login.html",
             context={"errore": "Credenziali errate"},
         )
+
+    _reset_tentativi_login(db, user)
 
     if user.token_verifica and not user.email_verificato:
         return templates.TemplateResponse(
