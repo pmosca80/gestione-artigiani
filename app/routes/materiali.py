@@ -122,6 +122,12 @@ def salva_movimento(
     user_id: int = Depends(get_current_user),
 ):
 
+    if tipo not in ("carico", "scarico") or to_float(quantita) <= 0:
+        return RedirectResponse(
+            url=f"/materiali/{materiale_id}/movimento?errore=quantita",
+            status_code=303
+        )
+
     crud.aggiungi_movimento(
         db,
         utente_id=user_id,
@@ -210,6 +216,12 @@ def salva_carico_materiale(
     ).first()
     if not materiale:
         return RedirectResponse(url="/materiali/", status_code=303)
+
+    if to_float(quantita) <= 0 or to_float(prezzo_acquisto) < 0 or to_float(prezzo_vendita_default) < 0:
+        return RedirectResponse(
+            url=f"/materiali/{materiale_id}/carico?errore=quantita",
+            status_code=303
+        )
 
     pa = to_float(prezzo_acquisto)
     pv = to_float(prezzo_vendita_default)

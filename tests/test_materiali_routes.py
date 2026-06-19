@@ -226,3 +226,97 @@ def test_salva_carico_materiale(client_http, db, utente_test):
 
     db.refresh(mat)
     assert mat.quantita == qt_iniziale + 20.0
+
+
+def test_carico_materiale_quantita_negativa_non_registrato(client_http, db, utente_test):
+    """Regressione: una quantità negativa nel carico abbassava lo stock
+    invece di aumentarlo, falsificando l'inventario."""
+    mat = _materiale(db, utente_test.id, quantita=10.0)
+    carichi_iniziali = db.query(models.CaricoMateriale).filter(
+        models.CaricoMateriale.materiale_id == mat.id
+    ).count()
+
+    resp = client_http.post(
+        f"/materiali/{mat.id}/carico",
+        data={"quantita": "-5", "prezzo_acquisto": "4.50", "prezzo_vendita_default": "8.00"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=quantita" in resp.headers["location"]
+
+    db.refresh(mat)
+    assert mat.quantita == 10.0
+    assert db.query(models.CaricoMateriale).filter(
+        models.CaricoMateriale.materiale_id == mat.id
+    ).count() == carichi_iniziali
+
+
+def test_carico_materiale_prezzo_negativo_non_registrato(client_http, db, utente_test):
+    mat = _materiale(db, utente_test.id, quantita=10.0)
+
+    resp = client_http.post(
+        f"/materiali/{mat.id}/carico",
+        data={"quantita": "5", "prezzo_acquisto": "-1", "prezzo_vendita_default": "8.00"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=quantita" in resp.headers["location"]
+
+    db.refresh(mat)
+    assert mat.quantita == 10.0
+
+
+# ── POST /materiali/{id}/movimento ───────────────────────────────────────────
+
+def test_movimento_quantita_negativa_non_registrato(client_http, db, utente_test):
+    """Regressione: un 'carico' con quantità negativa diminuiva lo stock (e
+    viceversa per 'scarico'), in contraddizione con l'etichetta del movimento."""
+    mat = _materiale(db, utente_test.id, quantita=10.0)
+
+    resp = client_http.post(
+        f"/materiali/{mat.id}/movimento",
+        data={"tipo": "carico", "quantita": "-3", "note": ""},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=quantita" in resp.headers["location"]
+
+    db.refresh(mat)
+    assert mat.quantita == 10.0
+    assert db.query(models.MovimentoMagazzino).filter(
+        models.MovimentoMagazzino.materiale_id == mat.id
+    ).count() == 0
+
+
+def test_movimento_tipo_non_valido_non_registrato(client_http, db, utente_test):
+    """Regressione: un 'tipo' arbitrario creava comunque una riga di
+    movimento senza alterare lo stock — un audit trail fuorviante."""
+    mat = _materiale(db, utente_test.id, quantita=10.0)
+
+    resp = client_http.post(
+        f"/materiali/{mat.id}/movimento",
+        data={"tipo": "qualcosaltro", "quantita": "3", "note": ""},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=quantita" in resp.headers["location"]
+
+    assert db.query(models.MovimentoMagazzino).filter(
+        models.MovimentoMagazzino.materiale_id == mat.id
+    ).count() == 0
+
+
+def test_movimento_carico_positivo_registrato(client_http, db, utente_test):
+    """Controllo di non-regressione: un movimento valido deve continuare a funzionare."""
+    mat = _materiale(db, utente_test.id, quantita=10.0)
+
+    resp = client_http.post(
+        f"/materiali/{mat.id}/movimento",
+        data={"tipo": "carico", "quantita": "3", "note": "rifornimento"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore" not in resp.headers["location"]
+
+    db.refresh(mat)
+    assert mat.quantita == 13.0
