@@ -13,7 +13,9 @@ from app.validators import USERNAME_MAX, PASSWORD_MAX
 
 router = APIRouter(tags=["team"])
 
-MAX_COLLABORATORI = 3
+# Limite collaboratori del piano Pro, usato solo nel testo promozionale
+# mostrato a chi non ha (ancora) accesso al team (free/starter).
+LIMITE_COLLABORATORI_PRO = 3
 
 
 @router.get("/team", response_class=HTMLResponse)
@@ -58,8 +60,10 @@ def pagina_team(
         name="team.html",
         context={
             "piano": piano,
+            "ha_team_piano": ha_team(piano),
             "collaboratori": collaboratori,
-            "max_collaboratori": MAX_COLLABORATORI,
+            "max_collaboratori": max_collaboratori(piano),
+            "limite_collaboratori_pro": LIMITE_COLLABORATORI_PRO,
             "link_invito": link_invito,
             "invito_scadenza": invito_attivo.scadenza if invito_attivo else None,
             "errore": errore,
@@ -195,7 +199,8 @@ def completa_register_invito(
         return _errore("La password deve essere di almeno 6 caratteri.")
 
     n_collab = db.query(Utente).filter(Utente.titolare_id == invito.titolare_id).count()
-    if n_collab >= MAX_COLLABORATORI:
+    max_c = max_collaboratori(get_piano(db, invito.titolare_id))
+    if max_c is not None and n_collab >= max_c:
         return _errore("Il team ha raggiunto il numero massimo di collaboratori.")
 
     db.add(Utente(

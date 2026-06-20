@@ -111,14 +111,14 @@
 <div class="container">
 
     {% if errore == 'pro_required' %}
-    <div class="alert-banner alert-warning">⭐ Funzionalità disponibile solo con Piano Pro. <a href="/piani" style="color:#92400e;font-weight:700;">Attiva Pro →</a></div>
+    <div class="alert-banner alert-warning">⭐ Funzionalità disponibile solo con Piano Pro o Business. <a href="/piani" style="color:#92400e;font-weight:700;">Passa a un piano superiore →</a></div>
     {% elif errore == 'limite_raggiunto' %}
     <div class="alert-banner alert-error">🚫 Hai raggiunto il limite massimo di {{ max_collaboratori }} collaboratori.</div>
     {% endif %}
 
     <!-- Collaboratori attivi -->
     <div class="card">
-        <div class="card-title">Collaboratori ({{ collaboratori|length }}/{{ max_collaboratori }})</div>
+        <div class="card-title">Collaboratori ({{ collaboratori|length }}{% if max_collaboratori is not none %}/{{ max_collaboratori }}{% endif %})</div>
 
         {% if collaboratori %}
             {% for c in collaboratori %}
@@ -145,16 +145,16 @@
     <div class="card">
         <div class="card-title">Link di Invito</div>
 
-        {% if piano != 'pro' %}
+        {% if not ha_team_piano %}
         <div style="text-align:center;padding:20px;">
             <p style="font-size:14px;color:#6b7280;margin-bottom:16px;">
-                ⭐ Il team è disponibile solo con Piano Pro.<br>
-                Passa a Pro per invitare fino a {{ max_collaboratori }} collaboratori.
+                ⭐ Il team è disponibile dal Piano Pro in su.<br>
+                Passa a Pro per invitare fino a {{ limite_collaboratori_pro }} collaboratori.
             </p>
-            <a href="/piani" class="btn-primary">Attiva Piano Pro</a>
+            <a href="/piani" class="btn-primary">Passa a un piano superiore</a>
         </div>
 
-        {% elif collaboratori|length >= max_collaboratori %}
+        {% elif max_collaboratori is not none and collaboratori|length >= max_collaboratori %}
         <div class="alert-banner alert-warning" style="margin-bottom:0;">
             🚫 Hai già {{ max_collaboratori }} collaboratori (limite massimo).
         </div>

@@ -119,6 +119,54 @@ def test_team_invita_limite_raggiunto(client_http, db, utente_test):
     assert "limite_raggiunto" in resp.headers["location"]
 
 
+def test_team_page_business_mostra_form_invito(client_http, db, utente_test):
+    """Regressione: la pagina /team usava `piano != 'pro'` per decidere se
+    mostrare la funzione di invito — un confronto testuale esatto che
+    escludeva 'business' (piano superiore a pro, non uguale), mostrando
+    al posto del form l'upsell "passa a Pro" anche a chi paga di più."""
+    utente_test.piano = "business"
+    db.commit()
+
+    resp = client_http.get("/team")
+    assert resp.status_code == 200
+    assert "Genera link di invito" in resp.text
+    assert "disponibile solo con Piano Pro" not in resp.text
+
+
+def test_team_invita_business_nessun_limite(client_http, db, utente_test):
+    """Regressione collegata: anche con più di 3 collaboratori già presenti
+    (il limite del piano Pro), il piano business non deve essere bloccato —
+    max_collaboratori("business") è None (illimitato)."""
+    utente_test.piano = "business"
+    db.commit()
+    for i in range(5):
+        _collaboratore(db, utente_test.id, f"collab{i}@t.it")
+
+    resp = client_http.post("/team/invita", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/team"
+
+    inv = (
+        db.query(models.InvitoAccount)
+        .filter(models.InvitoAccount.titolare_id == utente_test.id, models.InvitoAccount.usato == 0)
+        .first()
+    )
+    assert inv is not None
+
+
+def test_team_page_business_nessun_limite_visualizzato(client_http, db, utente_test):
+    """Il conteggio in pagina non deve mostrare un tetto numerico per i
+    piani senza limite (es. "5/3" sarebbe nonsense)."""
+    utente_test.piano = "business"
+    db.commit()
+    for i in range(5):
+        _collaboratore(db, utente_test.id, f"collab{i}@t.it")
+
+    resp = client_http.get("/team")
+    assert resp.status_code == 200
+    assert "Collaboratori (5)" in resp.text
+
+
 def test_team_invita_revoca_invito_precedente(client_http, db, utente_test):
     """POST /team/invita con invito non usato → invito precedente revocato, ne esiste solo uno."""
     _invito(db, utente_test.id, "tok-vecchio")
@@ -210,6 +258,29 @@ def test_register_invito_completa_ok(client_http, db, utente_test):
 
     db.refresh(inv)
     assert inv.usato == 1
+
+
+def test_register_invito_completa_business_oltre_limite_pro(client_http, db, utente_test):
+    """Regressione: il completamento registrazione usava una soglia fissa
+    (MAX_COLLABORATORI=3, il limite del piano Pro) invece del vero limite
+    del titolare — un titolare business con già 3+ collaboratori non
+    riusciva ad aggiungerne un quarto, nonostante il piano illimitato."""
+    utente_test.piano = "business"
+    db.commit()
+    for i in range(3):
+        _collaboratore(db, utente_test.id, f"collab{i}@t.it")
+    inv = _invito(db, utente_test.id, "tok-business")
+
+    resp = client_http.post(
+        "/register/invito/tok-business",
+        data={"username": "quarto_collab", "password": "password123"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "invito=1" in resp.headers["location"]
+
+    nuovo = db.query(models.Utente).filter(models.Utente.username == "quarto_collab").first()
+    assert nuovo is not None
 
 
 def test_register_invito_username_duplicato(client_http, db, utente_test):
