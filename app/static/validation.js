@@ -21,6 +21,19 @@
         }
     ];
 
+    function rimuoviBanner(inp) {
+        var form = inp.closest('form');
+        if (!form) return;
+        var restaInvalido = false;
+        form.querySelectorAll('.val-err').forEach(function (el) {
+            if (el.value.trim()) restaInvalido = true;
+        });
+        if (!restaInvalido) {
+            var banner = form.querySelector('.val-blocked-banner');
+            if (banner) banner.remove();
+        }
+    }
+
     function setup(inp, rule) {
         var hint = document.createElement('span');
         hint.className = 'val-hint';
@@ -38,6 +51,7 @@
                 inp.classList.remove('val-ok', 'val-err');
                 hint.textContent = '';
                 hint.className = 'val-hint';
+                rimuoviBanner(inp);
                 return true;
             }
             if (rule.fn(v)) {
@@ -45,6 +59,7 @@
                 inp.classList.add('val-ok');
                 hint.className = 'val-hint val-hint-ok';
                 hint.textContent = '✓ Formato valido';
+                rimuoviBanner(inp);
                 return true;
             }
             inp.classList.remove('val-ok');
@@ -67,10 +82,22 @@
                 });
                 if (blocked) {
                     e.preventDefault();
+                    // Senza un avviso ben visibile, un campo opzionale (P.IVA,
+                    // CF, SDI) compilato a metà blocca il salvataggio in modo
+                    // silenzioso: la pagina resta ferma e l'unico indizio è un
+                    // piccolo testo rosso accanto al campo, facile da non notare.
+                    var banner = form.querySelector('.val-blocked-banner');
+                    if (!banner) {
+                        banner = document.createElement('div');
+                        banner.className = 'val-blocked-banner';
+                        banner.style.cssText = 'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:12px 18px;font-size:14px;font-weight:600;margin-bottom:16px;';
+                        form.insertBefore(banner, form.firstChild);
+                    }
+                    banner.textContent = '⚠ Non è stato salvato: correggi il campo evidenziato in rosso qui sotto.';
+                    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     var first = form.querySelector('.val-err');
                     if (first) {
                         first.focus();
-                        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }
             });
