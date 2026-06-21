@@ -294,6 +294,75 @@ def test_collaboratore_vede_cliente_senza_lavori(client_sessione, db):
     assert resp.status_code == 200
 
 
+# ── Scoping ricerca globale (/api/cerca) ──────────────────────────────────────
+
+def test_collaboratore_ricerca_non_mostra_cliente_di_altro_collaboratore(client_sessione, db):
+    """Regressione: la ricerca globale non applicava lo scoping per
+    collaboratore (a differenza di /clienti/ e /lavori/), esponendo nome,
+    telefono ed email di clienti assegnati ad altri collaboratori."""
+    tit = _titolare(db)
+    collab1 = _collaboratore(db, tit.id, username="collab1@test.it")
+    collab2 = _collaboratore(db, tit.id, username="collab2@test.it")
+    cli = _cliente(db, tit.id, nome="ClienteRiservato")
+    _lavoro(db, tit.id, cli.id, assegnato_a_id=collab2.id)
+
+    _login(client_sessione, "collab1@test.it")
+    resp = client_sessione.get("/api/cerca?q=ClienteRiservato")
+    assert resp.status_code == 200
+    assert resp.json()["clienti"] == []
+
+
+def test_collaboratore_ricerca_mostra_proprio_cliente_assegnato(client_sessione, db):
+    tit = _titolare(db)
+    collab = _collaboratore(db, tit.id)
+    cli = _cliente(db, tit.id, nome="ClienteMioRicerca")
+    _lavoro(db, tit.id, cli.id, assegnato_a_id=collab.id)
+
+    _login(client_sessione, "collab@test.it")
+    resp = client_sessione.get("/api/cerca?q=ClienteMioRicerca")
+    assert resp.status_code == 200
+    assert len(resp.json()["clienti"]) == 1
+
+
+def test_collaboratore_ricerca_mostra_cliente_senza_lavori(client_sessione, db):
+    """Coerente con la lista clienti: un cliente non ancora 'reclamato' resta visibile a tutti."""
+    tit = _titolare(db)
+    _collaboratore(db, tit.id)
+    _cliente(db, tit.id, nome="ClienteNonReclamatoRicerca")
+
+    _login(client_sessione, "collab@test.it")
+    resp = client_sessione.get("/api/cerca?q=ClienteNonReclamatoRicerca")
+    assert resp.status_code == 200
+    assert len(resp.json()["clienti"]) == 1
+
+
+def test_collaboratore_ricerca_non_mostra_lavoro_di_altro_collaboratore(client_sessione, db):
+    tit = _titolare(db)
+    collab1 = _collaboratore(db, tit.id, username="collab3@test.it")
+    collab2 = _collaboratore(db, tit.id, username="collab4@test.it")
+    cli = _cliente(db, tit.id)
+    _lavoro(db, tit.id, cli.id, titolo="LavoroRiservatoRicerca", assegnato_a_id=collab2.id)
+
+    _login(client_sessione, "collab3@test.it")
+    resp = client_sessione.get("/api/cerca?q=LavoroRiservatoRicerca")
+    assert resp.status_code == 200
+    assert resp.json()["lavori"] == []
+
+
+def test_titolare_ricerca_vede_tutti_i_clienti_e_lavori(client_sessione, db):
+    tit = _titolare(db)
+    collab = _collaboratore(db, tit.id, username="collab5@test.it")
+    cli = _cliente(db, tit.id, nome="ClienteVisibileTitolare")
+    _lavoro(db, tit.id, cli.id, titolo="LavoroVisibileTitolare", assegnato_a_id=collab.id)
+
+    _login(client_sessione, "titolare@test.it")
+    resp = client_sessione.get("/api/cerca?q=VisibileTitolare")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["clienti"]) == 1
+    assert len(data["lavori"]) == 1
+
+
 # ── Scoping fatture ──────────────────────────────────────────────────────────
 
 def test_collaboratore_non_elimina_rapportino_su_lavoro_altrui(client_sessione, db):

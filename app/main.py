@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routes import clienti, lavori, auth, materiali, impostazioni, documenti, fatture, piani, team, onboarding, preventivi_template, firma, garanzie, prima_nota, notifiche_push, export_contabilita, listino, lavori_sal, lavori_rapportini, scadenzario, portale_cliente, lavori_timesheet, stripe_webhook, fatture_acquisto, audit
-from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, AccessoNegato, get_current_user
+from app.dependencies import NotAuthenticated, AccountScaduto, AccountDisattivato, AccessoNegato, get_current_user, scope_collaboratore
 from app import models, crud
 from app.models import Cliente, Lavoro, Materiale
 from app.logger import get_logger
@@ -144,6 +144,7 @@ app.include_router(audit.router)
 
 @app.get("/api/cerca")
 def cerca_globale(
+    request: Request,
     q: str = "",
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
@@ -153,8 +154,9 @@ def cerca_globale(
         return {"clienti": [], "lavori": [], "materiali": []}
 
     like = f"%{q}%"
+    scope = scope_collaboratore(request, db)
 
-    clienti_qs = db.query(Cliente).filter(
+    clienti_query = db.query(Cliente).filter(
         Cliente.utente_id == user_id,
         or_(
             Cliente.nome.ilike(like),
@@ -163,15 +165,28 @@ def cerca_globale(
             Cliente.telefono.ilike(like),
             Cliente.email.ilike(like),
         )
-    ).limit(5).all()
+    )
+    if scope is not None:
+        # Stessa regola di visibilità di crud.get_clienti: un collaboratore
+        # vede solo i clienti con un lavoro assegnato a lui, oppure i
+        # clienti senza alcun lavoro (non ancora "reclamati" da nessuno).
+        assegnati_sub = db.query(Lavoro.cliente_id).filter(Lavoro.assegnato_a_id == scope)
+        con_lavori_sub = db.query(Lavoro.cliente_id)
+        clienti_query = clienti_query.filter(
+            or_(Cliente.id.in_(assegnati_sub), Cliente.id.notin_(con_lavori_sub))
+        )
+    clienti_qs = clienti_query.limit(5).all()
 
-    lavori_qs = db.query(Lavoro).filter(
+    lavori_query = db.query(Lavoro).filter(
         Lavoro.utente_id == user_id,
         or_(
             Lavoro.titolo.ilike(like),
             Lavoro.descrizione.ilike(like),
         )
-    ).order_by(Lavoro.data_creazione.desc()).limit(5).all()
+    )
+    if scope is not None:
+        lavori_query = lavori_query.filter(Lavoro.assegnato_a_id == scope)
+    lavori_qs = lavori_query.order_by(Lavoro.data_creazione.desc()).limit(5).all()
 
     materiali_qs = db.query(Materiale).filter(
         Materiale.utente_id == user_id,
