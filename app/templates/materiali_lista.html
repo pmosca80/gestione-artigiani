@@ -266,8 +266,13 @@
         {% else %}
         <div class="empty-state">
             <span class="empty-icon">📦</span>
+            {% if cerca %}
+            <p>Nessun materiale trovato per "{{ cerca }}"</p>
+            <a href="/materiali/" class="btn-new">Reset ricerca</a>
+            {% else %}
             <p>Nessun materiale inserito ancora.</p>
             <a href="/materiali/nuovo" class="btn-new">+ Aggiungi il primo materiale</a>
+            {% endif %}
         </div>
         {% endif %}
     </div>

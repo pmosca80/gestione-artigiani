@@ -408,8 +408,13 @@
         <div class="clienti-table-wrap">
             <div class="empty-state">
                 <span class="empty-icon">👥</span>
-                <p>Nessun cliente trovato</p>
+                {% if cerca %}
+                <p>Nessun cliente trovato per "{{ cerca }}"</p>
+                <a href="/clienti/" class="btn">Reset ricerca</a>
+                {% else %}
+                <p>Non hai ancora nessun cliente.</p>
                 <a href="/clienti/nuovo" class="btn">➕ Aggiungi il primo cliente</a>
+                {% endif %}
             </div>
         </div>
     {% endif %}

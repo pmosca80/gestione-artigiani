@@ -21,6 +21,34 @@ def test_lista_clienti_vuota(client_http):
     assert resp.status_code == 200
 
 
+def test_lista_clienti_vuota_senza_ricerca_invita_a_creare(client_http):
+    """Regressione: con zero clienti e nessuna ricerca attiva, lo stato
+    vuoto deve invitare a creare il primo cliente."""
+    resp = client_http.get("/clienti/")
+    assert resp.status_code == 200
+    assert "Non hai ancora nessun cliente" in resp.text
+    assert "Aggiungi il primo cliente" in resp.text
+
+
+def test_lista_clienti_con_ricerca_senza_risultati_mostra_reset(client_http, db, utente_test):
+    """Regressione: se esiste già almeno un cliente ma la ricerca non
+    trova corrispondenze, il messaggio non deve invitare a creare il
+    primo cliente (ce ne sono già) ma a resettare la ricerca."""
+    db.add(models.Cliente(
+        utente_id=utente_test.id,
+        tipo_cliente="privato",
+        nome="Mario",
+        cognome="Rossi",
+        data_creazione=str(date.today()),
+    ))
+    db.commit()
+
+    resp = client_http.get("/clienti/?cerca=parola-che-non-esiste-mai")
+    assert resp.status_code == 200
+    assert "Reset ricerca" in resp.text
+    assert "Non hai ancora nessun cliente" not in resp.text
+
+
 def test_lista_clienti_mostra_solo_propri(client_http, db, utente_test):
     """Cliente di un altro utente non deve apparire nella lista."""
     altro = models.Utente(

@@ -89,6 +89,27 @@ def test_lista_materiali_mostra_solo_propri(client_http, db, utente_test):
     assert "Tubo rame altrui ABC" not in resp.text
 
 
+def test_lista_materiali_vuota_senza_ricerca_invita_a_creare(client_http):
+    """Regressione: con zero materiali e nessuna ricerca attiva, lo stato
+    vuoto deve invitare a creare il primo materiale."""
+    resp = client_http.get("/materiali/")
+    assert resp.status_code == 200
+    assert "Nessun materiale inserito ancora" in resp.text
+    assert "Aggiungi il primo materiale" in resp.text
+
+
+def test_lista_materiali_con_ricerca_senza_risultati_mostra_reset(client_http, db, utente_test):
+    """Regressione: se esiste già almeno un materiale ma la ricerca non
+    trova corrispondenze, il messaggio non deve invitare a creare il
+    primo materiale (ce ne sono già) ma a resettare la ricerca."""
+    _materiale(db, utente_test.id, nome="Tubo rame")
+
+    resp = client_http.get("/materiali/?cerca=parola-che-non-esiste-mai")
+    assert resp.status_code == 200
+    assert "Reset ricerca" in resp.text
+    assert "Aggiungi il primo materiale" not in resp.text
+
+
 # ── GET /materiali/lista-acquisti ─────────────────────────────────────────────
 
 def test_lista_acquisti_ok(client_http):
