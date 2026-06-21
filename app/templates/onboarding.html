@@ -147,6 +147,17 @@
         }
         .btn-avanti:hover { background: #6d28d9; }
 
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
         @media (max-width: 480px) {
             .wizard  { padding: 28px 20px; }
             .form-row { grid-template-columns: 1fr; }
@@ -155,6 +166,14 @@
 </head>
 <body>
 <div class="wizard">
+
+    {% if errore == 'campo_vuoto' %}
+    <div class="alert-error">⚠ Inserisci almeno il nome dell'azienda o la partita IVA per continuare.</div>
+    {% elif errore == 'nome_cliente' %}
+    <div class="alert-error">⚠ Inserisci il nome del cliente per continuare.</div>
+    {% elif errore == 'titolo_lavoro' %}
+    <div class="alert-error">⚠ Inserisci un titolo per il lavoro per continuare.</div>
+    {% endif %}
 
     <!-- Indicatore di progresso -->
     <div class="steps">

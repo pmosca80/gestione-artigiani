@@ -16,13 +16,14 @@ router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 @router.get("", response_class=HTMLResponse)
 def onboarding_page(
     request: Request,
+    errore: str = "",
     _: int = Depends(get_current_user),
 ):
     step = request.session.get("onboarding_step", 1)
     return templates.TemplateResponse(
         request=request,
         name="onboarding.html",
-        context={"step": step},
+        context={"step": step, "errore": errore},
     )
 
 
@@ -35,16 +36,20 @@ def onboarding_azienda(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    if nome_azienda.strip() or partita_iva.strip():
-        crud.salva_impostazioni_azienda(
-            db=db,
-            utente_id=user_id,
-            nome_azienda=nome_azienda.strip(),
-            partita_iva=partita_iva.strip(),
-            telefono=telefono.strip(),
-            email="",
-            indirizzo="",
-        )
+    # Senza nessun dato compilato non c'è nulla da salvare: avanzare
+    # comunque al passo successivo dava l'illusione di aver fatto qualcosa.
+    if not nome_azienda.strip() and not partita_iva.strip():
+        return RedirectResponse(url="/onboarding?errore=campo_vuoto", status_code=303)
+
+    crud.salva_impostazioni_azienda(
+        db=db,
+        utente_id=user_id,
+        nome_azienda=nome_azienda.strip(),
+        partita_iva=partita_iva.strip(),
+        telefono=telefono.strip(),
+        email="",
+        indirizzo="",
+    )
     request.session["onboarding_step"] = 2
     return RedirectResponse(url="/onboarding", status_code=303)
 
@@ -58,9 +63,11 @@ def onboarding_cliente(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    if nome.strip():
-        cliente = crud.crea_cliente(db, nome.strip(), cognome.strip(), telefono.strip(), user_id)
-        request.session["onboarding_cliente_id"] = cliente.id
+    if not nome.strip():
+        return RedirectResponse(url="/onboarding?errore=nome_cliente", status_code=303)
+
+    cliente = crud.crea_cliente(db, nome.strip(), cognome.strip(), telefono.strip(), user_id)
+    request.session["onboarding_cliente_id"] = cliente.id
     request.session["onboarding_step"] = 3
     return RedirectResponse(url="/onboarding", status_code=303)
 
@@ -73,8 +80,11 @@ def onboarding_lavoro(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
+    if not titolo.strip():
+        return RedirectResponse(url="/onboarding?errore=titolo_lavoro", status_code=303)
+
     cliente_id = request.session.get("onboarding_cliente_id")
-    if titolo.strip() and cliente_id:
+    if cliente_id:
         crud.crea_lavoro(
             db=db,
             cliente_id=cliente_id,

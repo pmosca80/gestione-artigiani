@@ -44,20 +44,28 @@ def test_onboarding_azienda_salva_impostazioni(client_http, db, utente_test):
     assert imp.partita_iva == "12345678901"
 
 
-def test_onboarding_azienda_vuota_non_salva(client_http, db, utente_test):
-    """POST /azienda con campi vuoti → redirect /onboarding, nessuna impostazione creata."""
+def test_onboarding_azienda_vuota_mostra_errore_non_avanza(client_http, db, utente_test):
+    """Regressione: POST /azienda con campi vuoti avanzava comunque al passo
+    2 senza salvare nulla e senza alcun avviso - sembrava che il salvataggio
+    fosse andato a buon fine. Ora resta sul passo 1 con un errore visibile."""
     resp = client_http.post(
         "/onboarding/azienda",
         data={"nome_azienda": "", "partita_iva": "", "telefono": ""},
         follow_redirects=False,
     )
     assert resp.status_code == 303
+    assert "errore=campo_vuoto" in resp.headers["location"]
 
     from app.models import ImpostazioniAzienda
     imp = db.query(ImpostazioniAzienda).filter(
         ImpostazioniAzienda.utente_id == utente_test.id
     ).first()
     assert imp is None
+
+    # Il passo non deve essere avanzato a 2
+    pagina = client_http.get("/onboarding?errore=campo_vuoto")
+    assert "Passo 1 di 3" in pagina.text
+    assert "Inserisci almeno il nome dell'azienda" in pagina.text
 
 
 # ── POST /onboarding/cliente ───────────────────────────────────────────────────
@@ -79,19 +87,26 @@ def test_onboarding_cliente_crea_cliente(client_http, db, utente_test):
     assert clienti[0].nome == "Giovanni"
 
 
-def test_onboarding_cliente_senza_nome_non_crea(client_http, db, utente_test):
-    """POST /cliente senza nome → redirect /onboarding, nessun cliente creato."""
+def test_onboarding_cliente_senza_nome_mostra_errore_non_avanza(client_http, db, utente_test):
+    """Regressione: POST /cliente senza nome avanzava comunque al passo 3
+    senza creare nulla e senza alcun avviso. Ora resta sul passo 2 con un
+    errore visibile."""
     resp = client_http.post(
         "/onboarding/cliente",
         data={"nome": "", "cognome": "", "telefono": ""},
         follow_redirects=False,
     )
     assert resp.status_code == 303
+    assert "errore=nome_cliente" in resp.headers["location"]
 
     count = db.query(models.Cliente).filter(
         models.Cliente.utente_id == utente_test.id
     ).count()
     assert count == 0
+
+    pagina = client_http.get("/onboarding?errore=nome_cliente")
+    assert "Passo 1 di 3" in pagina.text  # step non avanzato
+    assert "Inserisci il nome del cliente" in pagina.text
 
 
 # ── POST /onboarding/lavoro ────────────────────────────────────────────────────
@@ -122,6 +137,35 @@ def test_onboarding_lavoro_con_sessione_crea_lavoro(client_http, db, utente_test
 
     db.refresh(utente_test)
     assert utente_test.onboarding_done is True
+
+
+def test_onboarding_lavoro_senza_titolo_mostra_errore_non_completa(client_http, db, utente_test):
+    """Regressione: POST /lavoro senza titolo completava comunque
+    l'onboarding (onboarding_done=True) senza creare nulla e senza alcun
+    avviso. Ora mostra un errore e NON marca l'onboarding come completato."""
+    utente_test.onboarding_done = False
+    db.commit()
+    client_http.post(
+        "/onboarding/cliente",
+        data={"nome": "Luigi", "cognome": "Bianchi", "telefono": ""},
+        follow_redirects=False,
+    )
+
+    resp = client_http.post(
+        "/onboarding/lavoro",
+        data={"titolo": "", "descrizione": ""},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "errore=titolo_lavoro" in resp.headers["location"]
+
+    count = db.query(models.Lavoro).filter(
+        models.Lavoro.utente_id == utente_test.id
+    ).count()
+    assert count == 0
+
+    db.refresh(utente_test)
+    assert utente_test.onboarding_done is False
 
 
 def test_onboarding_lavoro_senza_sessione_non_crea(client_http, db, utente_test):
