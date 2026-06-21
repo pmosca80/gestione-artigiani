@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -64,7 +66,7 @@ def crea_materiale_form(
         note=clean(note, NOTE_MAX),
     )
 
-    return RedirectResponse(url="/materiali/", status_code=303)
+    return RedirectResponse(url=f"/materiali/?toast={quote('Materiale salvato')}", status_code=303)
 
 
 @router.get("/lista-acquisti", response_class=HTMLResponse)

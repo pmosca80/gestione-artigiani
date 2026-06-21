@@ -93,6 +93,7 @@ def test_crea_cliente(client_http):
     }, follow_redirects=False)
 
     assert resp.status_code in (302, 303)
+    assert "toast=Cliente%20salvato" in resp.headers["location"]
 
 
 def test_cliente_inesistente_404(client_http):

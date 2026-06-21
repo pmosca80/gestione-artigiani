@@ -70,6 +70,7 @@ def test_crea_materiale_happy_path(client_http, db, utente_test):
     )
     assert resp.status_code == 303
     assert "/materiali/" in resp.headers["location"]
+    assert "toast=Materiale%20salvato" in resp.headers["location"]
 
     materiali = crud.get_materiali(db, utente_test.id)
     assert len(materiali) == 1

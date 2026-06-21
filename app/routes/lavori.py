@@ -1,5 +1,6 @@
 ﻿from pathlib import Path
 from datetime import datetime, timedelta, date
+from urllib.parse import quote
 import io
 import re
 
@@ -165,7 +166,7 @@ def crea_lavoro_form(
         # manodopera, lavori da fare) invece che alla scheda cliente:
         # prima il preventivo si creava in un passo e le voci si
         # aggiungevano solo navigando altrove in un secondo momento.
-        return RedirectResponse(url=f"/lavori/{nuovo.id}/voci", status_code=303)
+        return RedirectResponse(url=f"/lavori/{nuovo.id}/voci?toast={quote('Lavoro creato')}", status_code=303)
     except Exception as e:
         logger.error(f"Errore creazione lavoro | utente {user_id} | {e}")
         raise
@@ -231,7 +232,7 @@ def crea_lavoro_rapido(
         utente_id=user_id,
         assegnato_a_id=scope_collaboratore(request, db),
     )
-    return RedirectResponse(url=f"/lavori/{lavoro.id}", status_code=303)
+    return RedirectResponse(url=f"/lavori/{lavoro.id}?toast={quote('Lavoro creato')}", status_code=303)
 
 
 @router.get("/allegati/archivio", response_class=HTMLResponse)
@@ -890,7 +891,7 @@ def modifica_lavoro(
                    "iva_dopo": float(lavoro.aliquota_iva or 0)},
                   get_client_ip(request))
 
-        return RedirectResponse(url=f"/clienti/{lavoro.cliente_id}", status_code=303)
+        return RedirectResponse(url=f"/clienti/{lavoro.cliente_id}?toast={quote('Lavoro aggiornato')}", status_code=303)
 
     except Exception as e:
         logger.error(f"Errore creazione lavoro | utente {user_id} | {e}")
@@ -907,7 +908,7 @@ def elimina_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_d
     cliente_id = lavoro.cliente_id
     crud.elimina_lavoro(db, lavoro_id, user_id)
 
-    return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
+    return RedirectResponse(url=f"/clienti/{cliente_id}?toast={quote('Lavoro eliminato')}", status_code=303)
 
 
 @router.get("/{lavoro_id}/voci", response_class=HTMLResponse)

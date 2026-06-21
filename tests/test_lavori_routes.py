@@ -83,7 +83,7 @@ def test_crea_lavoro_happy_path(client_http, db, utente_test, cliente_test):
     lavori = db.query(models.Lavoro).filter(models.Lavoro.utente_id == utente_test.id).all()
     assert len(lavori) == 1
     assert lavori[0].titolo == "Nuovo impianto"
-    assert resp.headers["location"] == f"/lavori/{lavori[0].id}/voci"
+    assert resp.headers["location"] == f"/lavori/{lavori[0].id}/voci?toast=Lavoro%20creato"
 
 
 def test_crea_lavoro_cliente_inesistente(client_http, db, utente_test):
@@ -138,8 +138,9 @@ def test_crea_lavoro_rapido(client_http, db, utente_test, cliente_test):
     assert resp.status_code == 303
     loc = resp.headers["location"]
     assert loc.startswith("/lavori/")
+    assert "toast=Lavoro%20creato" in loc
 
-    lavoro_id = int(loc.split("/lavori/")[1].rstrip("/"))
+    lavoro_id = int(loc.split("/lavori/")[1].split("?")[0].rstrip("/"))
     lavoro = db.get(models.Lavoro, lavoro_id)
     assert lavoro is not None
     assert lavoro.titolo == "Lavoro rapido"
@@ -192,6 +193,7 @@ def test_modifica_lavoro_aggiorna_titolo(client_http, db, utente_test, cliente_t
     )
     assert resp.status_code == 303
     assert f"/clienti/{cliente_test.id}" in resp.headers["location"]
+    assert "toast=Lavoro%20aggiornato" in resp.headers["location"]
 
     db.refresh(lavoro_test)
     assert lavoro_test.titolo == "Titolo aggiornato"
@@ -225,6 +227,29 @@ def test_modifica_lavoro_altrui_404(client_http, db, utente_test):
         },
         follow_redirects=False,
     )
+    assert resp.status_code == 404
+
+
+# ── POST /lavori/{lavoro_id}/elimina ─────────────────────────────────────────
+
+def test_elimina_lavoro_proprio(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Elimina lavoro → rimosso dal DB, redirect alla scheda cliente con toast."""
+    resp = client_http.post(f"/lavori/{lavoro_test.id}/elimina", follow_redirects=False)
+    assert resp.status_code == 303
+    assert f"/clienti/{cliente_test.id}" in resp.headers["location"]
+    assert "toast=Lavoro%20eliminato" in resp.headers["location"]
+
+    rimasto = db.get(models.Lavoro, lavoro_test.id)
+    assert rimasto is None
+
+
+def test_elimina_lavoro_altrui_404(client_http, db, utente_test):
+    """Elimina lavoro di un altro utente → 404."""
+    altro = _utente(db, "altro5@t.it")
+    cli = _cliente(db, altro.id)
+    lav = _lavoro(db, altro.id, cli.id)
+
+    resp = client_http.post(f"/lavori/{lav.id}/elimina", follow_redirects=False)
     assert resp.status_code == 404
 
 

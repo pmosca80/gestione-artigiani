@@ -113,6 +113,7 @@ def test_modifica_cliente_aggiorna_campi(client_http, db, utente_test, cliente_t
     )
     assert resp.status_code == 303
     assert f"/clienti/{cliente_test.id}" in resp.headers["location"]
+    assert "toast=Cliente%20aggiornato" in resp.headers["location"]
 
     db.refresh(cliente_test)
     assert cliente_test.nome == "Luca"
@@ -155,6 +156,7 @@ def test_elimina_cliente_proprio(client_http, db, utente_test, cliente_test):
     resp = client_http.post(f"/clienti/{cliente_test.id}/elimina", follow_redirects=False)
     assert resp.status_code == 303
     assert "/clienti" in resp.headers["location"]
+    assert "toast=Cliente%20eliminato" in resp.headers["location"]
 
     rimasto = db.get(models.Cliente, cliente_test.id)
     assert rimasto is None

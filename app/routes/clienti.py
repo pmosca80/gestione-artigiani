@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -68,7 +70,7 @@ def crea_cliente_form(
 
     crud.crea_cliente(db, nome, cognome, telefono, user_id)
 
-    return RedirectResponse(url="/clienti", status_code=303)
+    return RedirectResponse(url=f"/clienti?toast={quote('Cliente salvato')}", status_code=303)
 
 
 @router.get("/{cliente_id}", response_class=HTMLResponse)
@@ -187,7 +189,7 @@ def modifica_cliente(
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
 
-    return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
+    return RedirectResponse(url=f"/clienti/{cliente_id}?toast={quote('Cliente aggiornato')}", status_code=303)
 
 
 @router.post("/{cliente_id}/elimina")
@@ -212,4 +214,4 @@ def elimina_cliente(
             status_code=303
         )
 
-    return RedirectResponse(url="/clienti", status_code=303)
+    return RedirectResponse(url=f"/clienti?toast={quote('Cliente eliminato')}", status_code=303)
