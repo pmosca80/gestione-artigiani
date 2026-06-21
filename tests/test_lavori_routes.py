@@ -249,6 +249,31 @@ def test_lista_lavori_con_ricerca(client_http, db, utente_test, cliente_test):
     assert "Revisione tetto" not in resp.text
 
 
+def test_lista_lavori_vuota_senza_filtri_invita_a_creare(client_http, db, utente_test):
+    """Regressione: con zero lavori e nessun filtro attivo, lo stato vuoto
+    parlava di 'filtri selezionati' e offriva solo 'Reset filtri' - testo
+    fuorviante per chi non ha mai creato nulla, senza alcuna call-to-action
+    per creare il primo lavoro."""
+    resp = client_http.get("/lavori/")
+    assert resp.status_code == 200
+    assert "Non hai ancora nessun lavoro" in resp.text
+    assert "Crea il primo lavoro" in resp.text
+    assert "filtri selezionati" not in resp.text
+
+
+def test_lista_lavori_vuota_con_filtro_mostra_reset(client_http, db, utente_test, cliente_test):
+    """Quando invece il filtro è la causa reale dell'elenco vuoto (esiste
+    almeno un lavoro, ma non corrisponde ai filtri), il messaggio deve
+    restare quello sui filtri con il bottone di reset."""
+    _lavoro(db, utente_test.id, cliente_test.id, titolo="Impianto caldaia")
+
+    resp = client_http.get("/lavori/?ricerca=parola-che-non-esiste-mai")
+    assert resp.status_code == 200
+    assert "filtri selezionati" in resp.text
+    assert "Reset filtri" in resp.text
+    assert "Non hai ancora nessun lavoro" not in resp.text
+
+
 # ── Voci preventivo ───────────────────────────────────────────────────────────
 
 def test_lista_voci_lavoro_ok(client_http, db, utente_test, cliente_test, lavoro_test):

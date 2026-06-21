@@ -555,8 +555,13 @@
         <div class="lavori-table-wrap">
             <div class="empty-state">
                 <span class="empty-icon">🛠️</span>
+                {% if filtri_attivi %}
                 <p>Nessun lavoro trovato con i filtri selezionati.</p>
                 <a href="/lavori/" class="btn">Reset filtri</a>
+                {% else %}
+                <p>Non hai ancora nessun lavoro.</p>
+                <a href="/lavori/nuovo-rapido" class="btn">➕ Crea il primo lavoro</a>
+                {% endif %}
             </div>
         </div>
 

@@ -62,6 +62,8 @@ def lista_lavori(
 
     totali = crud.get_totali_lavori(risultato["items"])
 
+    filtri_attivi = bool(stato or pagamento or scaduti or ricerca or cliente_id)
+
     return templates.TemplateResponse(
         request=request,
         name="lavori_lista.html",
@@ -78,6 +80,7 @@ def lista_lavori(
             "totali": totali,
             "oggi": date.today(),
             "cliente_id": cliente_id,
+            "filtri_attivi": filtri_attivi,
         }
     )
 
