@@ -59,7 +59,10 @@ def _voce(db, utente_id, lavoro_id, descrizione="Manodopera", prezzo=100.0):
 # ── POST /lavori/nuovo/{cliente_id} ──────────────────────────────────────────
 
 def test_crea_lavoro_happy_path(client_http, db, utente_test, cliente_test):
-    """Creazione via form cliente → redirect a /clienti/{id}."""
+    """Creazione via form cliente → redirect diretto alla schermata voci
+    (materiale/manodopera/lavori da fare si aggiungono lì), non più alla
+    scheda cliente: prima il preventivo si creava in un passo separato
+    dall'aggiunta delle voci, costringendo l'utente a navigare altrove."""
     resp = client_http.post(
         f"/lavori/nuovo/{cliente_test.id}",
         data={
@@ -76,11 +79,11 @@ def test_crea_lavoro_happy_path(client_http, db, utente_test, cliente_test):
         follow_redirects=False,
     )
     assert resp.status_code == 303
-    assert f"/clienti/{cliente_test.id}" in resp.headers["location"]
 
     lavori = db.query(models.Lavoro).filter(models.Lavoro.utente_id == utente_test.id).all()
     assert len(lavori) == 1
     assert lavori[0].titolo == "Nuovo impianto"
+    assert resp.headers["location"] == f"/lavori/{lavori[0].id}/voci"
 
 
 def test_crea_lavoro_cliente_inesistente(client_http, db, utente_test):
@@ -315,6 +318,26 @@ def test_elimina_voce_preventivo(client_http, db, utente_test, cliente_test, lav
 
     voci_rimaste = crud.get_voci_preventivo(db, utente_test.id, lavoro_test.id)
     assert len(voci_rimaste) == 0
+
+
+def test_voci_lavoro_mostra_catalogo_magazzino(client_http, db, utente_test, cliente_test, lavoro_test):
+    """La pagina voci preventivo deve offrire un selettore rapido dei
+    materiali a magazzino (prezzo/unità di misura precompilati), in modo
+    da poterli aggiungere come stima al preventivo senza scaricare le
+    scorte (lo scarico reale resta legato alla scheda /materiali)."""
+    _materiale(db, utente_test.id)
+
+    resp = client_http.get(f"/lavori/{lavoro_test.id}/voci")
+    assert resp.status_code == 200
+    assert "Scegli dal magazzino" in resp.text
+    assert "Tubo PVC" in resp.text
+
+
+def test_voci_lavoro_senza_materiali_non_mostra_selettore_magazzino(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Senza materiali a catalogo, il selettore non deve apparire (nulla da scegliere)."""
+    resp = client_http.get(f"/lavori/{lavoro_test.id}/voci")
+    assert resp.status_code == 200
+    assert "Scegli dal magazzino" not in resp.text
 
 
 def test_voci_lavoro_altrui_404(client_http, db, utente_test):

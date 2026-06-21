@@ -155,14 +155,23 @@
         </div>
     </div>
 
-    <!-- LISTINO PREZZI -->
-    {% if listino %}
+    <!-- LISTINO PREZZI / MAGAZZINO -->
+    {% if listino or materiali_catalogo %}
     <div class="listino-bar">
+        {% if listino %}
         <button type="button" class="btn-listino" onclick="toggleListino()">
             📚 Scegli dal listino
         </button>
-        <span style="font-size:12px; color:#9ca3af;">{{ listino|length }} voc{{ 'e' if listino|length == 1 else 'i' }} salvat{{ 'a' if listino|length == 1 else 'e' }}</span>
+        {% endif %}
+        {% if materiali_catalogo %}
+        <button type="button" class="btn-listino" onclick="toggleMagazzino()">
+            📦 Scegli dal magazzino
+        </button>
+        {% endif %}
     </div>
+    {% endif %}
+
+    {% if listino %}
     <div class="listino-panel" id="listino-panel">
         <div class="listino-panel-header">
             <span>📚 Listino prezzi</span>
@@ -185,6 +194,35 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
+
+    {% if materiali_catalogo %}
+    <div class="listino-panel" id="magazzino-panel">
+        <div class="listino-panel-header">
+            <span>📦 Materiali a magazzino</span>
+            <input type="text" class="listino-search" id="magazzino-search"
+                   placeholder="Cerca materiale…" oninput="filtraMagazzino(this.value)">
+            <button type="button" onclick="toggleMagazzino()"
+                    style="background:none;border:none;font-size:16px;cursor:pointer;color:#9ca3af;padding:0 2px;">✕</button>
+        </div>
+        <div class="listino-items" id="magazzino-items">
+            {% for m in materiali_catalogo %}
+            <div class="listino-item"
+                 data-desc="{{ m.nome|replace('"', '&quot;') }}"
+                 data-um="{{ m.unita_misura or '' }}"
+                 data-prezzo="{{ m.prezzo_vendita_default or 0 }}"
+                 onclick="usaVoceListino(this)">
+                <span class="listino-item-desc">{{ m.nome }}</span>
+                <span class="listino-item-um">{{ m.unita_misura or '' }}</span>
+                <span class="listino-item-prezzo">€ {{ "%.2f"|format(m.prezzo_vendita_default or 0) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <p style="font-size:12px; color:#9ca3af; margin:-12px 0 16px;">
+        ℹ️ La voce viene calcolata con il prezzo di vendita del materiale ma resta una stima:
+        lo scarico effettivo dal magazzino si registra dalla scheda lavoro quando il lavoro è confermato.
+    </p>
     {% endif %}
 
     <!-- FORM AGGIUNGI -->
@@ -284,7 +322,8 @@ function usaVoceListino(el) {
     document.getElementById('f-um').value = el.dataset.um;
     document.getElementById('f-prezzo').value = el.dataset.prezzo;
     document.getElementById('f-quantita').value = '1';
-    document.getElementById('listino-panel').classList.remove('open');
+    var panel = el.closest('.listino-panel');
+    if (panel) panel.classList.remove('open');
     document.getElementById('f-quantita').focus();
 }
 function filtraListino(q) {
@@ -298,6 +337,23 @@ function filtraListino(q) {
     });
     var empty = document.getElementById('listino-no-results');
     if (empty) empty.style.display = visible === 0 ? '' : 'none';
+}
+function toggleMagazzino() {
+    var p = document.getElementById('magazzino-panel');
+    if (!p) return;
+    p.classList.toggle('open');
+    if (p.classList.contains('open')) {
+        var s = document.getElementById('magazzino-search');
+        if (s) { s.value = ''; filtraMagazzino(''); s.focus(); }
+    }
+}
+function filtraMagazzino(q) {
+    q = q.toLowerCase();
+    var items = document.querySelectorAll('#magazzino-items .listino-item');
+    items.forEach(function(el) {
+        var match = !q || el.dataset.desc.toLowerCase().includes(q);
+        el.style.display = match ? '' : 'none';
+    });
 }
 </script>
 

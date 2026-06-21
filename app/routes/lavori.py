@@ -161,7 +161,11 @@ def crea_lavoro_form(
                    "titolo": titolo_ok[:80]},
                   get_client_ip(request))
 
-        return RedirectResponse(url=f"/clienti/{cliente_id}", status_code=303)
+        # Porta direttamente alla schermata di aggiunta voci (materiale,
+        # manodopera, lavori da fare) invece che alla scheda cliente:
+        # prima il preventivo si creava in un passo e le voci si
+        # aggiungevano solo navigando altrove in un secondo momento.
+        return RedirectResponse(url=f"/lavori/{nuovo.id}/voci", status_code=303)
     except Exception as e:
         logger.error(f"Errore creazione lavoro | utente {user_id} | {e}")
         raise
@@ -914,8 +918,10 @@ def form_voci_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get
     voci = crud.get_voci_preventivo(db, user_id, lavoro_id)
     totale_voci = sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)
     listino = crud.get_listino(db, user_id)
+    materiali_catalogo = crud.get_materiali(db, user_id)
     return templates.TemplateResponse(request=request, name="lavoro_voci.html", context={
         "lavoro": lavoro, "voci": voci, "totale_voci": totale_voci, "listino": listino,
+        "materiali_catalogo": materiali_catalogo,
     })
 
 @router.post("/{lavoro_id}/voci")
