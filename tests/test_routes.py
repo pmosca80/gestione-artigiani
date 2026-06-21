@@ -14,6 +14,21 @@ def test_health_check(client_http):
     assert resp.json() == {"status": "ok"}
 
 
+# ── Pagine legali ──────────────────────────────────────────────────────────────
+
+def test_privacy_policy_ok(client_http):
+    resp = client_http.get("/privacy")
+    assert resp.status_code == 200
+
+
+def test_termini_servizio_ok(client_http):
+    """Regressione: register.html linka due volte a /termini (anche dal
+    checkbox obbligatorio di accettazione), ma la route non esisteva -> 404."""
+    resp = client_http.get("/termini")
+    assert resp.status_code == 200
+    assert "Termini di Servizio" in resp.text
+
+
 # ── /clienti/ ────────────────────────────────────────────────────────────────
 
 def test_lista_clienti_vuota(client_http):

@@ -240,6 +240,10 @@ def offline_page(request: Request):
 def privacy_policy(request: Request):
     return templates.TemplateResponse(request=request, name="privacy.html", context={})
 
+@app.get("/termini", response_class=HTMLResponse)
+def termini_servizio(request: Request):
+    return templates.TemplateResponse(request=request, name="termini.html", context={})
+
 
 @app.get("/guida", response_class=HTMLResponse)
 def guida(request: Request, user_id: int = Depends(get_current_user)):

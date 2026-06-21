@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termini di Servizio — Mastro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'DM Sans', sans-serif; background: #f8fafc; }
+        .priv-wrap { max-width: 800px; margin: 40px auto; padding: 0 20px 80px; }
+        .priv-header {
+            background: linear-gradient(135deg, #0f172a, #1e3a5f);
+            border-radius: 16px;
+            padding: 32px 36px;
+            margin-bottom: 32px;
+            color: white;
+        }
+        .priv-header h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+        .priv-header p { color: #94a3b8; font-size: 13px; margin: 0; }
+        .priv-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+        }
+        .priv-card h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .priv-card p, .priv-card li {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.75;
+            margin: 0 0 10px;
+        }
+        .priv-card ul { padding-left: 20px; margin: 8px 0 12px; }
+        .priv-card strong { color: #111827; }
+        .priv-card a { color: #2563eb; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { color: #111827; }
+        .highlight-box {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            margin: 14px 0;
+            font-size: 13px;
+            color: #1e40af;
+        }
+        @media (max-width: 600px) {
+            .priv-card { padding: 20px; }
+            .priv-header { padding: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="priv-wrap">
+
+    <a href="/" class="back-link">← Torna alla dashboard</a>
+
+    <div class="priv-header">
+        <h1>📜 Termini di Servizio</h1>
+        <p>Condizioni generali di utilizzo del gestionale</p>
+    </div>
+
+    <div class="priv-card">
+        <h2>1. Oggetto del Servizio</h2>
+        <p>
+            Mastro è un gestionale online (SaaS) pensato per artigiani e piccole imprese,
+            che consente di gestire anagrafiche clienti, lavori, preventivi, materiali a
+            magazzino, pagamenti e fatturazione elettronica. L'accesso al servizio richiede
+            la registrazione di un account personale.
+        </p>
+    </div>
+
+    <div class="priv-card">
+        <h2>2. Registrazione e Account</h2>
+        <ul>
+            <li>Per utilizzare il servizio è necessario creare un account fornendo dati veritieri e aggiornati.</li>
+            <li>Sei responsabile della riservatezza delle tue credenziali di accesso e di ogni attività svolta tramite il tuo account.</li>
+            <li>Se inviti dei collaboratori al tuo account, sei responsabile di assicurarti che siano autorizzati ad accedere ai dati che condividi con loro.</li>
+            <li>In caso di utilizzo non autorizzato del tuo account, sei invitato a segnalarlo tempestivamente.</li>
+        </ul>
+    </div>
+
+    <div class="priv-card">
+        <h2>3. Piani, Pagamenti e Recesso</h2>
+        <ul>
+            <li>Il servizio è offerto in diversi piani, descritti nella pagina <a href="/piani">Piani</a>, con funzionalità e limiti differenti.</li>
+            <li>Gli importi dei piani a pagamento sono indicati al momento della sottoscrizione e i pagamenti sono gestiti tramite un fornitore di pagamenti terzo (Stripe).</li>
+            <li>Puoi disdire l'abbonamento in qualsiasi momento dalla sezione Piani; la disdetta ha effetto dal periodo di fatturazione successivo, salvo diversa indicazione al momento della sottoscrizione.</li>
+            <li>I dati inseriti restano accessibili per la durata del periodo già pagato anche dopo la disdetta.</li>
+        </ul>
+    </div>
+
+    <div class="priv-card">
+        <h2>4. Contenuti e Dati Inseriti dall'Utente</h2>
+        <p>
+            Tutti i dati che inserisci nel gestionale (anagrafiche clienti, lavori, importi,
+            documenti) restano di tua proprietà. Il servizio li tratta esclusivamente per
+            fornirti le funzionalità richieste, secondo quanto descritto nella
+            <a href="/privacy">Privacy Policy</a>. Sei responsabile della correttezza e della
+            liceità dei dati che inserisci, in particolare di quelli relativi a terzi
+            (es. tuoi clienti).
+        </p>
+    </div>
+
+    <div class="priv-card">
+        <h2>5. Disponibilità e Limitazioni del Servizio</h2>
+        <p>
+            Il servizio viene fornito "così com'è" e ci impegniamo a mantenerlo disponibile
+            e funzionante, ma non possiamo garantire un funzionamento ininterrotto o privo
+            di errori. Sono possibili interruzioni programmate per manutenzione o
+            aggiornamenti, di norma comunicate in anticipo quando possibile.
+        </p>
+        <div class="highlight-box">
+            Per dati fiscali e operazioni con valore legale (es. fatturazione elettronica),
+            ti invitiamo comunque a conservare copia dei documenti generati al di fuori del
+            gestionale, come buona prassi.
+        </div>
+    </div>
+
+    <div class="priv-card">
+        <h2>6. Uso Corretto del Servizio</h2>
+        <p>Utilizzando il servizio ti impegni a non:</p>
+        <ul>
+            <li>Tentare di accedere a dati o account di altri utenti senza autorizzazione</li>
+            <li>Utilizzare il servizio per scopi illeciti o in violazione di normative applicabili</li>
+            <li>Compromettere la sicurezza o il funzionamento della piattaforma (es. tentativi di intrusione, sovraccarico deliberato)</li>
+        </ul>
+    </div>
+
+    <div class="priv-card">
+        <h2>7. Limitazione di Responsabilità</h2>
+        <p>
+            Nei limiti consentiti dalla legge, non siamo responsabili per danni indiretti
+            derivanti dall'utilizzo o dall'impossibilità di utilizzare il servizio, inclusa
+            la perdita di dati dovuta a cause non direttamente imputabili a noi. Resta ferma
+            la responsabilità per dolo o colpa grave nei casi previsti dalla legge.
+        </p>
+    </div>
+
+    <div class="priv-card">
+        <h2>8. Cessazione del Servizio</h2>
+        <p>
+            Puoi chiudere il tuo account in qualsiasi momento dalla sezione Sicurezza del
+            profilo, con conseguente cancellazione dei tuoi dati secondo quanto descritto
+            nella <a href="/privacy">Privacy Policy</a>. Ci riserviamo il diritto di
+            sospendere o chiudere account che violano i presenti Termini, previo avviso
+            quando ragionevolmente possibile.
+        </p>
+    </div>
+
+    <div class="priv-card">
+        <h2>9. Legge Applicabile</h2>
+        <p>
+            I presenti Termini sono regolati dalla legge italiana. Per qualsiasi
+            controversia è competente il foro del luogo di residenza o domicilio del
+            consumatore, ove applicabile.
+        </p>
+    </div>
+
+    <div class="priv-card">
+        <h2>10. Aggiornamenti</h2>
+        <p>
+            I presenti Termini di Servizio possono essere aggiornati periodicamente.
+            In caso di modifiche sostanziali, gli utenti registrati saranno informati
+            tramite avviso nella piattaforma o via email.
+        </p>
+        <p style="color:#9ca3af; font-size:12px; margin-top:16px;">
+            Ultimo aggiornamento: giugno 2026
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>
