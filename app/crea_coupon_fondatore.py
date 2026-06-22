@@ -11,12 +11,13 @@ impostate in .env (STRIPE_SECRET_KEY).
 Uso:
     python -m app.crea_coupon_fondatore
 
-Dopo l'esecuzione, copia gli ID stampati a schermo nelle variabili
-d'ambiente STRIPE_COUPON_FONDATORE_ANNO e STRIPE_COUPON_FONDATORE_POST
-(in .env e su Railway).
+Il .env locale viene aggiornato automaticamente con gli ID dei coupon.
+Resta da fare solo un passo manuale: copiare le stesse due righe anche
+nelle variabili d'ambiente su Railway (stampate a fine esecuzione).
 """
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -26,6 +27,31 @@ import stripe
 
 COUPON_ANNO_ID = "FONDATORE-ANNOGRATIS"
 COUPON_POST_ID = "FONDATORE50POST"
+
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+
+
+def _aggiorna_env(percorso: Path, valori: dict[str, str]) -> None:
+    """Scrive/aggiorna le righe KEY=VALUE nel .env, senza toccare il resto
+    del file. Evita il copia-incolla a mano (fonte frequente di errori:
+    placeholder lasciati per sbaglio, righe duplicate, valori scambiati)."""
+    if not percorso.exists():
+        print(f"ATTENZIONE: {percorso} non esiste, salto l'aggiornamento automatico.")
+        return
+
+    righe = percorso.read_text(encoding="utf-8").splitlines()
+    trovate = set()
+    for i, riga in enumerate(righe):
+        for chiave, valore in valori.items():
+            if riga.startswith(f"{chiave}="):
+                righe[i] = f"{chiave}={valore}"
+                trovate.add(chiave)
+
+    for chiave, valore in valori.items():
+        if chiave not in trovate:
+            righe.append(f"{chiave}={valore}")
+
+    percorso.write_text("\n".join(righe) + "\n", encoding="utf-8")
 
 
 def _crea_o_recupera(coupon_id: str, **params) -> str:
@@ -71,9 +97,15 @@ def main():
         duration="forever",
     )
 
-    print("\nAggiungi queste righe a .env (e alle variabili d'ambiente su Railway):")
-    print(f"STRIPE_COUPON_FONDATORE_ANNO={id_anno}")
-    print(f"STRIPE_COUPON_FONDATORE_POST={id_post}")
+    valori = {
+        "STRIPE_COUPON_FONDATORE_ANNO": id_anno,
+        "STRIPE_COUPON_FONDATORE_POST": id_post,
+    }
+    _aggiorna_env(ENV_PATH, valori)
+    print(f"\n.env aggiornato automaticamente ({ENV_PATH}).")
+    print("Aggiungi anche queste righe alle variabili d'ambiente su Railway:")
+    for chiave, valore in valori.items():
+        print(f"{chiave}={valore}")
 
 
 if __name__ == "__main__":
