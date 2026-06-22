@@ -117,9 +117,13 @@ class Utente(TimestampMixin, Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 
-    # Promo lancio: sconto 50% a vita per i primi 100 che si registrano
-    # (assegnato una sola volta in fase di registrazione, vedi auth.py).
+    # Promo lancio: primo anno gratis, poi 50% a vita, per i primi 100 che
+    # si registrano (flag assegnato una sola volta in fase di registrazione,
+    # vedi auth.py). Il primo sconto si applica al checkout; il secondo
+    # (post anno gratuito) lo applica il job app/services/fondatore.py,
+    # che usa fondatore_sconto_applicato per non ripetere la chiamata Stripe.
     piano_fondatore = Column(Boolean, nullable=False, default=False)
+    fondatore_sconto_applicato = Column(Boolean, nullable=False, default=False)
 
     onboarding_done = Column(Boolean, nullable=False, default=False)
 

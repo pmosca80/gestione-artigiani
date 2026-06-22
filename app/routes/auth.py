@@ -286,8 +286,8 @@ def register(
 
     token = secrets.token_urlsafe(32) if smtp_ok else None
 
-    # Promo lancio: sconto 50% a vita per i primi 100 che si registrano
-    # (vedi app/services/piani.py::POSTI_FONDATORE_TOTALI).
+    # Promo lancio: primo anno gratis, poi 50% a vita, per i primi 100 che
+    # si registrano (vedi app/services/piani.py::POSTI_FONDATORE_TOTALI).
     from app.services.piani import POSTI_FONDATORE_TOTALI
     fondatori_assegnati = db.query(Utente).filter(Utente.piano_fondatore == True).count()
     piano_fondatore = fondatori_assegnati < POSTI_FONDATORE_TOTALI

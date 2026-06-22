@@ -73,7 +73,7 @@ def test_checkout_fondatore_applica_coupon(client_sessione, db, monkeypatch):
 
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_fake")
     monkeypatch.setenv("STRIPE_PRICE_ID_PRO", "price_fake")
-    monkeypatch.setenv("STRIPE_COUPON_FONDATORE", "FONDATORE50")
+    monkeypatch.setenv("STRIPE_COUPON_FONDATORE_ANNO", "FONDATORE-ANNOGRATIS")
 
     catturato = {}
 
@@ -88,7 +88,7 @@ def test_checkout_fondatore_applica_coupon(client_sessione, db, monkeypatch):
     assert resp.status_code == 303
     assert resp.headers["location"] == _FakeSession.url
 
-    assert catturato.get("discounts") == [{"coupon": "FONDATORE50"}]
+    assert catturato.get("discounts") == [{"coupon": "FONDATORE-ANNOGRATIS"}]
 
 
 def test_checkout_non_fondatore_nessun_coupon(client_sessione, db, monkeypatch):
@@ -99,7 +99,7 @@ def test_checkout_non_fondatore_nessun_coupon(client_sessione, db, monkeypatch):
 
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_fake")
     monkeypatch.setenv("STRIPE_PRICE_ID_PRO", "price_fake")
-    monkeypatch.setenv("STRIPE_COUPON_FONDATORE", "FONDATORE50")
+    monkeypatch.setenv("STRIPE_COUPON_FONDATORE_ANNO", "FONDATORE-ANNOGRATIS")
 
     catturato = {}
 
@@ -124,7 +124,7 @@ def test_checkout_fondatore_senza_coupon_configurato(client_sessione, db, monkey
 
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_fake")
     monkeypatch.setenv("STRIPE_PRICE_ID_PRO", "price_fake")
-    monkeypatch.delenv("STRIPE_COUPON_FONDATORE", raising=False)
+    monkeypatch.delenv("STRIPE_COUPON_FONDATORE_ANNO", raising=False)
 
     catturato = {}
 

@@ -26,6 +26,7 @@ from app.services.notifiche import controlla_scadenze
 from app.services.backup import esegui_backup, verifica_ripristino_backup
 from app.services.reminder_fatture import controlla_fatture_non_pagate
 from app.services.garanzie_reminder import controlla_garanzie
+from app.services.fondatore import applica_sconto_post_anno_gratuito
 from app.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 
@@ -284,8 +285,14 @@ scheduler.add_job(
     id="reminder_garanzie",
     replace_existing=True,
 )
+scheduler.add_job(
+    applica_sconto_post_anno_gratuito,
+    trigger=CronTrigger(hour=4, minute=0),
+    id="fondatore_sconto_post_anno",
+    replace_existing=True,
+)
 scheduler.start()
-logger.info("Scheduler avviato — scadenze 08:00, fatture 08:30, garanzie 09:00, backup 02:00, verifica ripristino domenica 03:00")
+logger.info("Scheduler avviato — scadenze 08:00, fatture 08:30, garanzie 09:00, backup 02:00, verifica ripristino domenica 03:00, sconto fondatori 04:00")
 
 
 @app.get("/")

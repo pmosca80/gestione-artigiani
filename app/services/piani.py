@@ -2,7 +2,9 @@ import os
 from sqlalchemy.orm import Session
 
 # ── Promo lancio "piano fondatore" ─────────────────────────────────
-# Sconto 50% a vita per i primi 100 che si registrano (vedi auth.py::register).
+# Primo anno gratis, poi 50% a vita, per i primi 100 che si registrano
+# (vedi auth.py::register). Il primo coupon si applica al checkout; il
+# secondo lo applica app/services/fondatore.py quando il primo scade.
 POSTI_FONDATORE_TOTALI = 100
 
 
@@ -12,8 +14,14 @@ def posti_fondatore_rimasti(db: Session) -> int:
     return max(0, POSTI_FONDATORE_TOTALI - assegnati)
 
 
-def get_stripe_coupon_fondatore() -> str:
-    return os.getenv("STRIPE_COUPON_FONDATORE", "")
+def get_stripe_coupon_fondatore_anno() -> str:
+    """Coupon 100% di sconto per i primi 12 mesi (applicato al checkout)."""
+    return os.getenv("STRIPE_COUPON_FONDATORE_ANNO", "")
+
+
+def get_stripe_coupon_fondatore_post() -> str:
+    """Coupon 50% a vita applicato dopo la scadenza del primo anno gratis."""
+    return os.getenv("STRIPE_COUPON_FONDATORE_POST", "")
 
 
 # ── Limiti clienti per piano ──────────────────────────────────────

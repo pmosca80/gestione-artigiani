@@ -13,7 +13,7 @@ from app.services.piani import (
     get_limite_clienti,
     stripe_configurato,
     get_stripe_price_id,
-    get_stripe_coupon_fondatore,
+    get_stripe_coupon_fondatore_anno,
     get_base_url,
 )
 from app.templates_config import templates
@@ -119,7 +119,7 @@ def crea_checkout(
     utente = db.query(Utente).filter(Utente.id == user_id).first()
     email = utente.username if utente and "@" in (utente.username or "") else None
 
-    coupon_fondatore = get_stripe_coupon_fondatore()
+    coupon_fondatore = get_stripe_coupon_fondatore_anno()
     sconto_fondatore = bool(utente and utente.piano_fondatore and coupon_fondatore)
 
     try:
