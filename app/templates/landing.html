@@ -327,9 +327,30 @@
         <a href="/privacy">Privacy Policy</a>
         <a href="/login">Accedi</a>
         <a href="/registrati">Registrati</a>
+        <a href="#" id="link-condividi-landing">📤 Condividi</a>
     </div>
     <div>© 2026 Mastro · Tutti i diritti riservati</div>
 </footer>
+
+<script>
+document.getElementById('link-condividi-landing').addEventListener('click', function(e) {
+    e.preventDefault();
+    var url = window.location.origin + '/';
+    var testo = 'Mastro — il gestionale per artigiani: preventivi, fatture e clienti in un click.';
+    if (navigator.share) {
+        navigator.share({ title: 'Mastro', text: testo, url: url }).catch(function() {});
+        return;
+    }
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(function() {
+            var link = document.getElementById('link-condividi-landing');
+            var originale = link.textContent;
+            link.textContent = '✅ Link copiato!';
+            setTimeout(function() { link.textContent = originale; }, 2000);
+        });
+    }
+});
+</script>
 
 </body>
 </html>

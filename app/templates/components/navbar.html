@@ -35,6 +35,19 @@ function _installaPWA() {
     _pwaPrompt.prompt();
     _pwaPrompt.userChoice.then(function() { _pwaPrompt = null; });
 }
+function _condividiApp() {
+    var url = window.location.origin + '/';
+    var testo = 'Mastro — il gestionale per artigiani: preventivi, fatture e clienti in un click.';
+    if (navigator.share) {
+        navigator.share({ title: 'Mastro', text: testo, url: url }).catch(function() {});
+        return;
+    }
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(function() {
+            if (window.showToast) window.showToast('Link copiato! Condividilo con chi vuoi.');
+        });
+    }
+}
 function _mostraToastSWUpdate(newWorker) {
     var t = document.getElementById('pwa-update-toast');
     if (!t || t.dataset.shown) return;
@@ -127,6 +140,11 @@ function _mostraToastSWUpdate(newWorker) {
                 style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;
                        padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
             🔔 Abilita notifiche
+        </button>
+        <button id="btn-condividi-app" onclick="_condividiApp()"
+                style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;
+                       padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            📤 Condividi Mastro
         </button>
         <a href="/logout" class="nav-logout-btn">🚪 Esci / Logout</a>
     </div>
