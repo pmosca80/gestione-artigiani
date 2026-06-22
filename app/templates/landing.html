@@ -110,6 +110,9 @@
         .founder-banner {
             max-width: 980px; margin: 0 auto 40px; padding: 0 24px;
         }
+        .founder-banner-hero {
+            max-width: 780px; margin: -24px auto 56px;
+        }
         .founder-banner-inner {
             background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
             border-radius: 18px; padding: 22px 28px;
@@ -156,6 +159,21 @@
     </div>
     <p class="hero-note">15 giorni di prova gratuita · Nessuna carta richiesta · Disdici quando vuoi</p>
 </section>
+
+{% if posti_fondatore_rimasti and posti_fondatore_rimasti > 0 %}
+<div class="founder-banner founder-banner-hero">
+    <div class="founder-banner-inner">
+        <div class="founder-banner-text">
+            <strong>🚀 Offerta Fondatori — Primo anno gratis, poi 50% a vita</strong>
+            <span>Per i primi 100 che si registrano. Lo sconto si applica automaticamente, niente codici da inserire.</span>
+        </div>
+        <div class="founder-banner-spots">
+            <span class="num">{{ posti_fondatore_rimasti }}</span>
+            <span class="label">Posti rimasti</span>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="mockup-wrap">
     <div class="mockup-inner">
@@ -228,21 +246,6 @@
     </div>
 </section>
 
-
-{% if posti_fondatore_rimasti and posti_fondatore_rimasti > 0 %}
-<div class="founder-banner">
-    <div class="founder-banner-inner">
-        <div class="founder-banner-text">
-            <strong>🚀 Offerta Fondatori — Primo anno gratis, poi 50% a vita</strong>
-            <span>Per i primi 100 che si registrano. Lo sconto si applica automaticamente, niente codici da inserire.</span>
-        </div>
-        <div class="founder-banner-spots">
-            <span class="num">{{ posti_fondatore_rimasti }}</span>
-            <span class="label">Posti rimasti</span>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 <section class="pricing">
     <div class="section-title">
