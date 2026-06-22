@@ -13,6 +13,7 @@ from app.services.piani import (
     get_limite_clienti,
     stripe_configurato,
     get_stripe_price_id,
+    get_stripe_coupon_fondatore,
     get_base_url,
 )
 from app.templates_config import templates
@@ -118,6 +119,9 @@ def crea_checkout(
     utente = db.query(Utente).filter(Utente.id == user_id).first()
     email = utente.username if utente and "@" in (utente.username or "") else None
 
+    coupon_fondatore = get_stripe_coupon_fondatore()
+    sconto_fondatore = bool(utente and utente.piano_fondatore and coupon_fondatore)
+
     try:
         session = _stripe.checkout.Session.create(
             mode="subscription",
@@ -127,6 +131,7 @@ def crea_checkout(
             client_reference_id=str(user_id),
             metadata={"piano": piano},
             **({"customer_email": email} if email else {}),
+            **({"discounts": [{"coupon": coupon_fondatore}]} if sconto_fondatore else {}),
         )
         return RedirectResponse(session.url, status_code=303)
     except Exception as exc:

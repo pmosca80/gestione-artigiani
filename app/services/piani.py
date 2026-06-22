@@ -1,6 +1,21 @@
 import os
 from sqlalchemy.orm import Session
 
+# ── Promo lancio "piano fondatore" ─────────────────────────────────
+# Sconto 50% a vita per i primi 100 che si registrano (vedi auth.py::register).
+POSTI_FONDATORE_TOTALI = 100
+
+
+def posti_fondatore_rimasti(db: Session) -> int:
+    from app.models import Utente
+    assegnati = db.query(Utente).filter(Utente.piano_fondatore == True).count()
+    return max(0, POSTI_FONDATORE_TOTALI - assegnati)
+
+
+def get_stripe_coupon_fondatore() -> str:
+    return os.getenv("STRIPE_COUPON_FONDATORE", "")
+
+
 # ── Limiti clienti per piano ──────────────────────────────────────
 LIMITE_CLIENTI_FREE    = 5
 LIMITE_CLIENTI_STARTER = 30

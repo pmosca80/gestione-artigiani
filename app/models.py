@@ -117,6 +117,10 @@ class Utente(TimestampMixin, Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 
+    # Promo lancio: sconto 50% a vita per i primi 100 che si registrano
+    # (assegnato una sola volta in fase di registrazione, vedi auth.py).
+    piano_fondatore = Column(Boolean, nullable=False, default=False)
+
     onboarding_done = Column(Boolean, nullable=False, default=False)
 
     email = Column(String, nullable=True)

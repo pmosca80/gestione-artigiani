@@ -291,6 +291,50 @@ def test_register_success_con_smtp(auth_client, db, monkeypatch):
     assert u.token_verifica is not None
 
 
+def test_register_assegna_piano_fondatore_sotto_soglia(auth_client, db, monkeypatch):
+    """Sotto la soglia dei 100 fondatori, un nuovo registrato ottiene piano_fondatore=True."""
+    monkeypatch.setattr("app.services.email.smtp_configurato", lambda: False)
+
+    resp = auth_client.post(
+        "/register",
+        data=_reg(email="fondatore1@test.it", username="fondatore1"),
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    u = db.query(models.Utente).filter(models.Utente.username == "fondatore1").first()
+    assert u is not None
+    assert u.piano_fondatore is True
+
+
+def test_register_non_assegna_piano_fondatore_oltre_soglia(auth_client, db, monkeypatch):
+    """Regressione: raggiunti i 100 posti fondatore, i nuovi registrati NON
+    devono ottenere il flag (altrimenti lo sconto 50% a vita finirebbe
+    applicato a tutti, vanificando la promo lancio)."""
+    monkeypatch.setattr("app.services.email.smtp_configurato", lambda: False)
+
+    for i in range(100):
+        u = models.Utente(
+            username=f"gia_fondatore{i}@test.it", email=f"gia_fondatore{i}@test.it",
+            password=hash_password("x"), data_registrazione=oggi_str,
+            attivo=2, email_verificato=True, onboarding_done=True,
+            piano="free", piano_fondatore=True,
+        )
+        db.add(u)
+    db.commit()
+
+    resp = auth_client.post(
+        "/register",
+        data=_reg(email="tardivo@test.it", username="tardivo"),
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    u = db.query(models.Utente).filter(models.Utente.username == "tardivo").first()
+    assert u is not None
+    assert u.piano_fondatore is False
+
+
 def test_register_senza_accetta_termini(auth_client):
     """POST /register senza spuntare i termini → 200 con errore."""
     resp = auth_client.post("/register", data=_reg(accetta_termini=""), follow_redirects=False)

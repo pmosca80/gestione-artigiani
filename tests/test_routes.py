@@ -24,6 +24,33 @@ def test_csp_consente_stylesheet_cookieconsent_da_jsdelivr(client_http):
     assert "https://cdn.jsdelivr.net" in style_src
 
 
+# ── Landing: banner piano fondatore ──────────────────────────────────────────
+
+def test_landing_mostra_banner_fondatore_con_posti_liberi(client_http, db):
+    """Senza utenti fondatori esistenti, la landing mostra il banner con
+    tutti i 100 posti disponibili."""
+    resp = client_http.get("/")
+    assert resp.status_code == 200
+    assert "Offerta Fondatori" in resp.text
+    assert "Posti rimasti" in resp.text
+
+
+def test_landing_nasconde_banner_fondatore_se_posti_esauriti(client_http, db):
+    """Regressione: una volta assegnati tutti i 100 posti, il banner non
+    deve più apparire in landing (l'offerta lancio è terminata)."""
+    for i in range(100):
+        db.add(models.Utente(
+            username=f"fondx{i}@test.it", password="x", piano="free",
+            attivo=2, onboarding_done=True, data_registrazione=str(date.today()),
+            piano_fondatore=True,
+        ))
+    db.commit()
+
+    resp = client_http.get("/")
+    assert resp.status_code == 200
+    assert "Offerta Fondatori" not in resp.text
+
+
 # ── Pagine legali ──────────────────────────────────────────────────────────────
 
 def test_privacy_policy_ok(client_http):

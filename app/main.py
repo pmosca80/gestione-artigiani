@@ -297,7 +297,11 @@ def home(
 
     raw_user_id = request.session.get("user_id")
     if not raw_user_id:
-        return templates.TemplateResponse(request=request, name="landing.html", context={})
+        from app.services.piani import posti_fondatore_rimasti
+        return templates.TemplateResponse(
+            request=request, name="landing.html",
+            context={"posti_fondatore_rimasti": posti_fondatore_rimasti(db)},
+        )
 
     # Risolve l'ID effettivo: per i collaboratori usa l'ID del titolare
     from app.models import Utente as _Utente

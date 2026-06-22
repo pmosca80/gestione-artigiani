@@ -12,6 +12,7 @@ from app.services.piani import (
     ha_fatturapa, ha_export, ha_team, ha_backup, ha_email_invio,
     max_collaboratori, get_limite_clienti,
     get_piano, is_pro, puo_aggiungere_cliente,
+    posti_fondatore_rimasti, POSTI_FONDATORE_TOTALI,
 )
 
 oggi = date.today()
@@ -202,3 +203,39 @@ def test_puo_aggiungere_cliente_pro_illimitato(db, utente_test):
     _crea_clienti(db, utente_test.id, 100)
 
     assert puo_aggiungere_cliente(db, utente_test.id) is True
+
+
+# ── posti_fondatore_rimasti ───────────────────────────────────────────────────
+
+def test_posti_fondatore_rimasti_db_vuoto(db):
+    """Nessun fondatore assegnato → tutti i 100 posti disponibili."""
+    assert posti_fondatore_rimasti(db) == POSTI_FONDATORE_TOTALI
+
+
+def test_posti_fondatore_rimasti_decresce_con_assegnazioni(db):
+    for i in range(3):
+        u = models.Utente(
+            username=f"fond{i}@test.it", password="x", piano="free",
+            attivo=2, onboarding_done=True, data_registrazione=str(oggi),
+            piano_fondatore=True,
+        )
+        db.add(u)
+    db.commit()
+
+    assert posti_fondatore_rimasti(db) == POSTI_FONDATORE_TOTALI - 3
+
+
+def test_posti_fondatore_rimasti_non_va_sotto_zero(db):
+    """Regressione: se per qualche motivo i fondatori superano la soglia
+    (es. corsa tra registrazioni concorrenti), il contatore non deve
+    mostrare un numero negativo di posti rimasti."""
+    for i in range(POSTI_FONDATORE_TOTALI + 5):
+        u = models.Utente(
+            username=f"fondex{i}@test.it", password="x", piano="free",
+            attivo=2, onboarding_done=True, data_registrazione=str(oggi),
+            piano_fondatore=True,
+        )
+        db.add(u)
+    db.commit()
+
+    assert posti_fondatore_rimasti(db) == 0
