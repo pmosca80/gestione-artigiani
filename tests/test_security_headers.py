@@ -15,3 +15,15 @@ def test_hsts_assente_in_locale_http(client_http):
     si rischia di forzare HTTPS su un dominio servito in HTTP."""
     resp = client_http.get("/login")
     assert "strict-transport-security" not in resp.headers
+
+
+def test_csp_form_action_consente_redirect_a_stripe_checkout(client_http):
+    """Regressione: il form di /piani/checkout invia una POST che il server
+    risponde con un redirect 303 verso checkout.stripe.com. Se form-action
+    non include quel dominio, il browser blocca silenziosamente la
+    navigazione (nessun errore visibile, l'utente resta sulla pagina /piani
+    come se non fosse successo nulla)."""
+    resp = client_http.get("/login")
+    csp = resp.headers.get("content-security-policy", "")
+    form_action = next((d for d in csp.split(";") if d.strip().startswith("form-action")), "")
+    assert "https://checkout.stripe.com" in form_action
