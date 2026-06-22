@@ -426,17 +426,8 @@ window._wa = function (btn) {
 <!-- Toast notifiche salvataggio/eliminazione -->
 <div id="toast-container" style="position:fixed;bottom:20px;right:20px;z-index:10002;display:flex;flex-direction:column;gap:8px;align-items:flex-end;"></div>
 
-<!-- Cookie banner GDPR -->
-<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;color:#e2e8f0;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,0.25);">
-    <span style="font-size:13px;line-height:1.5;flex:1;min-width:200px;">
-        🍪 Questo gestionale utilizza esclusivamente <strong>cookie tecnici di sessione</strong> necessari al funzionamento.
-        Non usiamo cookie di profilazione o analytics.
-        <a href="/privacy" style="color:#818cf8;text-decoration:underline;">Privacy Policy</a>
-    </span>
-    <button id="cookie-ok-btn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-        Ho capito
-    </button>
-</div>
+<!-- Cookie banner GDPR (CookieConsent v3, orestbida - libreria gratuita) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.css">
 
 <script>
 (function () {
@@ -488,28 +479,6 @@ window._wa = function (btn) {
 })();
 
 (function () {
-    var banner = document.getElementById('cookie-banner');
-    var btn = document.getElementById('cookie-ok-btn');
-    if (!banner) return;
-    // Il banner e' fixed a tutta larghezza: senza questo padding copre (e blocca
-    // i click su) qualunque contenuto reale finisca nella sua stessa fascia in
-    // basso, su pagine corte o viewport piccoli — non solo visivamente.
-    function aggiornaPadding() {
-        document.body.style.paddingBottom = banner.style.display === 'none' ? '' : banner.offsetHeight + 'px';
-    }
-    if (localStorage.getItem('cookie_ok') !== '1') {
-        banner.style.display = 'flex';
-        aggiornaPadding();
-        window.addEventListener('resize', aggiornaPadding);
-    }
-    btn.addEventListener('click', function () {
-        localStorage.setItem('cookie_ok', '1');
-        banner.style.display = 'none';
-        document.body.style.paddingBottom = '';
-    });
-})();
-
-(function () {
     var offlineBanner = document.getElementById('offline-banner');
     if (!offlineBanner) return;
     function sync() {
@@ -553,4 +522,47 @@ window._wa = function (btn) {
         window.history.replaceState({}, '', newUrl);
     }
 })();
+</script>
+
+<script type="module">
+import 'https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.umd.js';
+
+CookieConsent.run({
+    guiOptions: {
+        consentModal: {
+            layout: 'bar',
+            position: 'bottom',
+            equalWeightButtons: false
+        }
+    },
+    categories: {
+        necessary: {
+            enabled: true,
+            readOnly: true
+        }
+    },
+    language: {
+        default: 'it',
+        translations: {
+            it: {
+                consentModal: {
+                    title: '🍪 Cookie',
+                    description: 'Questo gestionale utilizza esclusivamente <strong>cookie tecnici di sessione</strong> necessari al funzionamento. Non usiamo cookie di profilazione o analytics. <a href="/privacy" style="color:inherit;text-decoration:underline;">Privacy Policy</a> · <a href="/termini" style="color:inherit;text-decoration:underline;">Termini di Servizio</a>',
+                    acceptAllBtn: 'Ho capito'
+                },
+                preferencesModal: {
+                    title: 'Preferenze cookie',
+                    acceptAllBtn: 'Ho capito',
+                    sections: [
+                        {
+                            title: 'Cookie tecnici',
+                            description: 'Necessari per l\'autenticazione e il funzionamento del gestionale. Non richiedono consenso.',
+                            linkedCategory: 'necessary'
+                        }
+                    ]
+                }
+            }
+        }
+    }
+});
 </script>

@@ -14,6 +14,16 @@ def test_health_check(client_http):
     assert resp.json() == {"status": "ok"}
 
 
+def test_csp_consente_stylesheet_cookieconsent_da_jsdelivr(client_http):
+    """Regressione: il CSS di CookieConsent (cdn.jsdelivr.net) viene caricato
+    con un tag <link> nel banner cookie; lo script-src già permetteva
+    jsdelivr ma lo style-src no, bloccando il foglio di stile via CSP."""
+    resp = client_http.get("/")
+    csp = resp.headers.get("content-security-policy", "")
+    style_src = next((d for d in csp.split(";") if d.strip().startswith("style-src")), "")
+    assert "https://cdn.jsdelivr.net" in style_src
+
+
 # ── Pagine legali ──────────────────────────────────────────────────────────────
 
 def test_privacy_policy_ok(client_http):
