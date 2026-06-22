@@ -47,7 +47,7 @@ def _check_piano_trial(utente, db: Session) -> None:
         if piano in ("starter", "pro", "business"):
             return
 
-    # Piano free: verifica trial 30 giorni
+    # Piano free: verifica trial 15 giorni
     if utente.data_registrazione:
         try:
             dr = utente.data_registrazione
