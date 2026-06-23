@@ -135,6 +135,32 @@ def test_firma_accetta_preventivo_gia_accettato_non_riscrive_data(client_http, d
     assert lavoro_test.data_accettazione_preventivo == _DATA_TEST
 
 
+def test_firma_accetta_preventivo_gia_accettato_non_sovrascrive_nome_firma(client_http, db, lavoro_test):
+    """Regressione: il link /firma/{token} non scade e resta visitabile anche
+    dopo l'accettazione. Una seconda submission (es. chiunque riapra il
+    link e prema di nuovo "Confermo" con un nome diverso) non deve poter
+    sovrascrivere il nome/IP della prima firma — altrimenti il valore
+    probatorio di "chi ha accettato" verrebbe vanificato."""
+    lavoro_test.token_firma = "tok-firma-008"
+    lavoro_test.stato = "preventivo_accettato"
+    lavoro_test.firma_nome_cliente = "Mario Rossi"
+    lavoro_test.firma_ip = "1.2.3.4"
+    db.commit()
+    db.refresh(lavoro_test)
+
+    resp = client_http.post(
+        "/firma/tok-firma-008/accetta",
+        data={"nome_cliente": "Qualcun altro"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "/firma/tok-firma-008/ok" in resp.headers["location"]
+
+    db.refresh(lavoro_test)
+    assert lavoro_test.firma_nome_cliente == "Mario Rossi"
+    assert lavoro_test.firma_ip == "1.2.3.4"
+
+
 # ── GET /firma/{token}/ok ─────────────────────────────────────────────────────
 
 def test_firma_ok_token_valido(client_http, db, lavoro_test):

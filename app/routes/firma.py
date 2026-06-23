@@ -41,11 +41,15 @@ def firma_accetta(
     lavoro = crud.get_lavoro_by_token_firma(db, token)
     if not lavoro:
         return HTMLResponse("<h2>Link non valido.</h2>", status_code=404)
-    if lavoro.stato not in ("preventivo", "preventivo_inviato", "preventivo_accettato"):
+    if lavoro.stato == "preventivo_accettato":
+        # Già accettato: il link non scade e resta visitabile, ma una
+        # seconda submission non deve poter sovrascrivere nome/IP della
+        # prima firma né rimandare la notifica email all'artigiano.
         return RedirectResponse(f"/firma/{token}/ok", status_code=303)
-    if lavoro.stato != "preventivo_accettato":
-        lavoro.stato = "preventivo_accettato"
-        lavoro.data_accettazione_preventivo = datetime.now().strftime("%Y-%m-%d")
+    if lavoro.stato not in ("preventivo", "preventivo_inviato"):
+        return RedirectResponse(f"/firma/{token}/ok", status_code=303)
+    lavoro.stato = "preventivo_accettato"
+    lavoro.data_accettazione_preventivo = datetime.now().strftime("%Y-%m-%d")
     nome_firmato = nome_cliente.strip() or "il cliente"
     if nome_cliente.strip():
         lavoro.firma_nome_cliente = nome_firmato
