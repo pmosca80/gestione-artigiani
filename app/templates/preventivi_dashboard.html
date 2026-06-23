@@ -293,6 +293,7 @@
                                     data-wa-titolo="{{ lavoro.titolo }}"
                                     data-wa-importo="{{ lavoro.importo_preventivato or 0 }}"
                                     data-wa-tipo="preventivo"
+                                    {% if lavoro.token_firma %}data-wa-link="{{ request.url.scheme }}://{{ request.url.netloc }}/firma/{{ lavoro.token_firma }}"{% endif %}
                                     onclick="_wa(this)" title="Invia via WhatsApp">📱</button>
                                 {% endif %}
                                 {% if lavoro.stato == "preventivo" %}

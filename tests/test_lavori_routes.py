@@ -365,6 +365,51 @@ def test_voci_lavoro_senza_materiali_non_mostra_selettore_magazzino(client_http,
     assert "Scegli dal magazzino" not in resp.text
 
 
+def test_voci_lavoro_genera_link_pubblico_e_bottone_whatsapp(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Regressione: la pagina voci deve generare in automatico il token
+    pubblico /firma/{token} (senza un'azione separata) e mostrare un
+    bottone WhatsApp con quel link, così l'utente può condividere il
+    preventivo senza uscire dalla schermata dove lo compone."""
+    assert lavoro_test.token_firma is None
+
+    resp = client_http.get(f"/lavori/{lavoro_test.id}/voci")
+    assert resp.status_code == 200
+
+    db.refresh(lavoro_test)
+    assert lavoro_test.token_firma is not None
+    assert f"/firma/{lavoro_test.token_firma}" in resp.text
+    assert "data-wa-tipo=\"preventivo\"" in resp.text
+
+
+def test_voci_lavoro_riusa_token_firma_esistente(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Se il token esiste già (generato altrove), la pagina voci non deve
+    rigenerarlo — il link condiviso in precedenza deve restare valido."""
+    crud.genera_token_firma(db, lavoro_test.id, utente_test.id)
+    db.refresh(lavoro_test)
+    token_originale = lavoro_test.token_firma
+
+    client_http.get(f"/lavori/{lavoro_test.id}/voci")
+
+    db.refresh(lavoro_test)
+    assert lavoro_test.token_firma == token_originale
+
+
+def test_dashboard_preventivi_whatsapp_include_link_firma(client_http, db, utente_test, cliente_test):
+    """Regressione: il bottone WhatsApp nella dashboard preventivi mandava
+    un messaggio che affermava di allegare il PDF, cosa che wa.me non fa
+    mai — deve invece includere il link pubblico /firma/{token}."""
+    lavoro = _lavoro(db, utente_test.id, cliente_test.id, stato="preventivo")
+    lavoro.importo_preventivato = 500.0
+    db.commit()
+
+    resp = client_http.get("/lavori/preventivi/dashboard")
+    assert resp.status_code == 200
+
+    db.refresh(lavoro)
+    assert lavoro.token_firma is not None
+    assert f"/firma/{lavoro.token_firma}" in resp.text
+
+
 def test_voci_lavoro_altrui_404(client_http, db, utente_test):
     """GET voci di un lavoro altrui → 404."""
     altro = _utente(db, "altro4@t.it")

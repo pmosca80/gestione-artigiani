@@ -152,8 +152,29 @@
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
             <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#2563eb; color:white;">📄 Genera PDF</a>
+            {% if lavoro.cliente and lavoro.cliente.telefono %}
+            {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
+            <button type="button" class="btn-az" style="background:#25d366;color:#fff;border:none;"
+                data-wa-tel="{{ lavoro.cliente.telefono }}"
+                data-wa-nome="{{ _wn | trim }}"
+                data-wa-titolo="{{ lavoro.titolo }}"
+                data-wa-importo="{{ lavoro.importo_preventivato or 0 }}"
+                data-wa-tipo="preventivo"
+                data-wa-link="{{ link_preventivo }}"
+                onclick="_wa(this)" title="Invia via WhatsApp">📱 WhatsApp</button>
+            {% endif %}
         </div>
     </div>
+
+    {% if link_preventivo %}
+    <div class="add-card" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 24px;">
+        <span style="font-size:13px; font-weight:700; color:#374151; white-space:nowrap;">🔗 Link pubblico per il cliente:</span>
+        <input type="text" id="link-preventivo-input" readonly value="{{ link_preventivo }}" onclick="this.select()"
+               style="flex:1; min-width:220px; padding:8px 12px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:13px; color:#6b7280; background:#f9fafb; font-family:'DM Mono',monospace;">
+        <button type="button" class="btn-az btn-az-gray" id="btn-copia-link-preventivo"
+                onclick="navigator.clipboard.writeText(document.getElementById('link-preventivo-input').value); var b=document.getElementById('btn-copia-link-preventivo'); b.textContent='✅ Copiato!'; setTimeout(function(){ b.textContent='📋 Copia'; }, 1500);">📋 Copia</button>
+    </div>
+    {% endif %}
 
     <!-- LISTINO PREZZI / MAGAZZINO -->
     {% if listino or materiali_catalogo %}

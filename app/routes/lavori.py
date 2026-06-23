@@ -479,6 +479,10 @@ def dashboard_preventivi(
         for p in lista_preventivi
     )
 
+    for p in lista_preventivi:
+        if not p.token_firma:
+            crud.genera_token_firma(db, p.id, user_id)
+
     return templates.TemplateResponse(
         request=request,
         name="preventivi_dashboard.html",
@@ -920,9 +924,11 @@ def form_voci_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get
     totale_voci = sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)
     listino = crud.get_listino(db, user_id)
     materiali_catalogo = crud.get_materiali(db, user_id)
+    lavoro = crud.genera_token_firma(db, lavoro_id, user_id) or lavoro
+    link_preventivo = f"{request.url.scheme}://{request.url.netloc}/firma/{lavoro.token_firma}"
     return templates.TemplateResponse(request=request, name="lavoro_voci.html", context={
         "lavoro": lavoro, "voci": voci, "totale_voci": totale_voci, "listino": listino,
-        "materiali_catalogo": materiali_catalogo,
+        "materiali_catalogo": materiali_catalogo, "link_preventivo": link_preventivo,
     })
 
 @router.post("/{lavoro_id}/voci")
