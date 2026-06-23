@@ -11,6 +11,8 @@ import pytest
 
 from app import models, crud
 from app.models import VocePreventivo
+from app.services.calcoli import calcola_totali_lavoro
+from app.routes.lavori import _riga_totale_voci_pdf, _mostra_sezione_materiali_usati_pdf
 
 oggi = date.today()
 oggi_str = str(oggi)
@@ -253,6 +255,34 @@ def test_elimina_lavoro_altrui_404(client_http, db, utente_test):
     assert resp.status_code == 404
 
 
+def test_elimina_lavoro_con_voci_e_sottorisorse(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Regressione: in produzione (Postgres) il vincolo di foreign key
+    impediva di eliminare un lavoro che avesse voci preventivo o altre
+    sotto-risorse, perché nessuno le rimuoveva prima — SQLite (usato nei
+    test) non applica il vincolo e quindi non lo segnalava. Le
+    sotto-risorse senza significato proprio devono sparire col lavoro; i
+    record fiscali indipendenti (prima nota) devono solo scollegarsi."""
+    voce = _voce(db, utente_test.id, lavoro_test.id, "Voce", prezzo=100.0)
+    voce_id = voce.id
+
+    nota = models.VocePrimaNota(
+        utente_id=utente_test.id, lavoro_id=lavoro_test.id,
+        data=oggi_str, descrizione="Acconto cliente", importo=100.0, tipo="entrata",
+        data_creazione=oggi_str,
+    )
+    db.add(nota); db.commit(); db.refresh(nota)
+
+    resp = client_http.post(f"/lavori/{lavoro_test.id}/elimina", follow_redirects=False)
+    assert resp.status_code == 303
+
+    assert db.get(models.Lavoro, lavoro_test.id) is None
+    assert db.query(VocePreventivo).filter(VocePreventivo.id == voce_id).count() == 0
+
+    db.refresh(nota)
+    assert db.get(models.VocePrimaNota, nota.id) is not None
+    assert nota.lavoro_id is None
+
+
 # ── Filtri GET /lavori/ ───────────────────────────────────────────────────────
 
 def test_filtra_lavori_per_stato(client_http, db, utente_test, cliente_test):
@@ -367,7 +397,6 @@ def test_elimina_voce_ricalcola_importo_consuntivo(client_http, db, utente_test,
     calcolo (ore×tariffa, qui 8h×35€=280 dalla fixture), non lasciare il
     valore della voce appena rimossa (450€)."""
     voce = _voce(db, utente_test.id, lavoro_test.id, "Voce", prezzo=450.0)
-    from app.services.calcoli import calcola_totali_lavoro
     calcola_totali_lavoro(db, lavoro_test.id)
     db.refresh(lavoro_test)
     assert lavoro_test.importo_consuntivo == 450.0
@@ -376,6 +405,54 @@ def test_elimina_voce_ricalcola_importo_consuntivo(client_http, db, utente_test,
 
     db.refresh(lavoro_test)
     assert lavoro_test.importo_consuntivo == 280.0
+
+
+# ── GET /lavori/{id}/pdf (stampa completa) ───────────────────────────────────
+# Nota: questo PDF usa stream compressi (ASCII85+Flate), quindi il testo non
+# è cercabile nei byte grezzi della risposta HTTP — la logica di formattazione
+# è estratta in funzioni pure (_riga_totale_voci_pdf,
+# _mostra_sezione_materiali_usati_pdf) testate direttamente; la route resta
+# verificata solo come smoke test (200 + PDF valido), come da convenzione
+# già usata in test_pdf_fattura.py.
+
+def test_riga_totale_voci_pdf_senza_markup_html_grezzo():
+    """Regressione: la riga era costruita con <b>...</b> dentro una cella
+    di Table (non Paragraph) — ReportLab non interpreta quel markup lì, lo
+    disegna come testo letterale visibile ("<b>Totale voci</b>"). Il
+    grassetto è già dato dalla TableStyle della riga, niente markup serve."""
+    riga = _riga_totale_voci_pdf(265.0)
+    assert riga == ["", "", "", "Totale voci", "EUR 265.00"]
+    assert "<" not in "".join(riga)
+
+
+def test_mostra_sezione_materiali_con_scarico_reale():
+    assert _mostra_sezione_materiali_usati_pdf(materiali_usati=["x"], voci_preventivo=[]) is True
+    assert _mostra_sezione_materiali_usati_pdf(materiali_usati=["x"], voci_preventivo=["y"]) is True
+
+
+def test_nasconde_sezione_materiali_con_voci_e_senza_scarico_reale():
+    """Regressione: con voci compilate ma senza scarico reale, il PDF
+    mostrava "Nessun materiale associato al lavoro" subito sotto una
+    tabella che invece elenca chiaramente i materiali (come voci) —
+    messaggio contraddittorio."""
+    assert _mostra_sezione_materiali_usati_pdf(materiali_usati=[], voci_preventivo=["y"]) is False
+
+
+def test_mostra_sezione_materiali_senza_voci_e_senza_scarico_reale():
+    """Senza voci e senza materiali reali, la sezione resta (nessuna
+    regressione per i lavori che non usano il sistema a voci)."""
+    assert _mostra_sezione_materiali_usati_pdf(materiali_usati=[], voci_preventivo=[]) is True
+
+
+def test_pdf_lavoro_con_voci_smoke(client_http, db, utente_test, cliente_test, lavoro_test):
+    """La route deve generare un PDF valido quando il lavoro ha voci
+    preventivo (percorso toccato dalla fix sopra)."""
+    _voce(db, utente_test.id, lavoro_test.id, "Piastrelle", prezzo=5.0)
+    calcola_totali_lavoro(db, lavoro_test.id)
+
+    resp = client_http.get(f"/lavori/{lavoro_test.id}/pdf")
+    assert resp.status_code == 200
+    assert resp.content.startswith(b"%PDF")
 
 
 def test_voci_lavoro_mostra_catalogo_magazzino(client_http, db, utente_test, cliente_test, lavoro_test):

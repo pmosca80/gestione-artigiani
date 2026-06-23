@@ -429,6 +429,22 @@ def elimina_lavoro(db: Session, lavoro_id: int, utente_id: int):
         Lavoro.utente_id == utente_id
     ).first()
     if lavoro:
+        # Sotto-risorse senza significato proprio fuori dal lavoro: vanno
+        # eliminate insieme, altrimenti il vincolo di foreign key (rispettato
+        # da Postgres ma non da SQLite) blocca l'eliminazione del lavoro.
+        for modello in (
+            VocePreventivo, MaterialeUsatoLavoro, DocumentoPDF, FotoLavoro,
+            PagamentoLavoro, AllegatoLavoro, SessioneLavoro, SalLavoro,
+            RapportinoLavoro, TimesheetCollab,
+        ):
+            db.query(modello).filter(modello.lavoro_id == lavoro_id).delete()
+
+        # Record fiscali/contabili indipendenti: si scollegano dal lavoro
+        # ma non si eliminano, perché hanno valore proprio (prima nota,
+        # fatture d'acquisto, garanzie) anche se il lavoro non esiste più.
+        for modello in (Garanzia, VocePrimaNota, FatturaAcquisto):
+            db.query(modello).filter(modello.lavoro_id == lavoro_id).update({"lavoro_id": None})
+
         db.delete(lavoro)
         db.commit()
     return lavoro

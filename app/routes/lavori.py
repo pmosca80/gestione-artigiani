@@ -1333,6 +1333,23 @@ def genera_ricevuta_pagamento(
         }
     )
 
+def _riga_totale_voci_pdf(totale: float) -> list:
+    """Riga di chiusura della tabella voci nel PDF lavoro. Niente markup
+    <b> qui: questa lista finisce in una cella di Table (non Paragraph) e
+    ReportLab non interpreta il markup lì, lo disegna come testo letterale
+    — il grassetto è già dato dalla TableStyle della riga."""
+    return ["", "", "", "Totale voci", f"EUR {totale:.2f}"]
+
+
+def _mostra_sezione_materiali_usati_pdf(materiali_usati, voci_preventivo) -> bool:
+    """La sezione "Materiali usati" (scarico reale da magazzino) è
+    ridondante quando il lavoro usa le voci preventivo e non ha scarico
+    reale: mostrarla direbbe "nessun materiale" subito sotto una tabella
+    che invece li elenca. Va mostrata se c'è scarico reale da riportare,
+    o se non ci sono voci (nessun'altra sezione copre l'informazione)."""
+    return bool(materiali_usati) or not voci_preventivo
+
+
 @router.get("/{lavoro_id}/pdf")
 def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(get_db), user_id: int = Depends(get_current_user),):
 
@@ -1435,7 +1452,7 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
                 f"EUR {(v.prezzo_unitario or 0):.2f}",
                 f"EUR {tot_riga:.2f}",
             ])
-        righe_voci.append(["", "", "", "<b>Totale voci</b>", f"<b>EUR {totale_voci_pdf:.2f}</b>"])
+        righe_voci.append(_riga_totale_voci_pdf(totale_voci_pdf))
         tabella_voci = Table(righe_voci, colWidths=[200, 40, 40, 90, 80])
         tabella_voci.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e3a5f")),
@@ -1535,56 +1552,61 @@ def genera_pdf_lavoro(lavoro_id: int, request: Request, db: Session = Depends(ge
 
     elements.append(Spacer(1, 16))
 
-    # MATERIALI USATI
-    elements.append(Paragraph("<b>Materiali usati</b>", styles["Heading2"]))
+    # MATERIALI USATI (scarico reale da magazzino — concetto distinto dalle
+    # voci preventivo già elencate sopra: se non c'è scarico reale e il
+    # lavoro usa le voci, questa sezione è ridondante e mostrerebbe "nessun
+    # materiale" subito sotto una tabella che invece li elenca, confondendo
+    # l'utente. La saltiamo del tutto in quel caso.)
+    if _mostra_sezione_materiali_usati_pdf(materiali_usati, voci_preventivo):
+        elements.append(Paragraph("<b>Materiali usati</b>", styles["Heading2"]))
 
-    if materiali_usati:
-        righe_materiali = [["Materiale", "Quantità", "Prezzo unitario", "Totale", "Note"]]
+        if materiali_usati:
+            righe_materiali = [["Materiale", "Quantità", "Prezzo unitario", "Totale", "Note"]]
 
-        totale_materiali_cliente = 0
+            totale_materiali_cliente = 0
 
-        for usato in materiali_usati:
-            materiale = materiali_dict.get(usato.materiale_id)
+            for usato in materiali_usati:
+                materiale = materiali_dict.get(usato.materiale_id)
 
-            nome_materiale = materiale.nome if materiale else "Materiale non trovato"
-            unita = materiale.unita_misura if materiale else ""
+                nome_materiale = materiale.nome if materiale else "Materiale non trovato"
+                unita = materiale.unita_misura if materiale else ""
 
-            prezzo_cliente = usato.prezzo_unitario_cliente or 0
-            totale_riga = (usato.quantita or 0) * prezzo_cliente
-            totale_materiali_cliente += totale_riga
+                prezzo_cliente = usato.prezzo_unitario_cliente or 0
+                totale_riga = (usato.quantita or 0) * prezzo_cliente
+                totale_materiali_cliente += totale_riga
 
-            righe_materiali.append([
-                nome_materiale,
-                f"{usato.quantita} {unita}",
-                f"EUR {prezzo_cliente:.2f}",
-                f"EUR {totale_riga:.2f}",
-                usato.note or ""
-            ])
+                righe_materiali.append([
+                    nome_materiale,
+                    f"{usato.quantita} {unita}",
+                    f"EUR {prezzo_cliente:.2f}",
+                    f"EUR {totale_riga:.2f}",
+                    usato.note or ""
+                ])
 
-        tabella_materiali = Table(
-            righe_materiali,
-            colWidths=[150, 80, 90, 90, 120]
-        )
+            tabella_materiali = Table(
+                righe_materiali,
+                colWidths=[150, 80, 90, 90, 120]
+            )
 
-        tabella_materiali.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("PADDING", (0, 0), (-1, -1), 6),
-            ("ALIGN", (2, 1), (3, -1), "RIGHT"),
-        ]))
+            tabella_materiali.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("PADDING", (0, 0), (-1, -1), 6),
+                ("ALIGN", (2, 1), (3, -1), "RIGHT"),
+            ]))
 
-        elements.append(tabella_materiali)
-        elements.append(Spacer(1, 10))
+            elements.append(tabella_materiali)
+            elements.append(Spacer(1, 10))
 
-        elements.append(Paragraph(f"<b>Totale materiali: EUR {totale_materiali_cliente:.2f}</b>", styles["Normal"]))
-        elements.append(Paragraph(f"<b>Totale manodopera: EUR {(lavoro.totale_manodopera or 0):.2f}</b>", styles["Normal"]))
-        elements.append(Paragraph(f"<b>Imponibile totale: EUR {(lavoro.importo_consuntivo or 0):.2f}</b>", styles["Normal"]))
+            elements.append(Paragraph(f"<b>Totale materiali: EUR {totale_materiali_cliente:.2f}</b>", styles["Normal"]))
+            elements.append(Paragraph(f"<b>Totale manodopera: EUR {(lavoro.totale_manodopera or 0):.2f}</b>", styles["Normal"]))
+            elements.append(Paragraph(f"<b>Imponibile totale: EUR {(lavoro.importo_consuntivo or 0):.2f}</b>", styles["Normal"]))
 
-    else:
-        elements.append(Paragraph("Nessun materiale associato al lavoro.", styles["Normal"]))
+        else:
+            elements.append(Paragraph("Nessun materiale associato al lavoro.", styles["Normal"]))
 
-    elements.append(Spacer(1, 16))
+        elements.append(Spacer(1, 16))
 
     # STORICO PAGAMENTI
     elements.append(Paragraph("<b>Storico pagamenti</b>", styles["Heading2"]))
