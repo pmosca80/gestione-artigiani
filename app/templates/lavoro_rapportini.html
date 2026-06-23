@@ -180,7 +180,7 @@
                     {% endif %}
                 </div>
                 <div class="rapportino-actions">
-                    <a href="/lavori/{{ lavoro.id }}/rapportini/{{ r.id }}/pdf" target="_blank"
+                    <a href="/lavori/{{ lavoro.id }}/rapportini/{{ r.id }}/pdf"
                        class="btn-az btn-az-blue">📄 PDF</a>
                     <a href="https://wa.me/?text={{ ('Rapportino%20del%20' + r.data + '%20—%20' + lavoro.titolo + '%0A%0A' + r.descrizione_attivita[:200])|urlencode }}"
                        target="_blank" class="btn-az btn-az-wa">💬 WhatsApp</a>

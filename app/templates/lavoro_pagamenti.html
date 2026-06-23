@@ -377,7 +377,7 @@
                 <div class="pay-card-note">{{ pagamento.note }}</div>
                 {% endif %}
                 <div class="pay-card-azioni">
-                    <a href="/lavori/pagamenti/{{ pagamento.id }}/ricevuta" target="_blank"
+                    <a href="/lavori/pagamenti/{{ pagamento.id }}/ricevuta"
                        class="btn-az btn-az-blue">🧾 Ricevuta</a>
                     <form method="post" action="/lavori/pagamenti/{{ pagamento.id }}/elimina"
                           onsubmit="return confirm('Eliminare il pagamento?')"
@@ -394,7 +394,7 @@
 
     <!-- PDF LINK -->
     <div style="margin-bottom:20px;">
-        <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az btn-az-blue">📄 Scarica documento PDF completo</a>
+        <a href="/lavori/{{ lavoro.id }}/pdf" class="btn-az btn-az-blue">📄 Scarica documento PDF completo</a>
     </div>
 
     <!-- STORICO PAGAMENTI -->
@@ -439,7 +439,6 @@
                         <td>
                             <div class="azioni-cell">
                                 <a href="/lavori/pagamenti/{{ pagamento.id }}/ricevuta"
-                                   target="_blank"
                                    class="btn-az btn-az-blue">🧾 Ricevuta</a>
                                 <form method="post"
                                       action="/lavori/pagamenti/{{ pagamento.id }}/elimina"
@@ -465,7 +464,7 @@
         <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Lavoro</a>
         <a href="/lavori/{{ lavoro.id }}/modifica" class="btn-az btn-az-gray">✏️ Modifica</a>
         <a href="/lavori/" class="btn-az btn-az-gray">📋 Tutti i lavori</a>
-        <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#dc2626;color:white;">📄 PDF</a>
+        <a href="/lavori/{{ lavoro.id }}/pdf" class="btn-az" style="background:#dc2626;color:white;">📄 PDF</a>
     </div>
 
 </div>

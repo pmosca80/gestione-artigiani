@@ -205,6 +205,18 @@ def test_lavoro_dettaglio(client_http, lavoro_test):
     assert lavoro_test.titolo in resp.text
 
 
+def test_lavoro_dettaglio_link_pdf_senza_target_blank(client_http, lavoro_test):
+    """Regressione: nell'app Android installata come PWA standalone, un
+    link al PDF con target="_blank" apre una nuova finestra/attività che
+    sta fuori dallo stack della PWA — il tasto "indietro" di Android non
+    torna nell'app ma la chiude. Il link al PDF deve restare nella stessa
+    finestra (nessun target="_blank") perché il back navighi normalmente."""
+    resp = client_http.get(f"/lavori/{lavoro_test.id}")
+    assert resp.status_code == 200
+    assert f'href="/lavori/{lavoro_test.id}/pdf" target="_blank"' not in resp.text
+    assert f'href="/lavori/{lavoro_test.id}/pdf" class=' in resp.text
+
+
 # ── /scadenzario/manutenzioni ────────────────────────────────────────────────
 
 def test_lista_promemoria(client_http):

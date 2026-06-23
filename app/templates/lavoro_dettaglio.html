@@ -544,13 +544,13 @@
                 <a href="/lavori/{{ lavoro.id }}/sal" class="btn-hero btn-hero-outline">📊 SAL</a>
                 <a href="/lavori/{{ lavoro.id }}/rapportini" class="btn-hero btn-hero-outline">📋 Rapportini</a>
                 <a href="/lavori/{{ lavoro.id }}/timesheet" class="btn-hero btn-hero-outline">⏱ Timesheet</a>
-                <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-hero btn-hero-white">📄 PDF interno</a>
+                <a href="/lavori/{{ lavoro.id }}/pdf" class="btn-hero btn-hero-white">📄 PDF interno</a>
                 {% if lavoro.stato in ['preventivo', 'preventivo_inviato', 'preventivo_accettato'] %}
-                <a href="/documenti/lavori/{{ lavoro.id }}/preventivo.pdf" target="_blank"
+                <a href="/documenti/lavori/{{ lavoro.id }}/preventivo.pdf"
                    class="btn-hero btn-hero-white" style="background:#0d9488;color:white;">📄 Preventivo PDF</a>
                 {% endif %}
                 {% if lavoro.numero_fattura %}
-                <a href="/documenti/lavori/{{ lavoro.id }}/fattura.pdf" target="_blank"
+                <a href="/documenti/lavori/{{ lavoro.id }}/fattura.pdf"
                    class="btn-hero btn-hero-white" style="background:#7c3aed;color:white;">📄 Fattura PDF</a>
                 {% endif %}
                 {% if lavoro.cliente and lavoro.cliente.telefono %}
@@ -1013,7 +1013,7 @@
                     <p>{% if budget_rt.ore_totali_timesheet > 0 %}{{ "%.1f"|format(budget_rt.ore_totali_timesheet) }}h — € {{ "%.0f"|format(budget_rt.costo_manodopera_timesheet) }}{% else %}Traccia ore per operaio{% endif %}</p>
                 </div>
             </a>
-            <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="azione-tile">
+            <a href="/lavori/{{ lavoro.id }}/pdf" class="azione-tile">
                 <div class="azione-icon">📄</div>
                 <div><h4>Genera PDF</h4><p>Preventivo o consuntivo</p></div>
             </a>
@@ -1124,7 +1124,7 @@
                             <td><span class="lb lb-gray"># {{ doc.numero }}</span></td>
                             <td><strong>{{ doc.nome_file }}</strong></td>
                             <td style="color:#6b7280; font-size:12px; font-family:'DM Mono',monospace;">{{ doc.data_creazione }}</td>
-                            <td><a href="/{{ doc.percorso_file }}" target="_blank" class="btn-az btn-az-gray">↗ Apri</a></td>
+                            <td><a href="/{{ doc.percorso_file }}" class="btn-az btn-az-gray">↗ Apri</a></td>
                         </tr>
                         {% endfor %}
                     {% else %}
@@ -1345,7 +1345,7 @@
         {% endif %}
         <a href="/lavori/" class="btn-az btn-az-gray">← Lavori</a>
         <a href="/lavori/{{ lavoro.id }}/pagamenti" class="btn-az" style="background:#16a34a; color:white;">💳 Pagamenti</a>
-        <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#dc2626; color:white;">📄 PDF</a>
+        <a href="/lavori/{{ lavoro.id }}/pdf" class="btn-az" style="background:#dc2626; color:white;">📄 PDF</a>
         <a href="/documenti/lavori/{{ lavoro.id }}/fattura-xml" class="btn-az" style="background:#7c3aed; color:white;">🧾 FatturaPA XML</a>
     </div>
 

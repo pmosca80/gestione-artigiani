@@ -151,7 +151,7 @@
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
-            <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#2563eb; color:white;">📄 Genera PDF</a>
+            <a href="/lavori/{{ lavoro.id }}/pdf" class="btn-az" style="background:#2563eb; color:white;">📄 Genera PDF</a>
             {% if lavoro.cliente and lavoro.cliente.telefono %}
             {% set _wn = lavoro.cliente.ragione_sociale or ((lavoro.cliente.nome or '') + ' ' + (lavoro.cliente.cognome or '')) %}
             <button type="button" class="btn-az" style="background:#25d366;color:#fff;border:none;"
@@ -323,7 +323,7 @@
 
     <div class="footer-actions">
         <a href="/lavori/{{ lavoro.id }}" class="btn-az btn-az-gray">← Torna al lavoro</a>
-        <a href="/lavori/{{ lavoro.id }}/pdf" target="_blank" class="btn-az" style="background:#2563eb; color:white;">📄 Genera PDF con voci</a>
+        <a href="/lavori/{{ lavoro.id }}/pdf" class="btn-az" style="background:#2563eb; color:white;">📄 Genera PDF con voci</a>
     </div>
 
 </div>
