@@ -690,6 +690,7 @@ def form_modifica_lavoro(lavoro_id: int, request: Request, db: Session = Depends
     foto_lavoro = crud.get_foto_lavoro(db, user_id, lavoro_id)
     azienda = crud.get_impostazioni_azienda(db, user_id)
     collaboratori = crud.get_collaboratori_utente(db, user_id) if not scope_collaboratore(request, db) else []
+    voci = crud.get_voci_preventivo(db, user_id, lavoro_id)
 
     return templates.TemplateResponse(
         request=request,
@@ -699,6 +700,7 @@ def form_modifica_lavoro(lavoro_id: int, request: Request, db: Session = Depends
             "foto_lavoro": foto_lavoro,
             "azienda": azienda,
             "collaboratori": collaboratori,
+            "voci": voci,
     }
 )
 

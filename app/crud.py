@@ -413,36 +413,10 @@ def aggiorna_lavoro(
         if assegnato_a_id != -1:
             lavoro.assegnato_a_id = assegnato_a_id
 
-        # calcoli automatici
-        lavoro.totale_manodopera = ore_lavoro * costo_orario
-
-        totale_materiali = lavoro.totale_materiali or 0
-
-        imponibile = totale_materiali + lavoro.totale_manodopera
-
-        iva = imponibile * ((aliquota_iva or 0) / 100)
-
-        totale_documento = imponibile + iva - (sconto or 0)
-
-        lavoro.importo_consuntivo = imponibile
-        lavoro.totale_iva = iva
-        lavoro.totale_documento = totale_documento
-
-        preventivo = lavoro.importo_preventivato or 0
-
-        costo_reale = totale_materiali + lavoro.totale_manodopera
-
-        lavoro.margine = totale_documento - costo_reale
-
-        lavoro.residuo_pagamento = max(0.0, lavoro.totale_documento - importo_pagato)
-
-        if importo_pagato <= 0:
-            lavoro.stato_pagamento = "da_pagare"
-        elif importo_pagato < lavoro.totale_documento:
-            lavoro.stato_pagamento = "acconto"
-        else:
-            lavoro.stato_pagamento = "pagato"
-
+        # I totali derivati (consuntivo, IVA, margine, residuo, stato
+        # pagamento) li ricalcola calcola_totali_lavoro(), chiamato subito
+        # dopo da chi invoca questa funzione — qui si salvano solo i campi
+        # grezzi del form, senza duplicare il calcolo.
         db.commit()
         db.refresh(lavoro)
 

@@ -268,11 +268,22 @@
                 <div class="e-card">
                     <h3>💰 Parte economica</h3>
                     <div class="form-grid">
+                        {% if voci %}
+                        <div class="form-group">
+                            <label>Preventivo cliente (€) — da voci</label>
+                            <input type="number" step="0.01" value="{{ lavoro.importo_preventivato or 0 }}" disabled>
+                        </div>
+                        <div class="form-group" style="justify-content:flex-end;">
+                            <label>&nbsp;</label>
+                            <a href="/lavori/{{ lavoro.id }}/voci" class="btn-az btn-az-blue" style="text-align:center;">📝 Modifica voci preventivo</a>
+                        </div>
+                        {% else %}
                         <div class="form-group">
                             <label>Preventivo cliente (€)</label>
                             <input type="number" step="0.01" name="importo_preventivato"
                                    value="{{ lavoro.importo_preventivato or 0 }}">
                         </div>
+                        {% endif %}
                         <div class="form-group">
                             <label>Scadenza pagamento</label>
                             <input type="date" name="data_scadenza_pagamento"
@@ -399,6 +410,11 @@
             <div class="riepilogo-card">
                 <h3>📊 Riepilogo calcolato</h3>
 
+                {% if voci %}
+                <p style="font-size:12px; color:#9ca3af; margin:0 0 12px;">
+                    ℹ️ Imponibile calcolato dalle <a href="/lavori/{{ lavoro.id }}/voci">voci preventivo</a>. "Costo materiali/manodopera" qui sotto restano il costo reale (da magazzino e ore), usati solo per il margine.
+                </p>
+                {% endif %}
                 <div class="rig-row">
                     <span class="rig-label">Costo materiali</span>
                     <span class="rig-val">€ {{ "%.2f"|format(lavoro.totale_materiali or 0) }}</span>
@@ -408,7 +424,7 @@
                     <span class="rig-val">€ {{ "%.2f"|format(lavoro.totale_manodopera or 0) }}</span>
                 </div>
                 <div class="rig-row">
-                    <span class="rig-label">Imponibile</span>
+                    <span class="rig-label">Imponibile{% if voci %} (da voci){% endif %}</span>
                     <span class="rig-val">€ {{ "%.2f"|format(lavoro.importo_consuntivo or 0) }}</span>
                 </div>
                 <div class="rig-row">

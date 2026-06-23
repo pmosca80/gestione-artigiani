@@ -210,3 +210,76 @@ def test_iva_zero_regime_forfettario(db, utente_test, cliente_test):
 def test_lavoro_inesistente_restituisce_none(db):
     """ID non esistente → None senza eccezioni."""
     assert calcola_totali_lavoro(db, 999999) is None
+
+
+# ── Voci preventivo come fonte di verità ──────────────────────────────────────
+
+def test_voci_preventivo_sovrascrivono_imponibile_e_preventivato(db, utente_test, cliente_test):
+    """Se il lavoro ha voci preventivo, l'imponibile (e quindi
+    importo_consuntivo) deve derivare dalla somma delle voci, non dal
+    vecchio calcolo ore×tariffa + materiali — anche se quei campi sono
+    impostati, devono essere ignorati quando esistono voci."""
+    from app import crud
+
+    lavoro = _crea_lavoro(db, utente_test.id, cliente_test.id,
+                          ore_lavoro=10.0, costo_orario=100.0,  # vecchio calcolo darebbe 1000
+                          aliquota_iva=0.0)
+
+    crud.crea_voce_preventivo(db, utente_test.id, lavoro.id,
+                               descrizione="Caldaia", quantita=1, unita_misura="pz", prezzo_unitario=500.0)
+    crud.crea_voce_preventivo(db, utente_test.id, lavoro.id,
+                               descrizione="Manodopera", quantita=4, unita_misura="ore", prezzo_unitario=40.0)
+
+    risultato = calcola_totali_lavoro(db, lavoro.id)
+
+    # 500 + 4*40 = 660, non 1000 (vecchio calcolo)
+    assert risultato.importo_consuntivo == 660.0
+    assert risultato.importo_preventivato == 660.0
+    assert risultato.totale_documento == 660.0
+
+
+def test_senza_voci_resta_il_vecchio_calcolo(db, utente_test, cliente_test):
+    """Regressione: un lavoro senza voci preventivo deve continuare a usare
+    il vecchio calcolo (ore×tariffa + materiali), per non rompere i lavori
+    già esistenti che non adottano il sistema a voci."""
+    lavoro = _crea_lavoro(db, utente_test.id, cliente_test.id,
+                          ore_lavoro=10.0, costo_orario=100.0,
+                          aliquota_iva=0.0)
+
+    risultato = calcola_totali_lavoro(db, lavoro.id)
+
+    assert risultato.importo_consuntivo == 1000.0
+
+
+def test_margine_con_voci_usa_comunque_costo_reale_materiali(db, utente_test, cliente_test):
+    """Il margine deve sempre confrontare l'imponibile (anche se derivato
+    dalle voci) con il costo REALE (materiali scaricati da magazzino +
+    manodopera) — le voci preventivo non hanno un campo costo, quindi il
+    costo reale resta quello tracciato separatamente."""
+    from app import crud
+
+    lavoro = _crea_lavoro(db, utente_test.id, cliente_test.id,
+                          ore_lavoro=2.0, costo_orario=20.0,  # costo reale manodopera: 40
+                          aliquota_iva=0.0)
+
+    mat = models.Materiale(
+        utente_id=utente_test.id, nome="Tubo", quantita=10,
+        data_creazione=str(date.today()),
+    )
+    db.add(mat); db.commit()
+
+    uso = models.MaterialeUsatoLavoro(
+        utente_id=utente_test.id, lavoro_id=lavoro.id, materiale_id=mat.id,
+        quantita=2.0, costo_unitario=15.0, prezzo_unitario_cliente=15.0,
+        data_creazione=str(date.today()),
+    )
+    db.add(uso); db.commit()
+    # costo reale materiali: 2*15 = 30; + manodopera 40 = 70
+
+    crud.crea_voce_preventivo(db, utente_test.id, lavoro.id,
+                               descrizione="Preventivo forfettario", quantita=1, unita_misura="pz", prezzo_unitario=150.0)
+
+    risultato = calcola_totali_lavoro(db, lavoro.id)
+
+    assert risultato.importo_consuntivo == 150.0
+    assert risultato.margine == 80.0  # 150 - 70

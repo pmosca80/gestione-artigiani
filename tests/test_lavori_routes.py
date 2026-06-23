@@ -410,6 +410,67 @@ def test_dashboard_preventivi_whatsapp_include_link_firma(client_http, db, utent
     assert f"/firma/{lavoro.token_firma}" in resp.text
 
 
+# ── Modifica lavoro: importo da voci preventivo ──────────────────────────────
+
+def test_modifica_lavoro_con_voci_mostra_importo_da_voci_disabilitato(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Se il lavoro ha voci preventivo, il campo "Preventivo cliente" deve
+    diventare di sola lettura (l'importo arriva dalle voci, non si digita
+    più a mano un numero che può disallinearsi)."""
+    _voce(db, utente_test.id, lavoro_test.id, "Voce A", prezzo=200.0)
+
+    resp = client_http.get(f"/lavori/{lavoro_test.id}/modifica")
+    assert resp.status_code == 200
+    assert "da voci" in resp.text
+    assert 'name="importo_preventivato"' not in resp.text
+    assert "Modifica voci preventivo" in resp.text
+
+
+def test_modifica_lavoro_senza_voci_mostra_campo_manuale(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Senza voci preventivo, il campo importo resta modificabile a mano
+    come prima (nessuna regressione per i lavori che non usano le voci)."""
+    resp = client_http.get(f"/lavori/{lavoro_test.id}/modifica")
+    assert resp.status_code == 200
+    assert 'name="importo_preventivato"' in resp.text
+
+
+def test_modifica_lavoro_con_voci_aggiorna_importo_consuntivo(client_http, db, utente_test, cliente_test, lavoro_test):
+    """POST /modifica su un lavoro con voci deve calcolare importo_consuntivo
+    dalla somma delle voci, ignorando ore_lavoro/costo_orario del form."""
+    _voce(db, utente_test.id, lavoro_test.id, "Voce A", prezzo=300.0)
+
+    resp = client_http.post(
+        f"/lavori/{lavoro_test.id}/modifica",
+        data={
+            "data_lavoro": str(oggi),
+            "titolo": lavoro_test.titolo,
+            "descrizione": "",
+            "stato": "in_corso",
+            "ore_lavoro": "100",       # se usato darebbe un importo enorme
+            "costo_orario": "100",
+            "aliquota_iva": "0",
+            "sconto": "0",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    db.refresh(lavoro_test)
+    assert lavoro_test.importo_consuntivo == 300.0
+    assert lavoro_test.importo_preventivato == 300.0
+
+
+# ── FAB azioni rapide ─────────────────────────────────────────────────────────
+
+def test_fab_homepage_include_nuovo_preventivo(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Il pulsante azioni rapide (navbar, presente su tutte le pagine
+    interne) deve includere "Nuovo Preventivo" accanto a Nuovo Cliente e
+    Nuovo Lavoro."""
+    resp = client_http.get(f"/lavori/{lavoro_test.id}")
+    assert resp.status_code == 200
+    assert "Nuovo Preventivo" in resp.text
+    assert '/lavori/nuovo-rapido?tipo=preventivo' in resp.text
+
+
 def test_voci_lavoro_altrui_404(client_http, db, utente_test):
     """GET voci di un lavoro altrui → 404."""
     altro = _utente(db, "altro4@t.it")

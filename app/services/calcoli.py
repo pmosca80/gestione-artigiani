@@ -32,7 +32,20 @@ def calcola_totali_lavoro(db, lavoro_id: int):
     lavoro.totale_materiali = totale_costo_materiali
     lavoro.totale_manodopera = totale_manodopera
 
-    imponibile = totale_cliente_materiali + totale_manodopera
+    voci = db.query(models.VocePreventivo).filter(
+        models.VocePreventivo.lavoro_id == lavoro_id
+    ).all()
+
+    if voci:
+        # Le voci preventivo sono la fonte di verità una volta compilate:
+        # preventivo e consuntivo coincidono con quanto effettivamente
+        # scritto in preventivo (niente più numeri manuali scollegati
+        # dalle voci, vedi ore_lavoro/costo_orario sotto usati solo come
+        # fallback per i lavori che non passano dal sistema a voci).
+        imponibile = sum((v.quantita or 0) * (v.prezzo_unitario or 0) for v in voci)
+        lavoro.importo_preventivato = imponibile
+    else:
+        imponibile = totale_cliente_materiali + totale_manodopera
 
     aliquota_iva = lavoro.aliquota_iva or 0
     sconto = lavoro.sconto or 0
