@@ -204,10 +204,6 @@ def crea_lavoro_rapido(
     titolo: str = Form(...),
     data_lavoro: str = Form(...),
     stato: str = Form("da_fare"),
-    voce_descrizione: list[str] = Form([]),
-    voce_quantita: list[str] = Form([]),
-    voce_unita: list[str] = Form([]),
-    voce_prezzo: list[str] = Form([]),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
@@ -237,24 +233,8 @@ def crea_lavoro_rapido(
         assegnato_a_id=scope_collaboratore(request, db),
     )
 
-    voci_create = False
-    for descrizione, quantita, unita, prezzo in zip(voce_descrizione, voce_quantita, voce_unita, voce_prezzo):
-        if not descrizione.strip():
-            continue
-        crud.crea_voce_preventivo(
-            db, user_id, lavoro.id,
-            clean(descrizione, DESCRIZIONE_MAX),
-            to_float(quantita, default=1),
-            unita.strip(),
-            to_float(prezzo),
-        )
-        voci_create = True
-
-    if voci_create:
-        calcola_totali_lavoro(db, lavoro.id)
-
     if stato_sicuro == "preventivo":
-        return RedirectResponse(url=f"/lavori/{lavoro.id}/voci?toast={quote('Preventivo creato')}", status_code=303)
+        return RedirectResponse(url=f"/lavori/preventivi/dashboard?toast={quote('Preventivo creato')}", status_code=303)
     return RedirectResponse(url=f"/lavori/{lavoro.id}?toast={quote('Lavoro creato')}", status_code=303)
 
 

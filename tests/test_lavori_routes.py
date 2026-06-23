@@ -149,11 +149,10 @@ def test_crea_lavoro_rapido(client_http, db, utente_test, cliente_test):
     assert lavoro.utente_id == utente_test.id
 
 
-def test_crea_preventivo_rapido_con_voci(client_http, db, utente_test, cliente_test):
-    """Creare un preventivo dalla schermata rapida con righe voci compilate
-    deve creare anche le VocePreventivo e calcolare subito il totale —
-    permettendo di comporre il preventivo in un solo passaggio, senza
-    dover prima creare il lavoro e poi aprire la pagina voci."""
+def test_crea_preventivo_rapido_porta_alla_dashboard_preventivi(client_http, db, utente_test, cliente_test):
+    """Creare un preventivo dalla schermata rapida deve portare alla
+    dashboard preventivi (dove si vede l'elenco e si può continuare a
+    lavorarci), non alla scheda lavoro semplice."""
     resp = client_http.post(
         "/lavori/nuovo-rapido",
         data={
@@ -161,53 +160,16 @@ def test_crea_preventivo_rapido_con_voci(client_http, db, utente_test, cliente_t
             "titolo": "Preventivo rapido",
             "data_lavoro": oggi_str,
             "stato": "preventivo",
-            "voce_descrizione": ["Caldaia", "Manodopera"],
-            "voce_quantita": ["1", "2"],
-            "voce_unita": ["pz", "ore"],
-            "voce_prezzo": ["500", "40"],
         },
         follow_redirects=False,
     )
     assert resp.status_code == 303
-    loc = resp.headers["location"]
-    lavoro_id = int(loc.split("/lavori/")[1].split("/voci")[0])
-    assert "/voci" in loc
-
-    voci = crud.get_voci_preventivo(db, utente_test.id, lavoro_id)
-    assert len(voci) == 2
-    assert {v.descrizione for v in voci} == {"Caldaia", "Manodopera"}
-
-    lavoro = db.get(models.Lavoro, lavoro_id)
-    assert lavoro.importo_consuntivo == 580.0  # 1*500 + 2*40
+    assert resp.headers["location"].startswith("/lavori/preventivi/dashboard")
 
 
-def test_crea_preventivo_rapido_ignora_righe_voci_vuote(client_http, db, utente_test, cliente_test):
-    """Righe voci senza descrizione (lasciate vuote dall'utente) non
-    devono generare VocePreventivo fantasma."""
-    resp = client_http.post(
-        "/lavori/nuovo-rapido",
-        data={
-            "cliente_id": str(cliente_test.id),
-            "titolo": "Preventivo senza voci",
-            "data_lavoro": oggi_str,
-            "stato": "preventivo",
-            "voce_descrizione": [""],
-            "voce_quantita": ["1"],
-            "voce_unita": [""],
-            "voce_prezzo": [""],
-        },
-        follow_redirects=False,
-    )
-    assert resp.status_code == 303
-    lavoro_id = int(resp.headers["location"].split("/lavori/")[1].split("/voci")[0])
-
-    voci = crud.get_voci_preventivo(db, utente_test.id, lavoro_id)
-    assert len(voci) == 0
-
-
-def test_crea_lavoro_rapido_normale_non_richiede_voci(client_http, db, utente_test, cliente_test):
+def test_crea_lavoro_rapido_normale_porta_al_dettaglio(client_http, db, utente_test, cliente_test):
     """Un lavoro (non preventivo) creato dalla schermata rapida resta sul
-    vecchio comportamento: redirect al dettaglio, nessuna voce richiesta."""
+    vecchio comportamento: redirect al dettaglio del lavoro."""
     resp = client_http.post(
         "/lavori/nuovo-rapido",
         data={
@@ -219,7 +181,7 @@ def test_crea_lavoro_rapido_normale_non_richiede_voci(client_http, db, utente_te
         follow_redirects=False,
     )
     assert resp.status_code == 303
-    assert "/voci" not in resp.headers["location"]
+    assert "/lavori/preventivi/dashboard" not in resp.headers["location"]
 
 
 def test_crea_lavoro_rapido_cliente_altrui_404(client_http, db, utente_test):
@@ -720,20 +682,10 @@ def test_form_nuovo_rapido_ok(client_http):
     assert resp.status_code == 200
 
 
-def test_form_nuovo_rapido_preventivo_mostra_righe_voci(client_http, cliente_test):
-    """Con ?tipo=preventivo, il form deve offrire righe per le voci
-    preventivo direttamente in questa schermata."""
+def test_form_nuovo_rapido_preventivo_ok(client_http, cliente_test):
+    """GET /lavori/nuovo-rapido?tipo=preventivo → 200."""
     resp = client_http.get("/lavori/nuovo-rapido?tipo=preventivo")
     assert resp.status_code == 200
-    assert 'name="voce_descrizione"' in resp.text
-    assert "Aggiungi voce" in resp.text
-
-
-def test_form_nuovo_rapido_lavoro_non_mostra_righe_voci(client_http, cliente_test):
-    """Per un lavoro normale (non preventivo) le righe voci non servono."""
-    resp = client_http.get("/lavori/nuovo-rapido")
-    assert resp.status_code == 200
-    assert 'name="voce_descrizione"' not in resp.text
 
 
 # ── Validazione importi negativi (pagamenti, materiali, SAL) ─────────────────

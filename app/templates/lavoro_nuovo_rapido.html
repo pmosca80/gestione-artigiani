@@ -93,65 +93,6 @@
             font-size: 14px;
             color: #92400e;
         }
-
-        .voci-section { margin-bottom: 20px; }
-        .voci-section > label {
-            display: block;
-            font-size: 13px;
-            font-weight: 700;
-            color: #374151;
-            margin-bottom: 7px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .voce-row {
-            display: grid;
-            grid-template-columns: 1fr 60px 60px 90px 32px;
-            gap: 6px;
-            margin-bottom: 8px;
-            align-items: center;
-        }
-        .voce-row input {
-            box-sizing: border-box;
-            padding: 10px 10px;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 9px;
-            font-size: 14px;
-            font-family: inherit;
-            outline: none;
-            background: white;
-            color: #111827;
-        }
-        .voce-row input:focus { border-color: #7c3aed; }
-        .voce-rimuovi {
-            background: #fef2f2;
-            color: #dc2626;
-            border: none;
-            border-radius: 9px;
-            width: 32px;
-            height: 38px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .voce-aggiungi {
-            background: #f3f4f6;
-            color: #374151;
-            border: none;
-            border-radius: 9px;
-            padding: 10px 14px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 4px;
-        }
-        .voci-totale {
-            text-align: right;
-            font-size: 13px;
-            font-weight: 700;
-            color: #6b7280;
-            margin-top: 10px;
-        }
-        .voci-totale span { color: #111827; }
     </style>
 </head>
 <body>
@@ -202,23 +143,6 @@
         </div>
 
         {% if stato_iniziale == "preventivo" %}
-        <div class="voci-section">
-            <label>Voci preventivo</label>
-            <div id="voci-rows">
-                <div class="voce-row">
-                    <input type="text" name="voce_descrizione" placeholder="Descrizione (es. Caldaia, Manodopera…)">
-                    <input type="number" name="voce_quantita" value="1" step="0.01" min="0" title="Quantità">
-                    <input type="text" name="voce_unita" placeholder="pz/h" title="Unità di misura">
-                    <input type="number" name="voce_prezzo" step="0.01" min="0" placeholder="€" title="Prezzo unitario">
-                    <button type="button" class="voce-rimuovi" onclick="rimuoviVoceRow(this)" title="Rimuovi">✕</button>
-                </div>
-            </div>
-            <button type="button" class="voce-aggiungi" onclick="aggiungiVoceRow()">+ Aggiungi voce</button>
-            <div class="voci-totale">Totale voci: <span id="voci-totale-val">€ 0,00</span></div>
-        </div>
-        {% endif %}
-
-        {% if stato_iniziale == "preventivo" %}
         <button type="submit" class="rapido-submit">Crea preventivo →</button>
         {% else %}
         <button type="submit" class="rapido-submit">Crea lavoro →</button>
@@ -260,56 +184,6 @@
         if (visibili.length === 1) {
             sel.value = visibili[0].value;
             document.getElementById('titolo').focus();
-        }
-    });
-})();
-
-function aggiungiVoceRow() {
-    var rows = document.getElementById('voci-rows');
-    if (!rows) return;
-    var riga = rows.firstElementChild.cloneNode(true);
-    riga.querySelectorAll('input').forEach(function (inp) {
-        if (inp.name === 'voce_quantita') { inp.value = '1'; }
-        else { inp.value = ''; }
-    });
-    rows.appendChild(riga);
-    riga.querySelector('input').focus();
-}
-
-function rimuoviVoceRow(btn) {
-    var rows = document.getElementById('voci-rows');
-    var riga = btn.closest('.voce-row');
-    if (rows && riga) {
-        if (rows.children.length > 1) {
-            riga.remove();
-        } else {
-            riga.querySelectorAll('input').forEach(function (inp) {
-                inp.value = inp.name === 'voce_quantita' ? '1' : '';
-            });
-        }
-    }
-    aggiornaTotaleVoci();
-}
-
-function aggiornaTotaleVoci() {
-    var rows = document.getElementById('voci-rows');
-    var totaleEl = document.getElementById('voci-totale-val');
-    if (!rows || !totaleEl) return;
-    var totale = 0;
-    rows.querySelectorAll('.voce-row').forEach(function (riga) {
-        var q = parseFloat(riga.querySelector('[name="voce_quantita"]').value) || 0;
-        var p = parseFloat(riga.querySelector('[name="voce_prezzo"]').value) || 0;
-        totale += q * p;
-    });
-    totaleEl.textContent = '€ ' + totale.toFixed(2).replace('.', ',');
-}
-
-(function () {
-    var rows = document.getElementById('voci-rows');
-    if (!rows) return;
-    rows.addEventListener('input', function (e) {
-        if (e.target.name === 'voce_quantita' || e.target.name === 'voce_prezzo') {
-            aggiornaTotaleVoci();
         }
     });
 })();
