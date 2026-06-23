@@ -228,6 +228,22 @@ def _footer(story, azienda, W, S):
     story.append(_p(" · ".join(_az_lines(azienda)), S["small"]))
 
 
+def _totali_fattura(lavoro, voci, forfettario: bool, aliquota: float):
+    """Imponibile/IVA/totale per la fattura PDF. Se ci sono voci, il
+    totale deve coincidere con quelle appena elencate nel documento — non
+    con importo_consuntivo/totale_iva, calcolati solo quando si salva la
+    scheda lavoro e quindi potenzialmente scollegati dalle voci attuali."""
+    if voci:
+        imponibile = sum(float(v.quantita or 1) * float(v.prezzo_unitario or 0) for v in voci)
+        totale_iva = 0.0 if forfettario else round(imponibile * aliquota / 100, 2)
+        totale_doc = imponibile + totale_iva
+    else:
+        imponibile = float(lavoro.importo_consuntivo or 0)
+        totale_iva = 0.0 if forfettario else float(lavoro.totale_iva or 0)
+        totale_doc = float(lavoro.totale_documento or imponibile + totale_iva)
+    return imponibile, totale_iva, totale_doc
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
@@ -288,11 +304,9 @@ def genera_pdf_fattura(lavoro, cliente, azienda, voci=None) -> bytes:
 
     story.append(Spacer(1, 0.5 * cm))
 
-    imponibile = float(lavoro.importo_consuntivo or 0)
-    aliquota   = float(lavoro.aliquota_iva if lavoro.aliquota_iva is not None else 22)
-    totale_iva = 0.0 if forfettario else float(lavoro.totale_iva or 0)
-    totale_doc = float(lavoro.totale_documento or imponibile + totale_iva)
-    bollo      = 2.0 if (forfettario and imponibile > 77.47) else 0.0
+    aliquota = float(lavoro.aliquota_iva if lavoro.aliquota_iva is not None else 22)
+    imponibile, totale_iva, totale_doc = _totali_fattura(lavoro, voci, forfettario, aliquota)
+    bollo = 2.0 if (forfettario and imponibile > 77.47) else 0.0
 
     rows = [("Imponibile", _euro(imponibile))]
     if forfettario:

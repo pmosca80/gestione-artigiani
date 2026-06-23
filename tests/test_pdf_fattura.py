@@ -12,7 +12,7 @@ from datetime import date
 import pytest
 
 from app import models
-from app.services.pdf_fattura import genera_pdf_fattura, genera_pdf_preventivo
+from app.services.pdf_fattura import genera_pdf_fattura, genera_pdf_preventivo, _totali_fattura
 
 oggi = date.today()
 oggi_str = str(oggi)
@@ -67,6 +67,53 @@ def test_fattura_con_voci(db, utente_test, cliente_test, lavoro_test):
     voci = [_voce(1, "Manodopera", 2, 50.0), _voce(2, "Materiali", 1, 100.0)]
     pdf = genera_pdf_fattura(lavoro_test, cliente_test, _azienda(), voci=voci)
     _assert_pdf_valido(pdf)
+
+
+# ── _totali_fattura: il totale deve riflettere le voci, non il dato salvato ──
+
+def test_totali_fattura_con_voci_ignora_importo_consuntivo_scollegato(db, utente_test, cliente_test, lavoro_test):
+    """Regressione: importo_consuntivo era rimasto a 200€ (es. non
+    ricalcolato dopo l'ultima modifica delle voci), ma le voci attuali
+    valgono 300€. Il totale della fattura deve riflettere le voci elencate
+    nel documento, non il valore salvato e potenzialmente disallineato."""
+    lavoro_test.importo_consuntivo = 200.0
+    lavoro_test.totale_iva = 44.0
+    lavoro_test.totale_documento = 244.0
+    lavoro_test.aliquota_iva = 22
+    db.commit()
+
+    voci = [_voce(1, "Manodopera", 2, 50.0), _voce(2, "Materiali", 1, 200.0)]  # 100 + 200 = 300
+
+    imponibile, totale_iva, totale_doc = _totali_fattura(lavoro_test, voci, forfettario=False, aliquota=22.0)
+
+    assert imponibile == 300.0
+    assert abs(totale_iva - 66.0) < 0.01
+    assert abs(totale_doc - 366.0) < 0.01
+
+
+def test_totali_fattura_senza_voci_usa_importo_consuntivo(db, utente_test, cliente_test, lavoro_test):
+    """Senza voci, nessuna fonte alternativa: resta il dato salvato sul
+    lavoro (comportamento di sempre)."""
+    lavoro_test.importo_consuntivo = 200.0
+    lavoro_test.totale_iva = 44.0
+    lavoro_test.totale_documento = 244.0
+    db.commit()
+
+    imponibile, totale_iva, totale_doc = _totali_fattura(lavoro_test, None, forfettario=False, aliquota=22.0)
+
+    assert imponibile == 200.0
+    assert totale_iva == 44.0
+    assert totale_doc == 244.0
+
+
+def test_totali_fattura_regime_forfettario_niente_iva(db, utente_test, cliente_test, lavoro_test):
+    """Regime forfettario: IVA sempre zero anche con voci."""
+    voci = [_voce(1, "Manodopera", 2, 50.0)]
+    imponibile, totale_iva, totale_doc = _totali_fattura(lavoro_test, voci, forfettario=True, aliquota=22.0)
+
+    assert imponibile == 100.0
+    assert totale_iva == 0.0
+    assert totale_doc == 100.0
 
 
 def test_fattura_regime_forfettario_senza_iva_e_con_bollo(db, utente_test, cliente_test, lavoro_test):

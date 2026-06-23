@@ -345,6 +345,39 @@ def test_elimina_voce_preventivo(client_http, db, utente_test, cliente_test, lav
     assert len(voci_rimaste) == 0
 
 
+def test_aggiungi_voce_ricalcola_importo_consuntivo(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Regressione: aggiungere una voce non aggiornava importo_consuntivo
+    finché non si salvava separatamente la scheda "modifica lavoro" — la
+    parte economica (e i PDF) restava scollegata dalle voci appena
+    inserite. POST /voci deve ricalcolare subito il totale."""
+    assert (lavoro_test.importo_consuntivo or 0) == 0
+
+    client_http.post(
+        f"/lavori/{lavoro_test.id}/voci",
+        data={"descrizione": "Caldaia", "quantita": "1", "unita_misura": "pz", "prezzo_unitario": "450"},
+        follow_redirects=False,
+    )
+
+    db.refresh(lavoro_test)
+    assert lavoro_test.importo_consuntivo == 450.0
+
+
+def test_elimina_voce_ricalcola_importo_consuntivo(client_http, db, utente_test, cliente_test, lavoro_test):
+    """Eliminare l'ultima voce deve far ricadere il consuntivo sul vecchio
+    calcolo (ore×tariffa, qui 8h×35€=280 dalla fixture), non lasciare il
+    valore della voce appena rimossa (450€)."""
+    voce = _voce(db, utente_test.id, lavoro_test.id, "Voce", prezzo=450.0)
+    from app.services.calcoli import calcola_totali_lavoro
+    calcola_totali_lavoro(db, lavoro_test.id)
+    db.refresh(lavoro_test)
+    assert lavoro_test.importo_consuntivo == 450.0
+
+    client_http.post(f"/lavori/voci-preventivo/{voce.id}/elimina", follow_redirects=False)
+
+    db.refresh(lavoro_test)
+    assert lavoro_test.importo_consuntivo == 280.0
+
+
 def test_voci_lavoro_mostra_catalogo_magazzino(client_http, db, utente_test, cliente_test, lavoro_test):
     """La pagina voci preventivo deve offrire un selettore rapido dei
     materiali a magazzino (prezzo/unità di misura precompilati), in modo

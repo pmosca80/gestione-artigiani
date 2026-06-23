@@ -948,6 +948,7 @@ def aggiungi_voce_lavoro(
     if not lavoro:
         raise HTTPException(status_code=404, detail="Lavoro non trovato")
     crud.crea_voce_preventivo(db, user_id, lavoro_id, clean(descrizione, DESCRIZIONE_MAX), quantita, unita_misura, prezzo_unitario)
+    calcola_totali_lavoro(db, lavoro_id)
     return RedirectResponse(url=f"/lavori/{lavoro_id}/voci", status_code=303)
 
 @router.post("/voci-preventivo/{voce_id}/elimina")
@@ -956,6 +957,7 @@ def elimina_voce_preventivo(voce_id: int, db: Session = Depends(get_db), user_id
     lavoro_id = voce.lavoro_id if voce else None
     crud.elimina_voce_preventivo(db, voce_id, user_id)
     if lavoro_id:
+        calcola_totali_lavoro(db, lavoro_id)
         return RedirectResponse(url=f"/lavori/{lavoro_id}/voci", status_code=303)
     return RedirectResponse(url="/lavori/", status_code=303)
 
